@@ -1,0 +1,9 @@
+node_modules
+dist
+.cache
+.vercel
+*.tsbuildinfo
+legacy/dist
+legacy/node_modules
+*:Zone.Identifier
+.env*

@@ -1,0 +1,56 @@
+{
+  "name": "octagoniq",
+  "version": "3.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Hub de dados do UFC: eventos, cards, resultados, rankings oficiais, perfis e histórico de lutadores em tempo real.",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit -p . && vite build",
+    "start": "node server/index.ts",
+    "typecheck": "tsc --noEmit -p .",
+    "vercel-build": "node scripts/vercel-build.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/archivo": "^5.3.0",
+    "@fontsource-variable/fraunces": "^5.3.0",
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
+    "@fontsource/barlow-condensed": "^5.3.0",
+    "@phosphor-icons/react": "^2.1.10",
+    "@tanstack/query-sync-storage-persister": "^5.104.4",
+    "@tanstack/react-query": "^5.104.4",
+    "@tanstack/react-query-persist-client": "^5.104.4",
+    "circle-flags": "^2.8.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "cn": "^0.5.0",
+    "echarts": "^6.1.0",
+    "embla-carousel-react": "^8.6.0",
+    "flag-icons": "^7.6.0",
+    "i18n-iso-countries": "^7.14.0",
+    "lucide-react": "^1.59.0",
+    "motion": "^14.3.0",
+    "node-html-parser": "^9.0.4",
+    "radix-ui": "^1.8.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router-dom": "^7.18.4",
+    "tw-animate-css": "^1.4.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "shadcn": "^4.22.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~5.9.3",
+    "vite": "^8.3.4"
+  }
+}

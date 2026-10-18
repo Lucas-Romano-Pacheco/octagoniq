@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#faf8f4" />
+    <meta name="description" content="OctagonIQ: eventos, resultados, rankings oficiais e estatísticas de todos os lutadores do UFC, em tempo real." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>OctagonIQ</title>
+    <script>
+      // aplica o tema salvo antes da primeira pintura
+      try {
+        var t = localStorage.getItem('octagoniq-theme');
+        if (t === 'dark' || (t !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.classList.add('dark');
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

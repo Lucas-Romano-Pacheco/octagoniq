@@ -1,0 +1,13 @@
+{
+  "name": "octagoniq",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Dashboard de análise do UFC: rankings, perfis, análise de lutas, H2H e arquivo de eventos.",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/build.mjs --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "3.4.17"
+  }
+}

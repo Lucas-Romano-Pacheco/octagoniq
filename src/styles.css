@@ -1,0 +1,297 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* =========================================================
+   OctagonIQ · identidade editorial
+   Papel quente, tinta azul-marinho, serifada expressiva nos títulos
+   (Fraunces) e sans geométrica no texto (Plus Jakarta Sans).
+   Vermelho UFC como acento e dourado nos CTAs e no cinturão.
+   Cores de dados validadas na superfície branca:
+   canto vermelho #e34948 × canto azul #2a78d6.
+   ========================================================= */
+
+/* Paleta em variáveis: valores claros em :root, escuros em .dark.
+   O Tailwind lê tudo via @theme inline, então as classes trocam sozinhas. */
+:root {
+  --bg: #faf8f4;
+  --surface: #ffffff;
+  --surface-2: #f5f2ec;
+  --surface-3: #ece7de;
+  --cream: #fff1da;
+  --cream-2: #ffe7c0;
+  --cream-3: #ffd998;
+  --glow: rgb(255 241 218 / 0.9);
+  --band: #14183e;
+  --line: #ebe6dc;
+  --line-2: #ddd6c9;
+  --fg: #14183e;
+  --fg-2: #4b5072;
+  --fg-3: #8a8ea6;
+  --brand: #d62839;
+  --brand-soft: #fdecee;
+  --gold: #f1a501;
+  --gold-ink: #8a5d00;
+  --gold-soft: #fff4d6;
+  --red: #e34948;
+  --blue: #2a78d6;
+  --orange: #eb6834;
+  --aqua: #1baf7a;
+  --win: #13834a;
+  --win-soft: #e3f4ea;
+  --loss: #c8323a;
+  --loss-soft: #fbe6e7;
+  --draw: #9a6700;
+  --draw-soft: #fff2cc;
+  --shadow-soft: 0 1px 2px rgb(20 24 62 / 0.04), 0 18px 48px -22px rgb(20 24 62 / 0.18);
+  --shadow-lift: 0 2px 4px rgb(20 24 62 / 0.05), 0 30px 70px -28px rgb(20 24 62 / 0.30);
+  --shadow-pop: 0 24px 64px -16px rgb(20 24 62 / 0.28), 0 0 0 1px rgb(20 24 62 / 0.06);
+  --shadow-cta: 0 14px 30px -10px rgb(241 165 1 / 0.65);
+  --cutout-shadow: rgb(20 24 62 / 0.25);
+}
+
+/* Noite: azul-marinho profundo da própria marca, não cinza genérico.
+   Cores de dados validadas na superfície #171a33 (vermelho #e66767 × azul #3987e5). */
+.dark {
+  --bg: #0d0f22;
+  --surface: #171a33;
+  --surface-2: #1f2340;
+  --surface-3: #2a2f52;
+  --cream: #2a2546;
+  --cream-2: #332a48;
+  --cream-3: #4a3a3e;
+  --glow: rgb(241 165 1 / 0.10);
+  --band: #070816;
+  --line: #262a49;
+  --line-2: #343a60;
+  --fg: #f2f0ea;
+  --fg-2: #b9bbd2;
+  --fg-3: #8287a6;
+  --brand: #ff4d5e;
+  --brand-soft: rgb(255 77 94 / 0.14);
+  --gold: #f5b020;
+  --gold-ink: #f5c55a;
+  --gold-soft: rgb(245 176 32 / 0.14);
+  --red: #e66767;
+  --blue: #3987e5;
+  --orange: #d95926;
+  --aqua: #199e70;
+  --win: #45d08a;
+  --win-soft: rgb(69 208 138 / 0.14);
+  --loss: #ff6b72;
+  --loss-soft: rgb(255 107 114 / 0.14);
+  --draw: #f5c542;
+  --draw-soft: rgb(245 197 66 / 0.15);
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.25), 0 18px 48px -22px rgb(0 0 0 / 0.6);
+  --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.3), 0 30px 70px -28px rgb(0 0 0 / 0.75);
+  --shadow-pop: 0 24px 64px -16px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(255 255 255 / 0.06);
+  --shadow-cta: 0 14px 30px -12px rgb(245 176 32 / 0.45);
+  --cutout-shadow: rgb(0 0 0 / 0.55);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-cream: var(--cream);
+  --color-cream-2: var(--cream-2);
+  --color-cream-3: var(--cream-3);
+  --color-band: var(--band);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-fg: var(--fg);
+  --color-fg-2: var(--fg-2);
+  --color-fg-3: var(--fg-3);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-gold: var(--gold);
+  --color-gold-ink: var(--gold-ink);
+  --color-gold-soft: var(--gold-soft);
+  --color-red: var(--red);
+  --color-blue: var(--blue);
+  --color-orange: var(--orange);
+  --color-aqua: var(--aqua);
+  --color-win: var(--win);
+  --color-win-soft: var(--win-soft);
+  --color-loss: var(--loss);
+  --color-loss-soft: var(--loss-soft);
+  --color-draw: var(--draw);
+  --color-draw-soft: var(--draw-soft);
+}
+
+@theme {
+  --font-sans: "Inter Variable", "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Barlow Condensed", "Arial Narrow", ui-sans-serif, sans-serif;
+  --font-mono: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --radius-card: 24px;
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Variáveis do shadcn/ui apontando para a paleta */
+:root, .dark {
+  --background: var(--bg);
+  --foreground: var(--fg);
+  --card: var(--surface);
+  --card-foreground: var(--fg);
+  --popover: var(--surface);
+  --popover-foreground: var(--fg);
+  --primary: var(--fg);
+  --primary-foreground: var(--bg);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--fg);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--fg-3);
+  --accent: var(--surface-2);
+  --accent-foreground: var(--fg);
+  --destructive: var(--loss);
+  --border: var(--line);
+  --input: var(--line-2);
+  --ring: var(--blue);
+  --chart-1: var(--blue);
+  --chart-2: var(--orange);
+  --chart-3: var(--aqua);
+  --chart-4: var(--red);
+  --chart-5: var(--gold);
+  --radius: 0.875rem;
+}
+
+@theme inline {
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+}
+
+@layer base {
+  html { color-scheme: light; -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  html.dark { color-scheme: dark; }
+  body { overflow-x: clip; transition: background-color 0.3s var(--ease-out-soft), color 0.3s var(--ease-out-soft); }
+  body {
+    @apply bg-bg font-sans text-fg antialiased;
+    font-size: 15px;
+    line-height: 1.6;
+    font-optical-sizing: auto;
+    font-feature-settings: 'cv11', 'ss01', 'tnum' 0;
+  }
+  * { @apply border-line; scrollbar-width: thin; scrollbar-color: var(--color-line-2) transparent; }
+  ::selection { background: var(--color-gold-soft); color: var(--color-fg); }
+  :focus-visible { outline: 2px solid var(--color-blue); outline-offset: 3px; border-radius: 8px; }
+  img { color: transparent; }
+  button:not(:disabled), [role="button"]:not(:disabled) { cursor: pointer; }
+  h1, h2, h3 { text-wrap: balance; }
+}
+
+@layer components {
+  /* Cartão padrão: branco, arredondado, sombra difusa */
+  .panel { @apply rounded-[var(--radius-card)] bg-surface shadow-[var(--shadow-soft)] ring-1 ring-fg/[0.04]; }
+  /* Seção editorial, sem card: régua grossa no topo e conteúdo direto no fundo (como página de jornal esportivo).
+     Card fica reservado para o que é clicável ou para os duelos. */
+  .rule { @apply border-t-[3px] border-fg pt-4; }
+  .rule-header { @apply flex items-baseline justify-between gap-3 pb-3; }
+  .panel-header { @apply flex items-center justify-between gap-3 px-6 pb-2 pt-5; }
+  .panel-title { @apply font-display text-[24px] font-bold leading-tight tracking-[0.005em] text-fg; }
+  /* Spotlight: brilho que segue o cursor (posição em --mx/--my, cor em --spot).
+     Fica atrás do conteúdo: isolation cria o contexto e o z-index -1 pinta sobre o fundo do card. */
+  .spotlight { position: relative; isolation: isolate; }
+  .spotlight::before {
+    content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+    opacity: 0; transition: opacity .35s ease;
+    background: radial-gradient(380px circle at var(--mx, 50%) var(--my, 50%), color-mix(in oklab, var(--spot, var(--color-brand)) 13%, transparent), transparent 65%);
+  }
+  .spotlight::after {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; padding: 1px;
+    opacity: 0; transition: opacity .35s ease;
+    background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), color-mix(in oklab, var(--spot, var(--color-brand)) 55%, transparent), transparent 70%);
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  }
+  @media (hover: hover) { .spotlight:hover::before, .spotlight:hover::after { opacity: 1; } }
+  /* brilho do destaque da página inicial: largura da janela, sem bordas (esmaece em cima e embaixo) */
+  .hero-glow {
+    position: absolute; z-index: -1; pointer-events: none; top: -160px; bottom: -120px; left: 50%; width: 100vw; transform: translateX(-50%);
+    opacity: 0; transition: opacity .6s ease;
+    background: radial-gradient(700px circle at var(--mx, 50%) var(--my, 50%), color-mix(in oklab, var(--color-gold) 15%, transparent), transparent 70%);
+    mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 78%, transparent);
+  }
+
+  /* Eyebrow: caixa-alta vermelha, como nas seções do layout de referência */
+  .eyebrow { @apply text-[13px] font-bold uppercase tracking-[0.12em] text-brand; }
+  .label { @apply text-[12.5px] font-semibold uppercase tracking-[0.08em] text-fg-3; }
+
+  /* Títulos serifados */
+  .display { @apply font-display font-extrabold uppercase leading-[0.92] tracking-[0.005em]; }
+
+  .num { font-variant-numeric: tabular-nums; }
+
+  .btn { @apply inline-flex h-10 items-center gap-2 rounded-full border border-line-2 bg-surface px-5 text-[14px] font-semibold text-fg transition-all duration-200 hover:-translate-y-px hover:border-fg/25 hover:shadow-[var(--shadow-soft)] disabled:opacity-50; }
+  .btn-primary { @apply inline-flex h-12 items-center gap-2 rounded-full bg-gold px-7 text-[15px] font-semibold text-[#14183e] shadow-[var(--shadow-cta)] transition-all duration-200 hover:-translate-y-0.5 hover:brightness-105; }
+  .btn-dark { @apply inline-flex h-11 items-center gap-2 rounded-full bg-fg px-6 text-[14px] font-semibold text-bg transition-all duration-200 hover:-translate-y-px hover:bg-fg/90; }
+  .btn-ghost { @apply inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[13.5px] font-semibold text-fg-2 transition-colors hover:bg-surface-2 hover:text-fg; }
+
+  .link { @apply text-fg underline decoration-fg/20 underline-offset-4 hover:decoration-brand; }
+
+  /* Tabela editorial */
+  .table { @apply w-full border-collapse text-[15px]; }
+  .table th { @apply h-11 border-b border-line px-4 text-left text-[12.5px] font-semibold uppercase tracking-[0.08em] text-fg-3 whitespace-nowrap; }
+  .table td { @apply h-14 border-b border-line/70 px-4 align-middle; }
+  .table tbody tr { @apply transition-colors hover:bg-surface-2/70; }
+  .table tbody tr:last-child td { @apply border-b-0; }
+}
+
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+
+/* Faixa de próximos eventos */
+@keyframes ticker { from { transform: translateX(0) } to { transform: translateX(-50%) } }
+.ticker-track { animation: ticker var(--ticker-duration, 60s) linear infinite; }
+.ticker:hover .ticker-track, .ticker:focus-within .ticker-track { animation-play-state: paused; }
+
+@keyframes pulse-dot { 0%, 100% { opacity: 1 } 50% { opacity: 0.35 } }
+.live-dot { animation: pulse-dot 1.4s ease-in-out infinite; }
+
+@keyframes float-y { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-8px) } }
+.float { animation: float-y 6s ease-in-out infinite; }
+
+@keyframes shimmer { from { background-position: -200% 0 } to { background-position: 200% 0 } }
+.skeleton {
+  background: linear-gradient(90deg, var(--color-surface-2) 25%, var(--color-surface-3) 50%, var(--color-surface-2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .live-dot, .skeleton, .float, .ticker-track { animation: none; }
+  .ticker { overflow-x: auto; scrollbar-width: none; }
+  .ticker-copy { display: none; }
+  * { transition-duration: 0ms !important; }
+}

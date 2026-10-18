@@ -1,0 +1,66 @@
+<title>OctagonIQ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Dashboard de análise do UFC: rankings, perfis, análise de lutas, comparação direta e arquivo de eventos.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anybody:ital,wdth,wght@0,50..150,400..900;1,50..150,400..900&family=Hanken+Grotesk:wght@400;500;600;700&family=Martian+Mono:wdth,wght@75..112.5,400..700&display=swap">
+<style>/*__CSS__*/</style>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+
+<div id="app">
+  <header class="topbar">
+    <div class="wrap flex flex-col gap-3 pt-3">
+      <div class="flex flex-wrap items-center gap-4">
+        <button class="flex items-center gap-3 shrink-0" data-go="painel" aria-label="OctagonIQ, painel">
+          <svg class="brand-mark" viewBox="0 0 34 34" aria-hidden="true">
+            <polygon points="10,1.5 24,1.5 32.5,10 32.5,24 24,32.5 10,32.5 1.5,24 1.5,10" fill="none" stroke="#ff2d46" stroke-width="2.6"/>
+            <path d="M9 22 L15 9 L19 17 L22 12 L26 22" fill="none" stroke="#f2b33d" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>
+          </svg>
+          <span class="brand-word">Octagon<b>IQ</b></span>
+        </button>
+        <div class="search flex-1 basis-72" role="search">
+          <i data-lucide="search" class="text-muted"></i>
+          <input id="q" type="search" autocomplete="off" placeholder="Buscar lutador, evento, arena…" aria-label="Buscar lutador ou evento" aria-controls="qres" aria-expanded="false" aria-autocomplete="list">
+          <span class="kbd" aria-hidden="true">/</span>
+          <div id="qres" class="qres" role="listbox" hidden></div>
+        </div>
+        <span class="asof" id="asof"></span>
+      </div>
+      <nav class="tabs" role="tablist" aria-label="Seções">
+        <button class="tab" role="tab" data-tab="painel"><i data-lucide="layout-dashboard"></i>Painel</button>
+        <button class="tab" role="tab" data-tab="rankings"><i data-lucide="trophy"></i>Rankings</button>
+        <button class="tab" role="tab" data-tab="lutadores"><i data-lucide="users"></i>Lutadores</button>
+        <button class="tab" role="tab" data-tab="luta"><i data-lucide="swords"></i>Análise de luta</button>
+        <button class="tab" role="tab" data-tab="confrontos"><i data-lucide="calendar-clock"></i>Confrontos</button>
+        <button class="tab" role="tab" data-tab="arquivo"><i data-lucide="archive"></i>Arquivo</button>
+      </nav>
+    </div>
+    <div class="ticker" aria-label="Resultados recentes"><div class="ticker-track" id="ticker"></div></div>
+  </header>
+
+  <main id="view" class="wrap flex flex-col gap-5 py-6 relative z-[2]"></main>
+
+  <footer class="foot relative z-[2]">
+    <div class="wrap py-8 grid gap-6 md:grid-cols-3">
+      <div>
+        <p class="eyebrow mb-2">Sobre os dados</p>
+        <p>Rankings do release oficial de 25/08/2026, ajustados por eventos posteriores. Resultados de 2024 até o UFC 332 (03/10/2026) e agenda anunciada até 17/10/2026. Cartéis e médias de carreira são aproximados. Round, tempo ou método marcados com ≈ não foram confirmados na pesquisa.</p>
+      </div>
+      <div>
+        <p class="eyebrow mb-2">Simulações</p>
+        <p>O detalhamento round a round, o mapa de golpes e o placar por round são gerados a partir do resultado oficial e do perfil de cada lutador. Probabilidades e odds vêm de um modelo heurístico, não de casas de apostas.</p>
+      </div>
+      <div>
+        <p class="eyebrow mb-2">Fontes consultadas</p>
+        <ul id="sources" class="flex flex-col gap-1"></ul>
+      </div>
+    </div>
+  </footer>
+  <div id="tip" class="tip" role="tooltip" hidden></div>
+</div>
+
+<script>
+/*__JS__*/
+</script>
