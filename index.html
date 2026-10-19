@@ -8,6 +8,34 @@
     <meta name="description" content="OctagonIQ: eventos, resultados, rankings oficiais e estatísticas de todos os lutadores do UFC, em tempo real." />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>OctagonIQ</title>
+    <!-- conexões antecipadas com os domínios das fotos (UFC.com e ESPN) -->
+    <link rel="preconnect" href="https://a.espncdn.com" crossorigin />
+    <link rel="preconnect" href="https://ufc.com" crossorigin />
+    <style>
+      /* casca pintada antes do JavaScript: faixa de eventos, cabeçalho e título, com as cores do tema ativo */
+      .shell { min-height: 100vh; background: #faf8f4; color: #14183e; font-family: system-ui, sans-serif; }
+      .dark .shell { background: #0d0f22; color: #f2f0ea; }
+      .shell-tick { height: 36px; background: #14183e; color: #f2a900; font: 700 11px/36px system-ui, sans-serif; letter-spacing: .16em; padding: 0 24px; text-transform: uppercase; }
+      .dark .shell-tick { background: #090a18; }
+      .shell-head { max-width: 1280px; margin: 0 auto; height: 76px; padding: 0 32px; display: flex; align-items: center; }
+      .shell-logo { font: 800 23px/1 "Arial Narrow", system-ui, sans-serif; letter-spacing: .01em; text-transform: uppercase; }
+      .shell-logo b { background: #d62839; color: #fff; padding: 3px 7px 1px; margin-left: 4px; }
+      .shell-body { max-width: 1280px; margin: 0 auto; padding: 56px 32px; }
+      .shell-body p { margin: 0; font: 700 13px system-ui, sans-serif; letter-spacing: .16em; text-transform: uppercase; color: #d62839; }
+      .shell-body h1 { margin: 16px 0 0; font: 800 clamp(44px, 8vw, 84px)/.95 "Arial Narrow", system-ui, sans-serif; text-transform: uppercase; max-width: 780px; }
+    </style>
+    <script>
+      // começa a buscar os dados da página já agora, em paralelo com o download do JavaScript (o app reaproveita pelo cache HTTP)
+      (function () {
+        var p = location.pathname, q = location.search, m, u = ['/api/upcoming?limit=10']; // a faixa de eventos do topo existe em todas as páginas
+        if (p === '/') u.push('/api/rankings');
+        else if (/^\/rankings/.test(p)) u.push('/api/rankings');
+        else if ((m = p.match(/^\/lutadores\/([a-z0-9-]+)$/))) u.push('/api/fighters/' + m[1] + (/[?&]espn=\d+/.test(q) ? '?espn=' + q.match(/espn=(\d+)/)[1] : ''));
+        else if ((m = p.match(/^\/eventos\/(\d+)\/lutas\/(\d+)$/))) u.push('/api/events/' + m[1] + '/fights/' + m[2]);
+        else if ((m = p.match(/^\/eventos\/(\d+)$/))) u.push('/api/events/' + m[1]);
+        u.forEach(function (h) { var l = document.createElement('link'); l.rel = 'preload'; l.as = 'fetch'; l.href = h; l.crossOrigin = 'anonymous'; document.head.appendChild(l); });
+      })();
+    </script>
     <script>
       // aplica o tema salvo antes da primeira pintura
       try {
@@ -17,7 +45,13 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="shell" aria-hidden="true">
+        <div class="shell-tick">Próximos eventos</div>
+        <div class="shell-head"><span class="shell-logo">Octagon<b>IQ</b></span></div>
+        <div class="shell-body"><p>UFC · eventos, rankings e estatísticas</p><h1>O UFC em números</h1></div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

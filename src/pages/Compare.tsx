@@ -7,7 +7,7 @@ import { fightHref, fighterHref, useFighter, useRankings, useRankingsMeta, useUp
 import { dayMonth, fullDate, nf, recordStr, splitEventName } from '@/lib/format';
 import { FighterPicker } from '@/components/FighterPicker';
 import { CORNER as COLOR, DuelRow, better as cmp, type Side } from '@/components/Duel';
-import { Avatar, CountUp, ErrorState, Flag, HistoryBadge, PageHeader, Panel, RankBadge, Skeleton, Spotlight, Tip } from '@/components/kit';
+import { Avatar, CountUp, ErrorState, Flag, HistoryBadge, OutcomeBadge, PageHeader, Panel, RankBadge, Skeleton, Spotlight, Tip, usePageTitle } from '@/components/kit';
 import { AttrRadar, hasRadar, RADAR_NOTE } from '@/components/Radar';
 
 
@@ -119,7 +119,7 @@ function CommonOpponents({ a, b }: { a: FighterProfile; b: FighterProfile }) {
               return (
                 <li key={h.fightId}>
                   <Link to={fightHref(h.eventId, h.fightId)} className="group flex items-center gap-3 py-3">
-                    {winner ? <Avatar src={winner.headshot} name={winner.name} size={40} ring={COLOR[winA ? 'a' : 'b']} /> : <HistoryBadge h={h} me={a.bio} />}
+                    {winner ? <Avatar src={winner.headshot} name={winner.name} size={40} ring={COLOR[winA ? 'a' : 'b']} /> : <OutcomeBadge outcome={h.outcome} />}
                     <div className="min-w-0">
                       <div className="text-[15px] font-semibold text-fg group-hover:text-brand">
                         {winner ? <>{last(winner.name)} venceu {last(loser.name)}</> : h.outcome === 'D' ? 'Empate' : 'Sem resultado'}
@@ -250,7 +250,10 @@ export default function Compare() {
     setParams(next, { replace: true });
   };
 
+  // isPending (e não isLoading) cobre a restauração do cache; consulta sem lutador escolhido fica desligada
+  const loadA = A.isPending && !!params.get('a'), loadB = B.isPending && !!params.get('b');
   const a = A.data, b = B.data;
+  usePageTitle(a && b ? `${a.bio.name} × ${b.bio.name}` : 'Comparar lutadores');
   const sa = a?.stats, sb = b?.stats;
   const n2 = (v?: number) => nf(v, 2);
   const p0 = (v?: number) => (v === undefined ? '—' : `${nf(v, 0)}%`);
@@ -263,7 +266,7 @@ export default function Compare() {
         <FighterPicker placeholder="Canto azul…" value={b?.bio.name} onClear={() => set('b')} onPick={h => set('b', h.slug, h.espnId)} />
       </div>
 
-      {(A.isLoading || B.isLoading) && <Skeleton className="h-64" />}
+      {(loadA || loadB) && <Skeleton className="min-h-[1800px] h-64" />}
       {(A.isError || B.isError) && <Panel><ErrorState message={(A.error ?? B.error)?.message} /></Panel>}
 
       {a && b ? (
@@ -318,7 +321,7 @@ export default function Compare() {
 
           <CommonOpponents a={a} b={b} />
         </>
-      ) : !(A.isLoading || B.isLoading) && (
+      ) : !(loadA || loadB) && (
         <>
           <p className="text-[15px] text-fg-2">{a || b ? 'Escolha o segundo lutador acima, ou comece por uma destas comparações:' : 'Escolha dois lutadores acima, ou comece por uma destas comparações:'}</p>
           <Suggestions onPick={pickPair} />

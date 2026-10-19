@@ -23,8 +23,10 @@ const Fighters = lazy(() => import('@/pages/Fighters'));
 const Fighter = lazy(() => import('@/pages/Fighter'));
 const Compare = lazy(() => import('@/pages/Compare'));
 const FightPage = lazy(() => import('@/pages/Fight'));
+const About = lazy(() => import('@/pages/About'));
+const Picks = lazy(() => import('@/pages/Picks'));
 
-const page = (el: React.ReactNode) => <Suspense fallback={<Skeleton className="h-96" />}>{el}</Suspense>;
+const page = (el: React.ReactNode) => <Suspense fallback={<Skeleton className="h-[1200px]" />}>{el}</Suspense>;
 
 /* 404 temática: o "placar" da página que não existe */
 const NotFound = () => (
@@ -66,6 +68,8 @@ const router = createBrowserRouter([
       { path: 'lutadores', element: page(<Fighters />) },
       { path: 'lutadores/:slug', element: page(<Fighter />) },
       { path: 'comparar', element: page(<Compare />) },
+      { path: 'palpites/:id?', element: page(<Picks />) },
+      { path: 'sobre', element: page(<About />) },
       { path: '*', element: <NotFound /> },
       ] },
     ],

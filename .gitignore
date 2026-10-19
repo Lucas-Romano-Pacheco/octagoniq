@@ -7,3 +7,10 @@ legacy/dist
 legacy/node_modules
 *:Zone.Identifier
 .env*
+.cache-test
+public/flags
+src/lib/flag-codes.ts
+C:*
+.env
+.env.local
+!.env.example

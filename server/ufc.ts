@@ -85,6 +85,11 @@ export async function athletePage(slug: string): Promise<UfcAthlete | null> {
     if (e instanceof UpstreamError && e.status === 404) return null;
     throw e;
   }
+  return parseAthleteHtml(html, slug);
+}
+
+/** Lê a página de um atleta do UFC.com (função pura, testável com HTML salvo). */
+export function parseAthleteHtml(html: string, slug: string): UfcAthlete | null {
   const root = parse(html);
   const name = txt(root.querySelector('.hero-profile__name'));
   if (!name) return null;

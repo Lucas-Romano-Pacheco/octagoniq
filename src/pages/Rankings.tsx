@@ -3,7 +3,8 @@ import { clsx } from 'clsx';
 import { ArrowDown, ArrowRight, ArrowUp, Crown } from '@phosphor-icons/react';
 import type { BookedMap, RankEntry, RankingDivision, RankingsMeta } from '@shared/types';
 import { fighterHref, useBooked, useRankings, useRankingsMeta } from '@/lib/api';
-import { Avatar, BookedTag, ErrorState, morphPhoto, FlagBackdrop, NationRecord, PageHeader, Panel, Skeleton, SortTh, Tag, Tip, useSort } from '@/components/kit';
+import { Avatar, BookedTag, ErrorState, morphPhoto, FlagBackdrop, NationRecord, PageHeader, Panel, Skeleton, SortTh, Tag, Tip, useSort, usePageTitle } from '@/components/kit';
+import { proxy } from '@/lib/img';
 
 const headshot = (espnId?: string) => (espnId ? `https://a.espncdn.com/i/headshots/mma/players/full/${espnId}.png` : undefined);
 const wins = (rec?: string) => (rec ? Number(rec.split('-')[0]) : undefined);
@@ -124,7 +125,7 @@ function LeaderCard({ division, divisions, meta, booked }: { division: RankingDi
         <div className="mt-3 inline-flex items-center gap-1.5 text-[14px] font-semibold text-fg-2 group-hover:text-brand">Ver perfil e histórico <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></div>
       </div>
       {image
-        ? <img src={image} alt="" className="relative -mb-px h-44 w-auto object-contain transition-transform duration-500 group-hover:scale-[1.03] sm:h-56" />
+        ? <img src={proxy(image, 560)} alt="" decoding="async" className="relative -mb-px h-44 w-auto object-contain transition-transform duration-500 group-hover:scale-[1.03] sm:h-56" />
         : <Avatar src={headshot(m?.espnId)} name={leader.name} size={160} className="relative mb-6 hidden sm:block" />}
     </div>
   );
@@ -132,16 +133,17 @@ function LeaderCard({ division, divisions, meta, booked }: { division: RankingDi
 
 export default function Rankings() {
   const { div } = useParams();
-  const { data, isLoading, isError, refetch } = useRankings();
+  const { data, isPending: isLoading, isError, refetch } = useRankings();
   const { data: meta } = useRankingsMeta();
   const { data: booked } = useBooked();
   const division = data?.divisions.find(d => d.id === div) ?? data?.divisions[0];
+  usePageTitle(division && `Rankings · ${division.name}`);
 
   return (
     <div>
       <PageHeader eyebrow="Rankings oficiais do UFC" title="Quem manda em cada divisão" meta={data && <>Fonte: <a className="link" href={data.source} target="_blank" rel="noreferrer">UFC.com</a> · consultado às {new Date(data.updatedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</>} />
       {isError && <Panel><ErrorState onRetry={() => refetch()} /></Panel>}
-      {isLoading && <div className="grid gap-6 lg:grid-cols-[220px_1fr]"><Skeleton className="hidden h-96 lg:block" /><Skeleton className="h-[600px]" /></div>}
+      {isLoading && <div className="grid min-h-[1200px] gap-6 lg:grid-cols-[220px_1fr]"><Skeleton className="hidden h-96 lg:block" /><Skeleton className="h-[1100px]" /></div>}
       {data && division && (
         <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
           <DivisionNav divisions={data.divisions} active={division.id} />

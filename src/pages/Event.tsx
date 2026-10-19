@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { clsx } from 'clsx';
-import { ArrowLeft, ArrowsClockwise, CaretDown, Crown, MapPin } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowsClockwise, CaretDown, Crown, MapPin, Target } from '@phosphor-icons/react';
 import type { CardSegment, EventDetail, Fight, FighterRef } from '@shared/types';
 import { fighterHref, useEvent } from '@/lib/api';
 import { longDate, mmss, SEGMENT_LABEL, splitEventName, time } from '@/lib/format';
 import { cardSummary } from '@/lib/fights';
 import { FightRow } from '@/components/FightRow';
-import { ErrorState, FlagBackdrop, LiveTag, OctagonFrame, Panel, Skeleton, Tag } from '@/components/kit';
+import { LiveBar, useFightNotices, useLiveTitle } from '@/components/LiveBar';
+import { EventSkeleton } from '@/components/Skeletons';
+import { Defer, ErrorState, FlagBackdrop, LiveTag, OctagonFrame, Panel, Tag, usePageTitle } from '@/components/kit';
+import { proxy } from '@/lib/img';
 
 /* ---------- Resumo da noite (faixa de placar) ---------- */
 
@@ -43,7 +46,7 @@ function Cutout({ f, right }: { f: FighterRef; right?: boolean }) {
   if (!f.bodyImage || failed) return null;
   return (
     <Link to={fighterHref(f)} aria-label={f.name} className={clsx('absolute bottom-0 h-[96%] w-[52%]', right ? 'right-0' : 'left-0')}>
-      <img src={f.bodyImage} alt={f.name} onError={() => setFailed(true)}
+      <img src={proxy(f.bodyImage, 640)} alt={f.name} fetchPriority="high" decoding="async" onError={() => setFailed(true)}
         className={clsx('absolute bottom-0 h-full w-auto max-w-none object-contain drop-shadow-[0_30px_40px_var(--cutout-shadow)] [mask-image:linear-gradient(to_bottom,black_82%,transparent)]',
           right ? 'right-0 -scale-x-100' : 'left-0')} />
     </Link>
@@ -110,7 +113,7 @@ function Segment({ e, seg }: { e: EventDetail; seg: CardSegment }) {
   if (!fights.length) return null;
   return (
     <Panel key={seg} bodyClass={clsx('divide-y divide-line/70 px-2 pb-2', !open && 'hidden')}
-      title={<h2 id={seg} className="panel-title scroll-mt-40">{SEGMENT_LABEL[seg]} <span className="ml-1.5 align-middle font-sans text-[14px] font-semibold text-fg-3">{fights.length} lutas</span></h2>}
+      title={<h2 className="panel-title">{SEGMENT_LABEL[seg]} <span className="ml-1.5 align-middle font-sans text-[14px] font-semibold text-fg-3">{fights.length} lutas</span></h2>}
       action={
         <div className="flex items-center gap-2">
           <span className="num rounded-md bg-surface-2 px-2.5 py-1 text-[13.5px] font-semibold text-fg-2">{[e.segmentStart[seg] && time(e.segmentStart[seg]!), fights[0].broadcast].filter(Boolean).join(' · ')}</span>
@@ -128,9 +131,12 @@ function Segment({ e, seg }: { e: EventDetail; seg: CardSegment }) {
 
 export default function Event() {
   const { id } = useParams();
-  const { data: e, isLoading, isError, error, refetch, isFetching, dataUpdatedAt } = useEvent(id);
+  const { data: e, isPending: isLoading, isError, error, refetch, isFetching, dataUpdatedAt } = useEvent(id);
+  const notices = useFightNotices(e);
+  usePageTitle(e?.name);
+  useLiveTitle(e); // depois do título da página: durante a luta, o título ao vivo vence
 
-  if (isLoading) return <div className="space-y-4"><Skeleton className="h-24" /><Skeleton className="h-96" /></div>;
+  if (isLoading) return <EventSkeleton />;
   if (isError || !e) return <Panel><ErrorState message={error?.message} onRetry={() => refetch()} /></Panel>;
 
   return (
@@ -142,9 +148,18 @@ export default function Event() {
           Atualiza a cada 20 s · {new Date(dataUpdatedAt).toLocaleTimeString('pt-BR')}
         </div>
       )} />
+      {e.status === 'in' && <LiveBar e={e} notices={notices} />}
+      {e.status !== 'post' && (
+        <Link to={`/palpites/${e.id}`} className="btn-primary w-fit"><Target weight="bold" className="h-5 w-5" /> Fazer meus palpites</Link>
+      )}
       <Summary fights={e.fights} />
       <SegmentNav e={e} />
-      {ORDER.map(seg => <Segment key={seg} e={e} seg={seg} />)}
+      {ORDER.map((seg, i) => (
+        // o id fica no invólucro (sempre presente): o menu fixo rola até ele mesmo com a seção ainda adiada
+        <div key={seg} id={seg} className="scroll-mt-40">
+          {i === 0 ? <Segment e={e} seg={seg} /> : <Defer minHeight={e.fights.filter(f => f.segment === seg).length * 100 + 80} margin="700px"><Segment e={e} seg={seg} /></Defer>}
+        </div>
+      ))}
     </div>
   );
 }

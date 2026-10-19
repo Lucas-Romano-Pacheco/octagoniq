@@ -60,7 +60,7 @@ export function OddsChip({ ml, p, tier, label, compact }: { ml?: number; p: numb
   return (
     <Tip title={`${label} · ${Math.round(p * 100)}% de chance`}
       content={ml === undefined ? 'Probabilidade implícita, sem a margem da casa.' : `Linha ${fmtMoneyline(ml)}: ${ml < 0 ? `aposta ${-ml} para ganhar 100` : `aposta 100 para ganhar ${ml}`}. Probabilidade sem a margem da casa.`}>
-      <span tabIndex={0} className={clsx('inline-flex h-7 cursor-help items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 text-[13px] font-semibold', TIER_CLS[tier])}>
+      <span tabIndex={0} className={clsx('inline-flex h-8 cursor-help items-center gap-1.5 whitespace-nowrap rounded-md px-3 text-[14px] font-semibold', TIER_CLS[tier])}>
         <span className="num">{fmtMoneyline(ml)}</span>
         {!compact && <><span className="opacity-40">·</span><span>{label}</span></>}
       </span>

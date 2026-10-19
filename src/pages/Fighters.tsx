@@ -5,7 +5,7 @@ import { ArrowRight, CalendarCheck, Crown, UsersThree } from '@phosphor-icons/re
 import type { BookedMap, RankEntry, RankingDivision, RankingsMeta } from '@shared/types';
 import { fighterHref, useBooked, useRankings, useRankingsMeta } from '@/lib/api';
 import { FighterPicker } from '@/components/FighterPicker';
-import { Avatar, BookedTag, Empty, morphPhoto, ErrorState, Flag, PageHeader, Panel, Skeleton } from '@/components/kit';
+import { Avatar, BookedTag, Empty, morphPhoto, ErrorState, Flag, PageHeader, Panel, Skeleton, usePageTitle } from '@/components/kit';
 
 /* Lutadores: a busca em destaque; abaixo, os ranqueados agrupados por divisão em listas editoriais
    (sem cards), com filtros rápidos (brasileiros, campeões, luta marcada) e por divisão, guardados na URL. */
@@ -49,9 +49,10 @@ export default function Fighters() {
   const [params, setParams] = useSearchParams();
   const quick = (params.get('filtro') as Quick) || 'todos';
   const div = params.get('divisao') ?? 'todas';
-  const { data, isLoading, isError, refetch } = useRankings();
+  const { data, isPending: isLoading, isError, refetch } = useRankings();
   const { data: meta } = useRankingsMeta();
   const { data: booked } = useBooked();
+  usePageTitle('Lutadores');
 
   const set = (k: string, v: string, def: string) => {
     const next = new URLSearchParams(params);

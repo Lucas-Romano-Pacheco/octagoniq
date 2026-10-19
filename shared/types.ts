@@ -44,6 +44,8 @@ export interface Fight {
   red: FighterRef;
   blue: FighterRef;
   result?: FightResult;
+  /** luta em andamento: round e relógio atuais */
+  live?: { round?: number; clock?: string };
   broadcast?: string;
   date?: string;
   odds?: FightOdds;

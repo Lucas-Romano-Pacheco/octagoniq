@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState, type PointerEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { ArrowRight, ArrowUpRight, CaretLeft, CaretRight, ArrowsLeftRight, CalendarDots, Crown, Lightning, MapPin, Timer } from '@phosphor-icons/react';
-import type { FighterRef } from '@shared/types';
-import { fightHref, fighterHref, useEvent, useRankings, useRankingsMeta, useSchedule, useUpcoming, type UpcomingEvent } from '@/lib/api';
-import { capitalize, dayMonth, fullDate, lastName, longDate, splitEventName, time, weekday, weightPhrase } from '@/lib/format';
+import { ArrowRight, ArrowUpRight, CaretLeft, CaretRight, ArrowsLeftRight, CalendarDots, Crown, Lightning, MapPin, Timer, Trophy } from '@phosphor-icons/react';
+import type { Fight, FighterRef } from '@shared/types';
+import { fightHref, fighterHref, useBonuses, useEvent, useRankings, useRankingsMeta, useSchedule, useUpcoming, type UpcomingEvent } from '@/lib/api';
+import { capitalize, dayMonth, mmss, fullDate, lastName, longDate, splitEventName, time, weekday, weightPhrase } from '@/lib/format';
 import { FightRow } from '@/components/FightRow';
-import { cardSummary, winnerChance } from '@/lib/fights';
-import { fmtMoneyline } from '@shared/format';
+import { cardSummary, fightSeconds, winnerChance } from '@/lib/fights';
+import { fairProbs, fmtMoneyline } from '@shared/format';
 import { SERIES_LABEL, SERIES_TONE } from '@/lib/series';
-import { Avatar, Brush, morphPhoto, OctagonFrame, Empty, ErrorState, Flag, FlagBackdrop, LiveTag, Panel, Reveal, SectionTitle, Skeleton, Spotlight, Tag } from '@/components/kit';
+import { Avatar, Brush, Defer, morphPhoto, OctagonFrame, Empty, ErrorState, Flag, FlagBackdrop, LiveTag, Panel, Reveal, SectionTitle, Skeleton, Spotlight, Tag } from '@/components/kit';
+import { proxy } from '@/lib/img';
 
 /* ---------- Hero ---------- */
 
@@ -45,7 +46,7 @@ function Cutout({ f, mirrored, className }: { f: FighterRef; mirrored?: boolean;
   const [failed, setFailed] = useState(false);
   if (!f.bodyImage || failed) return <Avatar src={f.headshot} name={f.name} size={180} className={className} />;
   return (
-    <img src={f.bodyImage} alt={f.name} onError={() => setFailed(true)}
+    <img src={proxy(f.bodyImage, 760)} alt={f.name} fetchPriority="high" decoding="async" onError={() => setFailed(true)}
       className={`${className} h-full w-auto object-contain object-bottom drop-shadow-[0_30px_40px_var(--cutout-shadow)] [mask-image:linear-gradient(to_bottom,black_80%,transparent)] ${mirrored ? '-scale-x-100' : ''}`} />
   );
 }
@@ -160,42 +161,83 @@ const headshot = (espnId?: string) => (espnId ? `https://a.espncdn.com/i/headsho
 
 /* ---------- Mosaico (bento) ---------- */
 
-function Highlight({ lastId, after }: { lastId?: string; after?: string }) {
+type Slide = { key: string; label: string; icon: React.ReactNode; title: string; sub: string; href: string; faces: FighterRef[] };
+
+/** Destaques do último evento, um por vez, com setas: zebra, maior favorito, bônus do UFC, finalização mais rápida… */
+function Highlight({ lastId }: { lastId?: string }) {
   const { data: ev } = useEvent(lastId);
-  const upcoming = useUpcoming(10);
-  const tile = 'panel h-full overflow-hidden p-6';
-  const z = ev && cardSummary(ev.fights).biggestUpset;
-  if (z) {
-    const winRed = z.result!.winnerId === z.red.espnId;
-    const w = winRed ? z.red : z.blue, l = winRed ? z.blue : z.red;
-    const ml = winRed ? z.odds?.red : z.odds?.blue;
-    return (
-      <Link to={fightHref(ev.id, z.id)} className={`${tile} group flex items-center gap-5`}>
-        <Avatar src={w.headshot} name={w.name} size={84} flag={w.countryCode} />
-        <div className="min-w-0 flex-1">
-          <div className="label flex items-center gap-1.5"><Lightning weight="fill" className="h-3.5 w-3.5 text-gold" /> Zebra do último evento</div>
-          <h3 className="display mt-1.5 truncate text-[30px] text-fg group-hover:text-brand">{lastName(w.name)} venceu {lastName(l.name)}</h3>
-          <p className="mt-1 text-[14px] text-fg-3">
-            <span className="num font-semibold text-gold-ink">{fmtMoneyline(ml)}</span> · só {Math.round((winnerChance(z) ?? 0) * 100)}% de chance pelas odds · {z.result!.method}, R{z.result!.round}
-          </p>
-        </div>
-      </Link>
-    );
+  const { data: bonus } = useBonuses(lastId);
+  const [i, setI] = useState(0);
+  const tile = 'panel h-full overflow-hidden p-5 sm:p-7';
+  const last = (n: string) => n.split(' ').slice(-1)[0];
+  const slides: Slide[] = [];
+  if (ev) {
+    const done = ev.fights.filter(f => f.result?.winnerId);
+    const href = (f: Fight) => fightHref(ev.id, f.id);
+    const winLose = (f: Fight) => (f.result!.winnerId === f.red.espnId ? [f.red, f.blue] : [f.blue, f.red]);
+    const how = (f: Fight) => `${f.result!.method}${f.result!.round ? `, R${f.result!.round} ${f.result!.clock}` : ''}`;
+    const z = cardSummary(ev.fights).biggestUpset;
+    if (z) {
+      const [w, l] = winLose(z);
+      slides.push({ key: 'zebra', label: 'Zebra do evento', icon: <Lightning weight="fill" className="h-3.5 w-3.5 text-gold" />, title: `${last(w.name)} venceu ${last(l.name)}`,
+        sub: `${fmtMoneyline(z.result!.winnerId === z.red.espnId ? z.odds?.red : z.odds?.blue)} · só ${Math.round((winnerChance(z) ?? 0) * 100)}% de chance pelas odds · ${how(z)}`, href: href(z), faces: [w, l] });
+    }
+    // maior favorito do card (com odds): confirmou ou não
+    const fav = done.map(f => { const p = fairProbs(f.odds?.red, f.odds?.blue); return p ? { f, side: p[0] >= p[1] ? f.red : f.blue, p: Math.max(...p) } : null; })
+      .filter(Boolean).sort((x, y) => y!.p - x!.p)[0];
+    if (fav) {
+      const won = fav.f.result!.winnerId === fav.side.espnId, opp = fav.side === fav.f.red ? fav.f.blue : fav.f.red;
+      slides.push({ key: 'fav', label: 'Maior favorito da noite', icon: <Crown weight="fill" className="h-3.5 w-3.5 text-gold" />, title: `${last(fav.side.name)} ${won ? 'confirmou' : 'caiu'} contra ${last(opp.name)}`,
+        sub: `${Math.round(fav.p * 100)}% de chance pelas odds · ${how(fav.f)}`, href: href(fav.f), faces: [fav.side, opp] });
+    }
+    // bônus oficiais do UFC
+    const byName = (n: string) => done.find(f => [f.red, f.blue].some(x => last(x.name).toLowerCase() === last(n).toLowerCase()));
+    for (const pair of bonus?.fight ?? []) {
+      const f = byName(pair[0]);
+      if (f) slides.push({ key: `fotn-${f.id}`, label: 'Luta da noite (bônus do UFC)', icon: <Trophy weight="fill" className="h-3.5 w-3.5 text-gold" />, title: `${last(f.red.name)} × ${last(f.blue.name)}`, sub: how(f), href: href(f), faces: [f.red, f.blue] });
+    }
+    for (const n of bonus?.performance ?? []) {
+      const f = byName(n);
+      if (!f) continue;
+      const me = [f.red, f.blue].find(x => last(x.name).toLowerCase() === last(n).toLowerCase())!, opp = me === f.red ? f.blue : f.red;
+      slides.push({ key: `potn-${n}`, label: 'Performance da noite (bônus do UFC)', icon: <Trophy weight="fill" className="h-3.5 w-3.5 text-gold" />, title: `${last(me.name)} sobre ${last(opp.name)}`, sub: how(f), href: href(f), faces: [me, opp] });
+    }
+    // finalização mais rápida e luta mais longa
+    const finishes = done.filter(f => !/Decis/.test(f.result!.method) && fightSeconds(f) !== undefined).sort((x, y) => fightSeconds(x)! - fightSeconds(y)!);
+    if (finishes[0]) {
+      const [w, l] = winLose(finishes[0]);
+      slides.push({ key: 'fast', label: 'Vitória mais rápida', icon: <Timer weight="fill" className="h-3.5 w-3.5 text-brand" />, title: `${last(w.name)} em ${mmss(fightSeconds(finishes[0]))}`, sub: `contra ${l.name} · ${how(finishes[0])}`, href: href(finishes[0]), faces: [w, l] });
+    }
   }
-  const t = (upcoming.data ?? []).find(e => e.id !== after && e.main?.title);
-  if (!t?.main) return <div className={tile}><Skeleton className="h-20" /></div>;
+  if (!slides.length) return <div className={tile}><Skeleton className="h-20" /></div>;
+  const k = ((i % slides.length) + slides.length) % slides.length, sl = slides[k];
   return (
-    <Link to={`/eventos/${t.id}`} className={`${tile} group flex items-center gap-5`}>
-      <span className="flex shrink-0">
-        <Avatar src={t.main.red.headshot} name={t.main.red.name} size={60} ring="var(--color-red)" />
-        <Avatar src={t.main.blue.headshot} name={t.main.blue.name} size={60} ring="var(--color-blue)" className="-ml-3" />
-      </span>
-      <div className="min-w-0">
-        <div className="label flex items-center gap-1.5"><Crown weight="fill" className="h-3.5 w-3.5 text-gold" /> Próxima disputa de cinturão</div>
-        <h3 className="display mt-1.5 truncate text-[30px] text-fg group-hover:text-brand">{lastName(t.main.red.name)} × {lastName(t.main.blue.name)}</h3>
-        <p className="mt-1 text-[14px] text-fg-3">{t.main.weightClass} · {splitEventName(t.name).series} · {dayMonth(t.date)}</p>
+    <div className={`${tile} relative`}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="label flex items-center gap-1.5">{sl.icon} {sl.label}{ev && !sl.key.startsWith('title') && <span className="normal-case tracking-normal text-fg-3">· {splitEventName(ev.name).series}</span>}</div>
+        {slides.length > 1 && (
+          <div className="flex shrink-0 items-center gap-1">
+            <span className="num mr-1 text-[12.5px] text-fg-3">{k + 1}/{slides.length}</span>
+            <button onClick={() => setI(k - 1)} aria-label="Destaque anterior" className="lift grid h-8 w-8 place-items-center rounded-full bg-surface-2 text-fg-2"><CaretLeft weight="bold" className="h-3.5 w-3.5" /></button>
+            <button onClick={() => setI(k + 1)} aria-label="Próximo destaque" className="lift grid h-8 w-8 place-items-center rounded-full bg-fg text-bg"><CaretRight weight="bold" className="h-3.5 w-3.5" /></button>
+          </div>
+        )}
       </div>
-    </Link>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div key={sl.key} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.22 }}>
+          <Link to={sl.href} className="group mt-3 flex items-center gap-5">
+            <span className="flex shrink-0">
+              <Avatar src={sl.faces[0]?.headshot} name={sl.faces[0]?.name ?? ''} size={84} flag={sl.faces[0]?.countryCode} />
+              {sl.faces[1] && <Avatar src={sl.faces[1].headshot} name={sl.faces[1].name} size={60} className="-ml-4 mt-6 opacity-80" />}
+            </span>
+            <div className="min-w-0">
+              <h3 className="display line-clamp-2 text-[32px] leading-[1] text-fg group-hover:text-brand">{sl.title}</h3>
+              <p className="mt-1 text-[14px] text-fg-3">{sl.sub}</p>
+            </div>
+          </Link>
+        </motion.div>
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -211,12 +253,12 @@ function Bento({ next, lastId }: { next?: UpcomingEvent; lastId?: string }) {
     return acc;
   }, {})).sort((x, y) => y[1].n - x[1].n);
   const m = next?.main;
-  const tile = 'panel h-full overflow-hidden p-6';
+  const tile = 'panel h-full overflow-hidden p-5 sm:p-7';
 
   return (
-    <section className="py-10">
+    <section className="min-h-[760px] py-10 lg:min-h-[640px]">
       <Reveal><SectionTitle title="O UFC agora" /></Reveal>
-      <div className="grid auto-rows-[minmax(150px,auto)] grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid auto-rows-[minmax(210px,auto)] grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         {/* P4P top 5 */}
         <Reveal className="md:row-span-2 lg:col-span-2">
           <div className={tile}>
@@ -236,11 +278,11 @@ function Bento({ next, lastId }: { next?: UpcomingEvent; lastId?: string }) {
                 const mm = meta?.[e.slug];
                 return (
                   <li key={e.slug}>
-                    <Link to={fighterHref({ slug: e.slug, espnId: mm?.espnId })} viewTransition onClick={morphPhoto} className="flex items-center gap-4 rounded-2xl px-2 py-2 transition-colors hover:bg-surface-2/70">
+                    <Link to={fighterHref({ slug: e.slug, espnId: mm?.espnId })} viewTransition onClick={morphPhoto} className="flex items-center gap-3 rounded-2xl px-1 py-2 transition-colors hover:bg-surface-2/70 sm:gap-4 sm:px-2">
                       <span className="num w-6 text-right font-display text-[22px] font-semibold text-fg-3">{e.rank}</span>
-                      <Avatar src={headshot(mm?.espnId)} name={e.name} size={44} flag={mm?.countryCode} />
-                      <span className="min-w-0 flex-1 truncate text-[16px] font-bold text-fg">{e.name}</span>
-                      <span className="num text-[14px] font-semibold text-fg-2">{mm?.record}</span>
+                      <Avatar src={headshot(mm?.espnId)} name={e.name} size={52} flag={mm?.countryCode} className="max-sm:-mr-1" />
+                      <span className="min-w-0 flex-1 line-clamp-2 text-[17px] font-bold leading-tight text-fg sm:text-[18px]">{e.name}</span>
+                      <span className="num text-[16px] font-semibold text-fg-2">{mm?.record}</span>
                     </Link>
                   </li>
                 );
@@ -252,7 +294,7 @@ function Bento({ next, lastId }: { next?: UpcomingEvent; lastId?: string }) {
         </Reveal>
 
         {/* zebra do último evento; sem zebra, a próxima disputa de cinturão (o próximo evento já está no topo) */}
-        <Reveal delay={0.05} className="lg:col-span-2"><Highlight lastId={lastId} after={next?.id} /></Reveal>
+        <Reveal delay={0.05} className="lg:col-span-2"><Highlight lastId={lastId} /></Reveal>
 
         {/* campeões por país */}
         <Reveal delay={0.1}>
@@ -264,8 +306,8 @@ function Bento({ next, lastId }: { next?: UpcomingEvent; lastId?: string }) {
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               {byCountry.map(([code, v]) => (
-                <span key={code} className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 py-1 pl-1 pr-2.5 text-[13px] font-semibold text-fg-2">
-                  <Flag code={code} title={v.country} size={20} />{v.n}
+                <span key={code} className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 py-1.5 pl-1.5 pr-3 text-[15px] font-semibold text-fg-2">
+                  <Flag code={code} title={v.country} size={26} />{v.n}
                 </span>
               ))}
             </div>
@@ -276,14 +318,15 @@ function Bento({ next, lastId }: { next?: UpcomingEvent; lastId?: string }) {
         <Reveal delay={0.15}>
           {m ? (
             <Link to={`/comparar?a=${m.red.slug}&ae=${m.red.espnId}&b=${m.blue.slug}&be=${m.blue.espnId}`} className="block h-full">
-              <Spotlight duel className={`${tile} group flex flex-col justify-between`}>
+              <Spotlight duel className={`${tile} group flex flex-col items-center justify-between text-center`}>
                 <div className="label">Frente a frente</div>
-                <div className="my-3 flex items-center">
-                  <Avatar src={m.red.headshot} name={m.red.name} size={60} ring="var(--color-red)" />
-                  <span className="-mx-1 z-10 grid h-8 w-8 place-items-center rounded-full bg-fg text-[12px] font-bold text-bg">VS</span>
-                  <Avatar src={m.blue.headshot} name={m.blue.name} size={60} ring="var(--color-blue)" />
+                <div className="my-4 flex w-full items-center justify-center">
+                  <Avatar src={m.red.headshot} name={m.red.name} size={116} ring="var(--color-red)" flag={m.red.countryCode} />
+                  <span className="z-10 -mx-2 grid h-10 w-10 place-items-center rounded-full bg-fg font-display text-[13px] font-bold text-bg ring-4 ring-surface">VS</span>
+                  <Avatar src={m.blue.headshot} name={m.blue.name} size={116} ring="var(--color-blue)" flag={m.blue.countryCode} />
                 </div>
-                <div className="flex items-center gap-1.5 text-[15px] font-bold text-fg group-hover:text-brand">Comparar a luta principal <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></div>
+                <div className="font-display text-[17px] font-bold uppercase leading-tight text-fg">{lastName(m.red.name)} × {lastName(m.blue.name)}</div>
+                <div className="mt-2 flex items-center gap-1.5 text-[14px] font-semibold text-fg-2 group-hover:text-brand">Comparar a luta principal <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></div>
               </Spotlight>
             </Link>
           ) : <Skeleton className="h-full" />}
@@ -294,7 +337,7 @@ function Bento({ next, lastId }: { next?: UpcomingEvent; lastId?: string }) {
 }
 
 function Champions() {
-  const { data, isLoading, isError, refetch } = useRankings();
+  const { data, isPending: isLoading, isError, refetch } = useRankings();
   const { data: meta } = useRankingsMeta();
   const divs = data?.divisions.filter(d => d.champion) ?? [];
   return (
@@ -307,22 +350,22 @@ function Champions() {
       {divs.length > 0 && (
         <Reveal delay={0.1}>
           {/* todos os cinturões de uma vez (o carrossel escondia 7 dos 11) */}
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <div className="grid grid-cols-1 gap-3 min-[520px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
             {divs.map(d => {
               const c = d.champion!, mm = meta?.[c.slug];
               return (
                 <Link key={d.id} to={fighterHref({ slug: c.slug, espnId: mm?.espnId })} className="cut group block overflow-hidden rounded-[14px] bg-surface shadow-[var(--shadow-soft)] ring-1 ring-fg/[0.04] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lift)]">
-                  <div className="relative h-[130px] overflow-hidden bg-gradient-to-b from-cream to-cream-2">
+                  <div className="relative h-[170px] overflow-hidden bg-gradient-to-b from-cream to-cream-2 lg:h-[150px]">
                     <FlagBackdrop code={mm?.countryCode} className="inset-0 opacity-45 dark:opacity-35" />
-                    {c.image && <img src={c.image} alt="" loading="lazy" className="absolute bottom-0 left-1/2 h-[96%] w-auto max-w-none -translate-x-1/2 object-contain transition-transform duration-500 group-hover:scale-[1.05]" />}
+                    {c.image && <img src={proxy(c.image, 640)} alt="" loading="lazy" decoding="async" className="absolute bottom-0 left-1/2 h-[96%] w-auto max-w-none -translate-x-1/2 object-contain transition-transform duration-500 group-hover:scale-[1.05]" />}
                   </div>
-                  <div className="px-3.5 pb-3.5 pt-3">
+                  <div className="px-4 pb-4 pt-3.5">
                     <div className="flex items-center justify-between gap-1">
                       <span className="flex min-w-0 items-center gap-1 text-[12.5px] font-semibold text-fg-3"><Crown weight="fill" className="h-3.5 w-3.5 shrink-0 text-gold" /><span className="truncate">{d.name}</span></span>
                       {mm && <Flag code={mm.countryCode} title={mm.country} size={16} />}
                     </div>
-                    <div className="mt-1 truncate font-display text-[18px] font-bold uppercase leading-tight text-fg group-hover:text-brand">{c.name}</div>
-                    {mm?.record && <div className="num text-[13px] font-semibold text-fg-3">{mm.record}</div>}
+                    <div className="mt-1 line-clamp-2 font-display text-[19px] font-bold uppercase leading-tight text-fg group-hover:text-brand">{c.name}</div>
+                    {mm?.record && <div className="num text-[14.5px] font-semibold text-fg-3">{mm.record}</div>}
                   </div>
                 </Link>
               );
@@ -337,7 +380,8 @@ function Champions() {
 /* ---------- Card de um evento ---------- */
 
 function EventCard({ id, eyebrow, title, limit = 6 }: { id?: string; eyebrow: string; title: string; limit?: number }) {
-  const { data, isLoading, isError, refetch } = useEvent(id);
+  const { data, isPending, isError, refetch } = useEvent(id);
+  const isLoading = isPending && !!id; // sem id (consulta desligada) não há o que esperar
   const fights = data?.fights.filter(f => f.segment === 'main').slice(0, limit) ?? [];
   // evento encerrado: uma linha-resumo da noite inteira ("4 nocautes · 1 zebra · 2 no 1º round")
   const sum = data?.status === 'post' ? cardSummary(data.fights) : null;
@@ -413,21 +457,29 @@ export default function Home() {
 
   return (
     <div>
-      {upcoming.isLoading && <div className="grid gap-10 py-10 lg:grid-cols-2"><div className="space-y-5"><Skeleton className="h-6 w-60" /><Skeleton className="h-40" /><Skeleton className="h-20" /></div><Skeleton className="h-[480px] rounded-[48%]" /></div>}
+      {/* esqueleto com a altura do destaque real (927 px no celular, 628 no desktop): o mosaico abaixo não salta quando os dados chegam */}
+      {upcoming.isPending && (
+        <div className="grid min-h-[927px] items-center gap-10 pb-10 pt-6 sm:min-h-[999px] lg:min-h-[628px] lg:grid-cols-[1.05fr_1fr]">
+          <div className="space-y-5"><Skeleton className="h-4 w-60" /><Skeleton className="h-24 w-[90%]" /><Skeleton className="h-24 w-[60%]" /><Skeleton className="h-16 max-w-[520px]" /><Skeleton className="h-12 w-56 rounded-full" /></div>
+          <div className="mx-auto aspect-square w-full max-w-[420px] skeleton" style={{ clipPath: 'polygon(29.3% 0, 70.7% 0, 100% 29.3%, 100% 70.7%, 70.7% 100%, 29.3% 100%, 0 70.7%, 0 29.3%)' }} />
+        </div>
+      )}
       {upcoming.isError && <Panel><ErrorState onRetry={() => upcoming.refetch()} /></Panel>}
       {next && <Hero e={next} />}
-      {!upcoming.isLoading && !next && <Panel><Empty>Octógono vazio: nenhum evento anunciado por enquanto.</Empty></Panel>}
+      {!upcoming.isPending && !next && <Panel><Empty>Octógono vazio: nenhum evento anunciado por enquanto.</Empty></Panel>}
 
       <Bento next={next} lastId={lastId} />
-      <Champions />
+      <Defer minHeight={520}><Champions /></Defer>
 
-      <section className="grid gap-10 py-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-        <div className="min-w-0 space-y-8">
-          {next && <Reveal><EventCard id={next.id} eyebrow="Próximo evento" title="Card principal" /></Reveal>}
-          <Reveal delay={0.05}><EventCard id={lastId} eyebrow="Encerrado" title="Últimos resultados" /></Reveal>
-        </div>
-        {ufcOnly.length > 1 && <Reveal delay={0.1}><Agenda events={ufcOnly.slice(1, 7)} /></Reveal>}
-      </section>
+      <Defer minHeight={1400}>
+        <section className="grid gap-10 py-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+          <div className="min-w-0 space-y-8">
+            {next && <Reveal><EventCard id={next.id} eyebrow="Próximo evento" title="Card principal" /></Reveal>}
+            <Reveal delay={0.05}><EventCard id={lastId} eyebrow="Encerrado" title="Últimos resultados" /></Reveal>
+          </div>
+          {ufcOnly.length > 1 && <Reveal delay={0.1}><Agenda events={ufcOnly.slice(1, 7)} /></Reveal>}
+        </section>
+      </Defer>
     </div>
   );
 }

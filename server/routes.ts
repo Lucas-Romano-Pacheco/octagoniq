@@ -35,7 +35,7 @@ async function withHistoricalOdds(ev: EventDetail): Promise<EventDetail> {
 /** Evento completo (títulos + odds históricas). Única função que grava a chave `event:v6:id`: as rotas do evento
     e da luta compartilhavam a chave com conteúdos diferentes, e quem chegava primeiro deixava o cache sem odds. */
 export const eventFull = (id: string) =>
-  remember(`event:v7:${id}`, 45_000, async () => { const d = await espn.eventDetail(id); return d && withMainCutouts(await withHistoricalOdds(await withTitles(d))); });
+  remember(`event:v7:${id}`, 15_000, async () => { const d = await espn.eventDetail(id); return d && withMainCutouts(await withHistoricalOdds(await withTitles(d))); });
 
 /** Recortes de corpo inteiro (UFC.com) da luta principal, para o topo do evento em estilo pôster. */
 async function withMainCutouts(ev: EventDetail): Promise<EventDetail> {
@@ -239,6 +239,11 @@ const routes: [RegExp, Handler][] = [
       return { ...f, scorecards: scorecards ?? undefined, fight: { ...f.fight, title, odds: f.fight.odds ?? evFight?.odds }, red: { ...f.red, bodyImage: rb }, blue: { ...f.blue, bodyImage: bb } };
     });
     return d ? ok(d, d.fight.status === 'in' ? 15 : 300) : notFound('Luta não encontrada');
+  }],
+  [/^\/api\/events\/(?<id>\d+)\/bonuses$/, async ({ id }) => {
+    const ev = await eventFull(id);
+    const b = ev && ev.status === 'post' ? await tracker.eventBonuses(ev.name, ev.date) : null;
+    return ok(b ?? { fight: [], performance: [] }, 3600);
   }],
   [/^\/api\/rankings$/, async () => ok(await officialRankings(), 600)],
   [/^\/api\/rankings\/meta$/, async () => ok(await rankingsMeta(), 3600)],

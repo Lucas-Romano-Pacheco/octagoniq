@@ -118,6 +118,7 @@ export async function eventDetail(eventId: string): Promise<EventDetail | null> 
       broadcast: c.broadcasts?.[0]?.names?.[0],
       odds: oddsFor(oddsList[i], String(a.id), String(b.id)),
       date: c.startDate ?? c.date,
+      live: st === 'in' && s ? { round: s.period, clock: s.displayClock } : undefined,
       result: st === 'post' && r ? {
         winnerId: winner ? String(winner.id) : null,
         method: methodPt(r.name, r.displayName),

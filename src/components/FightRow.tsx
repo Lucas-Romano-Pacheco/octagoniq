@@ -13,18 +13,18 @@ function Side({ f, align, state, tip, odds, compact }: { f: FighterRef; align: '
     // relative z-10: fica por cima do link da linha inteira (que abre a luta)
     <Link to={fighterHref(f)} viewTransition onClick={morphPhoto}
       className={clsx('group/side relative z-10 flex min-w-0 flex-col items-center gap-2 text-center sm:flex-row sm:gap-3', right ? 'sm:flex-row-reverse sm:text-right' : 'sm:text-left')}>
-      <Avatar src={f.headshot} name={f.name} size={compact ? 44 : 56} ring={right ? 'var(--color-red)' : 'var(--color-blue)'} className={clsx(state === 'loss' && 'opacity-50 grayscale')} />
+      <Avatar src={f.headshot} name={f.name} size={compact ? 56 : 64} ring={right ? 'var(--color-red)' : 'var(--color-blue)'} className={clsx(state === 'loss' && 'opacity-50 grayscale')} />
       <div className="min-w-0 max-w-full">
         <div className={clsx('flex items-center justify-center gap-2', right ? 'sm:flex-row-reverse sm:justify-start' : 'sm:justify-start')}>
           {/* compacta (coluna estreita): nome curto da ESPN numa linha só ("A. Volkanovski") */}
           <span className={clsx('font-bold leading-tight tracking-[-0.01em] group-hover/side:underline group-hover/side:underline-offset-4',
-            compact ? 'max-w-full truncate text-[14.5px]' : 'text-[14.5px] sm:text-[16px]', state === 'loss' ? 'text-fg-3' : 'text-fg')} title={compact ? f.name : undefined}>
+            compact ? 'max-w-full truncate text-[16px]' : 'text-[16px] sm:text-[17px]', state === 'loss' ? 'text-fg-3' : 'text-fg')} title={compact ? f.name : undefined}>
             {compact ? f.shortName ?? f.name : f.name}
           </span>
           {state === 'win' && <OutcomeBadge outcome="W" size="sm" tip={tip} card />}
         </div>
-        <div className={clsx('mt-1 flex items-center justify-center gap-2 text-[13.5px] text-fg-2', right ? 'sm:flex-row-reverse sm:justify-start' : 'sm:justify-start')}>
-          <Flag code={f.countryCode} src={f.flag} title={f.country} size={20} />
+        <div className={clsx('mt-1 flex items-center justify-center gap-2 text-[15px] text-fg-2', right ? 'sm:flex-row-reverse sm:justify-start' : 'sm:justify-start')}>
+          <Flag code={f.countryCode} src={f.flag} title={f.country} size={22} />
           <span className="num font-semibold">{f.record ?? '—'}</span>
         </div>
         {odds && <div className={clsx('mt-1.5 flex justify-center', right ? 'sm:justify-end' : 'sm:justify-start')}>{odds}</div>}
@@ -48,20 +48,25 @@ export function FightRow({ fight, compact, eventId }: { fight: Fight; compact?: 
 
   const href = eventId ? fightHref(eventId, fight.id) : undefined;
   return (
-    <Spotlight duel className={clsx('group relative grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-2xl px-3 sm:gap-5 sm:px-4', compact ? 'py-3' : 'py-4')}>
+    <Spotlight duel className={clsx('group relative grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-2xl px-3 max-sm:grid-cols-2 max-sm:gap-y-3 sm:gap-5 sm:px-4', compact ? 'py-4' : 'py-5')}>
       <Side f={fight.red} align="right" compact={compact} state={state(winRed)} tip={winRed && r ? winTip(fight.red, fight.blue, r, fight.date) : undefined} odds={ov && <OddsChip {...ov.red} compact={!!r} />} />
-      <div className={clsx('flex flex-col items-center gap-1.5 text-center', compact ? 'w-[96px] sm:w-[150px]' : 'w-[108px] sm:w-[188px]')}>
+      <div className={clsx('flex flex-col items-center gap-1.5 text-center max-sm:order-last max-sm:col-span-2 max-sm:flex-row max-sm:flex-wrap max-sm:justify-center max-sm:gap-x-3 max-sm:border-t max-sm:border-line/60 max-sm:pt-3', compact ? 'sm:w-[160px]' : 'sm:w-[196px]')}>
         <div className="flex flex-wrap items-center justify-center gap-1.5">
           {fight.title && <Tag tone="gold"><Crown weight="fill" className="h-3.5 w-3.5" /> Título</Tag>}
-          <span className="text-[14px] font-medium text-fg-3">{fight.weightClass}</span>
+          <span className="text-[15px] font-medium text-fg-3">{fight.weightClass}</span>
         </div>
-        {fight.status === 'in' ? <LiveTag /> : r ? (
+        {fight.status === 'in' ? (
           <>
-            <span className="text-[14px] font-semibold text-fg">{r.method}{r.detail && r.method !== 'Decisão unânime' && !compact ? <span className="text-fg-2"> · {r.detail}</span> : null}</span>
+            <LiveTag />
+            {fight.live?.round && <span className="num rounded-md bg-brand-soft px-2 py-0.5 text-[13.5px] font-semibold text-brand">R{fight.live.round} · {fight.live.clock}</span>}
+          </>
+        ) : r ? (
+          <>
+            <span className="text-[15px] font-semibold text-fg">{r.method}{r.detail && r.method !== 'Decisão unânime' && !compact ? <span className="text-fg-2"> · {r.detail}</span> : null}</span>
             <span className="num rounded-md bg-surface-2 px-2 py-0.5 text-[13.5px] font-semibold text-fg-2">R{r.round} · {r.clock}</span>
           </>
         ) : (
-          <span className="text-[14px] font-medium text-fg-3">{fight.rounds} rounds</span>
+          <span className="text-[15px] font-medium text-fg-3">{fight.rounds} rounds</span>
         )}
         {upset && <Tag tone="gold"><Lightning weight="fill" className="h-3.5 w-3.5" /> Zebra!</Tag>}
       </div>

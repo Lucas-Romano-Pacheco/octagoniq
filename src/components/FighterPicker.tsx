@@ -35,7 +35,7 @@ export function FighterPicker({ placeholder = 'Buscar lutador…', onPick, autoF
         {value && !q ? (
           <span className="flex-1 truncate text-[15px] font-semibold text-fg">{value}</span>
         ) : null}
-        <input value={q} autoFocus={autoFocus} placeholder={value ? '' : placeholder} role="combobox" aria-expanded={open && hits.length > 0}
+        <input value={q} autoFocus={autoFocus} placeholder={value ? '' : placeholder} aria-label={placeholder} role="combobox" aria-expanded={open && hits.length > 0}
           onChange={e => { setQ(e.target.value); setOpen(true); setSel(0); }}
           onFocus={() => setOpen(true)}
           onKeyDown={e => {

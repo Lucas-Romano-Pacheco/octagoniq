@@ -6,9 +6,12 @@ import { ArrowLeft, ArrowSquareOut, ArrowsLeftRight, CaretLeft, CaretRight, Crow
 import type { DivisionAverages, FighterProfile, HistoryFight, OfficialStats } from '@shared/types';
 import { fightHref, fighterHref, useDivisionAvg, useFighter } from '@/lib/api';
 import { fullDate, lastName, mmss, nf, pct, ratio, shortEvent } from '@/lib/format';
-import { EChart, SERIES, axisBase, tooltipBase, useInk } from '@/components/EChart';
-import { Avatar, Brush, OctagonFrame, CountUp, Empty, ErrorState, Flag, FlagBackdrop, HistoryBadge, Meter, Panel, RankBadge, SortTh, Tip, useSort, RecordCount, Segmented, Skeleton, Stat, Tag, VsAvg } from '@/components/kit';
+import { EChart } from '@/components/LazyChart';
+import { SERIES, axisBase, tooltipBase, useInk } from '@/components/chart-theme';
+import { Avatar, Brush, Defer, OctagonFrame, CountUp, Empty, ErrorState, Flag, FlagBackdrop, HistoryBadge, Meter, Panel, RankBadge, SortTh, Tip, useSort, RecordCount, Segmented, Stat, Tag, VsAvg, usePageTitle } from '@/components/kit';
 import { AttrRadar, hasRadar, RADAR_NOTE } from '@/components/Radar';
+import { FighterSkeleton } from '@/components/Skeletons';
+import { proxy } from '@/lib/img';
 
 /* ---------- Cabeçalho ---------- */
 
@@ -79,7 +82,7 @@ function Header({ p }: { p: FighterProfile }) {
         </OctagonFrame>
         {b.bodyImage && !imgFailed ? (
           <motion.img initial={reduce ? false : { opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-            src={b.bodyImage} alt={b.name} onError={() => setImgFailed(true)}
+            src={proxy(b.bodyImage, 760)} fetchPriority="high" decoding="async" alt={b.name} onError={() => setImgFailed(true)}
             style={{ viewTransitionName: 'fighter-photo' }}
             className="absolute bottom-0 left-1/2 h-[96%] w-auto -translate-x-1/2 object-contain drop-shadow-[0_30px_40px_var(--cutout-shadow)] [mask-image:linear-gradient(to_bottom,black_82%,transparent)]" />
         ) : (
@@ -137,10 +140,10 @@ function RecentFights({ me, fights, streak: st }: { me: FighterProfile['bio']; f
       </motion.div>
       <div className="mt-2 flex gap-1.5">
         {fights.map((f, k) => (
-          <button key={f.fightId} onClick={() => go(k)} aria-label={`Luta ${k + 1}: ${RESULT_TAG[f.outcome]} contra ${f.opponent.name}`}
+          <span key={f.fightId} onMouseEnter={() => go(k)} onFocus={() => go(k)}
             className={clsx('rounded-full p-0.5 transition-all', open && k === i ? 'ring-2 ring-fg/70' : open ? 'opacity-70 hover:opacity-100' : '')}>
             <HistoryBadge h={f} size="sm" me={me} />
-          </button>
+          </span>
         ))}
       </div>
       {open && <div className="relative mt-3 overflow-hidden">
@@ -662,7 +665,7 @@ function News({ items }: { items: FighterProfile['news'] }) {
           <li key={n.url}>
             <a href={n.url} target="_blank" rel="noreferrer" className="group flex gap-3 py-3">
               {n.image
-                ? <img src={n.image} alt="" loading="lazy" className="h-14 w-20 shrink-0 rounded-lg object-cover ring-1 ring-fg/[0.06]" />
+                ? <img src={proxy(n.image, 240)} alt="" loading="lazy" decoding="async" className="h-14 w-20 shrink-0 rounded-lg object-cover ring-1 ring-fg/[0.06]" />
                 : <span className="grid h-14 w-20 shrink-0 place-items-center rounded-lg bg-surface-2"><Newspaper className="h-5 w-5 text-fg-3" /></span>}
               <div className="min-w-0">
                 <div className="line-clamp-2 text-[14px] leading-snug text-fg group-hover:text-brand">{n.title}</div>
@@ -685,16 +688,11 @@ function News({ items }: { items: FighterProfile['news'] }) {
 export default function Fighter() {
   const { slug } = useParams();
   const [params] = useSearchParams();
-  const { data: p, isLoading, isError, error, refetch } = useFighter(slug, params.get('espn'));
+  const { data: p, isPending: isLoading, isError, error, refetch } = useFighter(slug, params.get('espn'));
   const [tab, setTab] = useState<'geral' | 'historico' | 'carreira'>('geral');
+  usePageTitle(p?.bio.name);
 
-  if (isLoading) return (
-    <div className="space-y-6">
-      <Skeleton className="h-60" />
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]"><Skeleton className="h-80" /><Skeleton className="h-80" /></div>
-      <p className="text-center text-[13px] text-fg-3">Consultando UFC.com e ESPN: o primeiro carregamento de um lutador leva alguns segundos.</p>
-    </div>
-  );
+  if (isLoading) return <FighterSkeleton />;
   if (isError || !p) return (
     <Panel><ErrorState message={error?.message} onRetry={() => refetch()} />
       <div className="pb-8 text-center"><Link to="/lutadores" className="btn-ghost"><ArrowLeft className="h-3.5 w-3.5" /> Voltar para lutadores</Link></div>
@@ -710,6 +708,7 @@ export default function Fighter() {
           { value: 'geral', label: 'Visão geral' }, { value: 'historico', label: `Histórico (${p.history.length})` }, { value: 'carreira', label: 'Linha do tempo' },
         ]} />
       </div>
+      <Defer minHeight={1000} margin="500px">
       <AnimatePresence mode="wait" initial={false}>
         <motion.div key={tab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.22 }}>
           {tab === 'geral' && (
@@ -734,6 +733,7 @@ export default function Fighter() {
           {tab === 'carreira' && <Timeline history={p.history} me={p.bio} />}
         </motion.div>
       </AnimatePresence>
+      </Defer>
       <p className="text-[13px] text-fg-3">Fontes: {p.sources.join(' · ')}. Estatísticas oficiais cobrem só as lutas no UFC; o histórico inclui o que a ESPN registra.</p>
     </div>
   );

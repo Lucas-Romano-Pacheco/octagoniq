@@ -6,7 +6,7 @@ import type { EventListItem } from '@shared/types';
 import { useSchedule } from '@/lib/api';
 import { SERIES_LABEL, SERIES_TONE } from '@/lib/series';
 import { dayMonth, splitEventName, time, weekday } from '@/lib/format';
-import { Empty, ErrorState, PageHeader, Panel, Segmented, Skeleton, Tag, Tip } from '@/components/kit';
+import { Empty, ErrorState, PageHeader, Panel, Segmented, Skeleton, Tag, Tip, usePageTitle } from '@/components/kit';
 
 type Filter = 'all' | 'ppv' | 'fight-night' | 'dwcs';
 const FIRST_YEAR = 2010;
@@ -23,7 +23,8 @@ export default function Events() {
   const year = y || today.getFullYear(), month = m ? m - 1 : today.getMonth();
   const [view, setView] = useState<'mes' | 'lista'>('mes');
   const [filter, setFilter] = useState<Filter>('all');
-  const { data, isLoading, isError, refetch, isFetching } = useSchedule(year);
+  const { data, isPending: isLoading, isError, refetch, isFetching } = useSchedule(year);
+  usePageTitle('Calendário de eventos');
 
   const list = useMemo(() => (data ?? []).filter(e => filter === 'all' || e.series === filter), [data, filter]);
   const setMonth = (yy: number, mm: number) => {

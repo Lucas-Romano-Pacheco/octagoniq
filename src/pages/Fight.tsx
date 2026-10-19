@@ -7,9 +7,11 @@ import { fmtMoneyline, impliedProb } from '@shared/format';
 import { fighterHref, useFight } from '@/lib/api';
 import { fullDate, mmss, splitEventName } from '@/lib/format';
 import { CORNER, DuelRow, OddsChip, oddsView } from '@/components/Duel';
-import { Avatar, Empty, ErrorState, Flag, LiveTag, Panel, Reveal, Segmented, Skeleton, Tag, Tip, trackSpotlight } from '@/components/kit';
+import { Avatar, Empty, ErrorState, Flag, LiveTag, Panel, Reveal, Segmented, Tag, Tip, trackSpotlight, usePageTitle } from '@/components/kit';
 import silhueta from '@/assets/silhueta.png';
 import { FightPreview } from '@/components/FightPreview';
+import { FightSkeleton } from '@/components/Skeletons';
+import { proxy } from '@/lib/img';
 
 const pctOf = (l: number, a: number) => (a ? Math.round((l / a) * 100) : 0);
 /** "de 44 · 50%" (complemento de um número conectado); sem tentativas, só "de 0". */
@@ -36,7 +38,7 @@ function Corner({ f, side, won, odds }: { f: FighterRef; side: 'a' | 'b'; won: b
       <div className="relative mt-4 h-[230px] w-full sm:h-[420px]">
         {won && <span className={`absolute top-2 z-10 ${right ? 'right-0' : 'left-0'}`}><Tag tone="dark" className="h-7 px-2.5 text-[13px] sm:h-8 sm:px-3.5 sm:text-[14px]"><Trophy weight="fill" className="h-4 w-4 text-gold" /> Vitória</Tag></span>}
         {f.bodyImage && !failed ? (
-          <img src={f.bodyImage} alt={f.name} onError={() => setFailed(true)}
+          <img src={proxy(f.bodyImage, 640)} alt={f.name} fetchPriority="high" decoding="async" onError={() => setFailed(true)}
             className={`absolute bottom-0 h-full w-auto object-contain drop-shadow-[0_30px_40px_var(--cutout-shadow)] [mask-image:linear-gradient(to_bottom,black_82%,transparent)] ${right ? 'right-0 -scale-x-100' : 'left-0'}`} />
         ) : (
           <div className={`absolute bottom-6 ${right ? 'right-0 sm:right-4' : 'left-0 sm:left-4'}`}><Avatar src={f.headshot} name={f.name} size={120} /></div>
@@ -317,10 +319,11 @@ function OddsPanel({ d }: { d: FightDetail }) {
 
 export default function Fight() {
   const { id, fight } = useParams();
-  const { data: d, isLoading, isError, error, refetch } = useFight(id, fight);
+  const { data: d, isPending: isLoading, isError, error, refetch } = useFight(id, fight);
   const [tab, setTab] = useState<'geral' | 'alvo' | 'posicao'>('geral');
+  usePageTitle(d && `${d.red.name} × ${d.blue.name}`);
 
-  if (isLoading) return <div className="space-y-6"><Skeleton className="h-16 w-96" /><Skeleton className="h-[460px]" /></div>;
+  if (isLoading) return <FightSkeleton />;
   if (isError || !d) return <Panel><ErrorState message={error?.message} onRetry={() => refetch()} /></Panel>;
 
   const f = d.fight, a = d.red.stats, b = d.blue.stats;

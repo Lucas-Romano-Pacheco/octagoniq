@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import type { OfficialStats } from '@shared/types';
 import { nf } from '@/lib/format';
-import { EChart, tooltipBase, useInk } from './EChart';
+import { EChart } from './LazyChart';
+import { tooltipBase, useInk } from './chart-theme';
 
 /* Radar de atributos a partir das estatísticas oficiais do UFC.com.
    Cada eixo vai de 0 a 100: percentuais entram direto; taxas são divididas por um teto

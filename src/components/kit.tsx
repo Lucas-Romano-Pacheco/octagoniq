@@ -6,6 +6,7 @@ import { ArrowClockwise, ArrowDown, ArrowUp, CalendarCheck, CaretDown, CaretUp, 
 import { circleFlag, rectFlag } from '@/lib/flags';
 import type { BookedFight, HistoryFight } from '@shared/types';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { proxy } from '@/lib/img';
 
 /* ---------- Movimento ---------- */
 
@@ -36,6 +37,33 @@ export function CountUp({ value, decimals = 0, suffix = '' }: { value: number; d
     return () => c.stop();
   }, [inView, value]); // eslint-disable-line react-hooks/exhaustive-deps
   return <span ref={ref} className="num">{fmt(reduce ? value : 0)}</span>;
+}
+
+/* ---------- Renderização adiada ---------- */
+
+/** Só monta o conteúdo quando o bloco chega perto da tela (`margin` antes). Seções abaixo da dobra deixam de pesar na
+    primeira carga: menos JavaScript executado e menos buscas disparadas. O espaço (`minHeight`) fica reservado
+    para a página não "pular"; sem IntersectionObserver, monta na hora. */
+export function Defer({ children, minHeight = 400, margin = '900px', className }: { children: ReactNode; minHeight?: number; margin?: string; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [on, setOn] = useState(typeof IntersectionObserver === 'undefined');
+  useEffect(() => {
+    if (on || !ref.current) return;
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setOn(true); io.disconnect(); } }, { rootMargin: margin });
+    io.observe(ref.current);
+    return () => io.disconnect();
+  }, [on, margin]);
+  return <div ref={ref} className={className} style={on ? undefined : { minHeight }}>{on ? children : null}</div>;
+}
+
+/* ---------- Título da aba ---------- */
+
+/** Título da aba do navegador ("Charles Oliveira | OctagonIQ"); volta ao padrão ao sair da página. */
+export function usePageTitle(title?: string) {
+  useEffect(() => {
+    document.title = title ? `${title} | OctagonIQ` : 'OctagonIQ · O UFC em números';
+    return () => { document.title = 'OctagonIQ · O UFC em números'; };
+  }, [title]);
 }
 
 /* ---------- Transição entre páginas ---------- */
@@ -194,7 +222,7 @@ export function Avatar({ src, name, size = 40, className, flag, ring }: { src?: 
     <div data-photo className={clsx('relative shrink-0 overflow-hidden rounded-full bg-surface-2', ring ? 'ring-2 ring-offset-2 ring-offset-surface' : 'ring-1 ring-fg/[0.06]', !flag && className)}
       style={{ width: size, height: size, ...(ring ? { '--tw-ring-color': ring } : {}) } as CSSProperties}>
       {src && !failed ? (
-        <img src={src} alt="" loading="lazy" onError={() => setFailed(true)}
+        <img src={proxy(src, Math.min(size * 5, 720))} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)}
           className="absolute left-1/2 top-[6%] h-[135%] w-auto max-w-none -translate-x-1/2 object-cover" />
       ) : (
         <span className="grid h-full w-full place-items-center font-semibold text-fg-3" style={{ fontSize: size * 0.32 }}>{initials(name)}</span>
@@ -312,19 +340,21 @@ const OUTCOME = {
 } as const;
 const OCTAGON = 'M10.6 1.5h10.8l9.1 9.1v10.8l-9.1 9.1H10.6l-9.1-9.1V10.6z';
 
-export function OutcomeBadge({ outcome, className, size = 'md', tip, card }: { outcome: keyof typeof OUTCOME; className?: string; size?: 'sm' | 'md'; tip?: ReactNode; card?: boolean }) {
+export function OutcomeBadge({ outcome, className, size = 'md', tip, card, href }: { outcome: keyof typeof OUTCOME; className?: string; size?: 'sm' | 'md'; tip?: ReactNode; card?: boolean; href?: string }) {
   const o = OUTCOME[outcome];
   const px = size === 'sm' ? 24 : 30;
+  // com href, o selo é um link para a página da luta (um clique para ver como foi)
+  const Tag_ = href ? Link : 'span';
   const badge = (
-    <span role="img" aria-label={o.title} tabIndex={tip ? 0 : undefined}
-      className={clsx('relative inline-grid shrink-0 place-items-center transition-transform duration-200', tip && 'cursor-help hover:-rotate-6 hover:scale-110', className)}
+    <Tag_ to={href!} role={href ? undefined : 'img'} aria-label={href ? `${o.title}: ver a luta` : o.title} tabIndex={tip || href ? 0 : undefined}
+      className={clsx('relative inline-grid shrink-0 place-items-center transition-transform duration-200', (tip || href) && 'hover:-rotate-6 hover:scale-110', href ? 'cursor-pointer' : tip && 'cursor-help', className)}
       style={{ width: px, height: px, color: o.color }}>
       <svg viewBox="0 0 32 32" className="absolute inset-0 h-full w-full" aria-hidden>
         <path d={OCTAGON} fill={o.fill} stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.6" strokeLinejoin="round" />
       </svg>
       {/* ícone em vez de letra: fica centrado em qualquer fonte */}
       <o.Icon weight="bold" className="relative" style={{ width: px * 0.5, height: px * 0.5 }} />
-    </span>
+    </Tag_>
   );
   if (!tip) return badge;
   return (
@@ -344,12 +374,12 @@ const lastOf = (n: string) => n.split(' ').slice(-1)[0];
 
 /** Cartão de uma luta (fotos dos dois, faixa "Vitória" sob o vencedor, data, round, tempo e método).
     `outcome` é do ponto de vista de `me`. */
-export function FightCard({ me, opp, outcome, method, detail, round, clock, date, eventName }: {
-  me: Face; opp: Face; outcome: keyof typeof RESULT; method?: string; detail?: string; round?: number; clock?: string; date?: string; eventName?: string;
+export function FightCard({ me, opp, outcome, method, detail, round, clock, date, eventName, clickHint }: {
+  clickHint?: boolean; me: Face; opp: Face; outcome: keyof typeof RESULT; method?: string; detail?: string; round?: number; clock?: string; date?: string; eventName?: string;
 }) {
   const Photo = ({ f, won }: { f: Face; won: boolean }) => (
     <div className="relative flex h-full flex-1 items-end justify-center">
-      {f.headshot ? <img src={f.headshot} alt={f.name} className="h-full w-auto object-contain object-bottom" /> : <Avatar name={f.name} size={64} className="mb-3" />}
+      {f.headshot ? <img src={proxy(f.headshot, 320)} alt={f.name} loading="lazy" decoding="async" className="h-full w-auto object-contain object-bottom" /> : <Avatar name={f.name} size={64} className="mb-3" />}
       {won && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 whitespace-nowrap bg-brand px-2 py-0.5 font-display text-[11px] font-bold uppercase tracking-wide text-white">Vitória</span>}
     </div>
   );
@@ -360,16 +390,17 @@ export function FightCard({ me, opp, outcome, method, detail, round, clock, date
         <Photo f={me} won={outcome === 'W'} />
         <Photo f={opp} won={outcome === 'L'} />
       </div>
-      <div className="mt-2.5 font-display text-[15px] font-bold uppercase leading-tight tracking-[0.02em] text-fg">{lastOf(me.name)} vs {lastOf(opp.name)}</div>
-      <div className="num text-[12.5px] text-fg-3">{[d, RESULT[outcome]].filter(Boolean).join(' · ')}</div>
+      <div className="mt-2.5 text-center font-display text-[15px] font-bold uppercase leading-tight tracking-[0.02em] text-fg">{lastOf(me.name)} vs {lastOf(opp.name)}</div>
+      <div className="num text-center text-[12.5px] text-fg-3">{[d, RESULT[outcome]].filter(Boolean).join(' · ')}</div>
       {method && (
-        <dl className="mt-2 grid grid-cols-[auto_auto_1fr] gap-x-4 border-t border-line pt-2">
+        <dl className="mt-2 grid grid-cols-[1fr_1fr_2fr] gap-x-2 border-t border-line pt-2 text-center">
           {([['Round', round ?? '—'], ['Tempo', clock ?? '—'], ['Método', method]] as const).map(([k, v]) => (
             <div key={k} className="min-w-0"><dt className="text-[11.5px] text-fg-3">{k}</dt><dd className="num text-[13px] font-bold text-fg">{v}</dd></div>
           ))}
         </dl>
       )}
-      {(detail || eventName) && <div className="mt-1.5 truncate text-[12px] text-fg-3">{[detail, eventName].filter(Boolean).join(' · ')}</div>}
+      {(detail || eventName) && <div className="mt-1.5 truncate text-center text-[12px] text-fg-3">{[detail, eventName].filter(Boolean).join(' · ')}</div>}
+      {clickHint && <div className="mt-2 text-center text-[11.5px] font-semibold uppercase tracking-[0.08em] text-brand">Clique para ver a luta</div>}
     </div>
   );
 }
@@ -380,14 +411,14 @@ const VERB = { W: 'Vitória sobre', L: 'Derrota para', D: 'Empate com', NC: 'Sem
     sem ele, uma descrição em texto. */
 export function HistoryBadge({ h, size = 'md', me }: { h: HistoryFight; size?: 'sm' | 'md'; me?: Face }) {
   if (me) return (
-    <OutcomeBadge outcome={h.outcome} size={size} card tip={
-      <FightCard me={me} opp={h.opponent} outcome={h.outcome} method={h.method} detail={h.detail} round={h.round} clock={h.clock} date={h.date} eventName={h.eventName} />
+    <OutcomeBadge outcome={h.outcome} size={size} card href={h.outcome !== 'pending' ? `/eventos/${h.eventId}/lutas/${h.fightId}` : undefined} tip={
+      <FightCard me={me} opp={h.opponent} outcome={h.outcome} method={h.method} detail={h.detail} round={h.round} clock={h.clock} date={h.date} eventName={h.eventName} clickHint={h.outcome !== 'pending'} />
     } />
   );
   const how = [h.method, h.detail].filter(Boolean).join(' · ');
   const when = [h.round ? `R${h.round} ${h.clock ?? ''}`.trim() : '', new Date(h.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/\./g, '').replace(/ de /g, ' ')].filter(Boolean).join(' · ');
   return (
-    <OutcomeBadge outcome={h.outcome} size={size} tip={
+    <OutcomeBadge outcome={h.outcome} size={size} href={h.outcome !== 'pending' ? `/eventos/${h.eventId}/lutas/${h.fightId}` : undefined} tip={
       <div className="space-y-0.5">
         <div className="text-[13.5px] font-semibold">{VERB[h.outcome]} {h.opponent.name}</div>
         {how && <div className="text-[13px] opacity-80">{how}</div>}
