@@ -1,5 +1,5 @@
 import { keepPreviousData, queryOptions, useQuery } from '@tanstack/react-query';
-import type { EventDetail, EventListItem, FightDetail, FighterProfile, FighterRef, Rankings, RankingsMeta, SearchHit } from '@shared/types';
+import type { BookedMap, DivisionAverages, EventDetail, EventListItem, FightDetail, FighterProfile, FighterRef, Rankings, RankingsMeta, SearchHit } from '@shared/types';
 
 export class ApiError extends Error {
   status: number;
@@ -55,6 +55,14 @@ export const fightHref = (eventId: string, fightId: string) => `/eventos/${event
 
 export const useRankings = () =>
   useQuery({ queryKey: ['rankings'], queryFn: () => get<Rankings>('/api/rankings'), staleTime: 30 * MIN });
+
+/** Média dos ranqueados da divisão (referência para as estatísticas do perfil). */
+export const useDivisionAvg = (division?: string) =>
+  useQuery({ queryKey: ['divavg', division], queryFn: () => get<DivisionAverages>(`/api/divisions/average?name=${encodeURIComponent(division!)}`), enabled: !!division, staleTime: 6 * 60 * MIN, retry: false });
+
+/** Quem tem luta marcada (id ESPN → próxima luta), para a etiqueta "luta marcada" nas listas. */
+export const useBooked = () =>
+  useQuery({ queryKey: ['booked'], queryFn: () => get<BookedMap>('/api/booked'), staleTime: 30 * MIN });
 
 /** Bandeira e cartel dos ranqueados: chega depois da tabela (é mais pesado) e a completa. */
 export const useRankingsMeta = () =>

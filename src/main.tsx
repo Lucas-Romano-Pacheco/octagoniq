@@ -5,14 +5,12 @@ import { QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider, removeOldestQuery } from '@tanstack/react-query-persist-client';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 
-import '@fontsource/barlow-condensed/600.css'; // títulos e números de destaque: condensada de placar esportivo
-import '@fontsource/barlow-condensed/700.css';
-import '@fontsource/barlow-condensed/800.css';
+import '@fontsource-variable/saira/wdth.css'; // títulos, rótulos e botões: sans esportiva de cantos quadrados (eixos de peso e largura)
 import '@fontsource-variable/inter';            // texto e números
 import './styles.css';
 
 import { Layout } from '@/components/Layout';
-import { Empty, ErrorState, Panel, Skeleton } from '@/components/kit';
+import { ErrorState, OctagonMark, Panel, Skeleton } from '@/components/kit';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { IconContext } from '@phosphor-icons/react';
 import Home from '@/pages/Home';
@@ -28,8 +26,18 @@ const FightPage = lazy(() => import('@/pages/Fight'));
 
 const page = (el: React.ReactNode) => <Suspense fallback={<Skeleton className="h-96" />}>{el}</Suspense>;
 
+/* 404 temática: o "placar" da página que não existe */
 const NotFound = () => (
-  <Panel><Empty>Página não encontrada. <Link to="/" className="link">Voltar ao início</Link></Empty></Panel>
+  <div className="mx-auto max-w-2xl py-16 text-center">
+    <OctagonMark className="mx-auto h-16 w-16" />
+    <div className="display mt-6 text-[96px] leading-none text-fg sm:text-[140px]">404</div>
+    <h1 className="display mt-2 text-[32px] text-fg sm:text-[44px]">Nocaute no 1º round</h1>
+    <p className="mt-4 text-[16px] text-fg-2">Essa página não resistiu à primeira troca: o endereço não existe ou mudou de lugar.</p>
+    <div className="mt-8 flex flex-wrap justify-center gap-3">
+      <Link to="/" className="btn-primary">Voltar ao início</Link>
+      <Link to="/lutadores" className="btn">Buscar um lutador</Link>
+    </div>
+  </div>
 );
 
 /* Qualquer erro de renderização cai aqui, sem derrubar o layout inteiro. */
@@ -38,7 +46,7 @@ function RouteError() {
   console.error(err);
   return (
     <Panel className="mx-auto mt-10 max-w-xl">
-      <ErrorState message="Algo deu errado ao montar esta página." onRetry={() => location.reload()} />
+      <ErrorState title="Golpe ilegal na página" message="Algo deu errado ao montar esta tela. Recarregar costuma resolver." onRetry={() => location.reload()} />
       <div className="pb-8 text-center"><Link to="/" className="link text-[14px]">Voltar ao início</Link></div>
     </Panel>
   );

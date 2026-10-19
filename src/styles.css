@@ -124,7 +124,7 @@
 
 @theme {
   --font-sans: "Inter Variable", "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Barlow Condensed", "Arial Narrow", ui-sans-serif, sans-serif;
+  --font-display: "Saira Variable", "Arial Narrow", ui-sans-serif, sans-serif;
   --font-mono: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
   --radius-card: 24px;
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
@@ -212,12 +212,18 @@
 @layer components {
   /* Cartão padrão: branco, arredondado, sombra difusa */
   .panel { @apply rounded-[var(--radius-card)] bg-surface shadow-[var(--shadow-soft)] ring-1 ring-fg/[0.04]; }
+  /* G2: cantos chanfrados a 45° (cantos de octógono). corner-shape mantém sombra e anel, que um clip-path cortaria;
+     onde não há suporte (Firefox, Safari), o canto continua arredondado. `.cut` aplica o mesmo a outros cartões. */
+  @supports (corner-shape: bevel) {
+    .panel, .cut { corner-shape: bevel; }
+    .panel { border-radius: 18px; }
+  }
   /* Seção editorial, sem card: régua grossa no topo e conteúdo direto no fundo (como página de jornal esportivo).
      Card fica reservado para o que é clicável ou para os duelos. */
   .rule { @apply border-t-[3px] border-fg pt-4; }
-  .rule-header { @apply flex items-baseline justify-between gap-3 pb-3; }
-  .panel-header { @apply flex items-center justify-between gap-3 px-6 pb-2 pt-5; }
-  .panel-title { @apply font-display text-[24px] font-bold leading-tight tracking-[0.005em] text-fg; }
+  .rule-header { @apply flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 pb-3; }
+  .panel-header { @apply flex flex-wrap items-center justify-between gap-3 px-6 pb-2 pt-5; }
+  .panel-title { @apply font-display text-[20px] font-bold uppercase leading-tight tracking-[0.02em] text-fg; }
   /* Spotlight: brilho que segue o cursor (posição em --mx/--my, cor em --spot).
      Fica atrás do conteúdo: isolation cria o contexto e o z-index -1 pinta sobre o fundo do card. */
   .spotlight { position: relative; isolation: isolate; }
@@ -242,18 +248,24 @@
   }
 
   /* Eyebrow: caixa-alta vermelha, como nas seções do layout de referência */
-  .eyebrow { @apply text-[13px] font-bold uppercase tracking-[0.12em] text-brand; }
-  .label { @apply text-[12.5px] font-semibold uppercase tracking-[0.08em] text-fg-3; }
+  /* rótulo acima do título, com um traço fino depois (como nas artes de luta) */
+  .eyebrow { @apply flex w-fit items-center gap-3 font-display text-[13px] font-semibold uppercase tracking-[0.16em] text-brand after:h-px after:w-10 after:bg-current after:opacity-60 after:content-['']; }
+  .label { @apply font-display text-[12px] font-semibold uppercase tracking-[0.1em] text-fg-3; }
 
   /* Títulos serifados */
-  .display { @apply font-display font-extrabold uppercase leading-[0.92] tracking-[0.005em]; }
+  .display { @apply font-display font-bold uppercase leading-[0.95] tracking-[0.01em]; }
 
   .num { font-variant-numeric: tabular-nums; }
 
-  .btn { @apply inline-flex h-10 items-center gap-2 rounded-full border border-line-2 bg-surface px-5 text-[14px] font-semibold text-fg transition-all duration-200 hover:-translate-y-px hover:border-fg/25 hover:shadow-[var(--shadow-soft)] disabled:opacity-50; }
-  .btn-primary { @apply inline-flex h-12 items-center gap-2 rounded-full bg-gold px-7 text-[15px] font-semibold text-[#14183e] shadow-[var(--shadow-cta)] transition-all duration-200 hover:-translate-y-0.5 hover:brightness-105; }
-  .btn-dark { @apply inline-flex h-11 items-center gap-2 rounded-full bg-fg px-6 text-[14px] font-semibold text-bg transition-all duration-200 hover:-translate-y-px hover:bg-fg/90; }
-  .btn-ghost { @apply inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[13.5px] font-semibold text-fg-2 transition-colors hover:bg-surface-2 hover:text-fg; }
+  /* Botões: ao passar o mouse sobem 1px, ganham sombra (relevo) e a cor muda de leve; ao clicar, "afundam". */
+  .btn { @apply inline-flex h-10 items-center gap-2 rounded-full border border-line-2 bg-surface px-5 font-display text-[12.5px] font-bold uppercase tracking-[0.06em] text-fg shadow-[0_1px_0_var(--color-line-2)] transition-all duration-200 hover:-translate-y-px hover:border-fg/25 hover:bg-surface-2 hover:shadow-[var(--shadow-soft)] active:translate-y-0 active:shadow-none disabled:pointer-events-none disabled:opacity-50; }
+  .btn-primary { @apply inline-flex h-12 items-center gap-2 rounded-full bg-gold px-7 font-display text-[13.5px] font-bold uppercase tracking-[0.06em] text-[#14183e] shadow-[var(--shadow-cta)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[color-mix(in_oklab,var(--color-gold)_88%,white)] hover:shadow-[0_18px_34px_-12px_color-mix(in_oklab,var(--color-gold)_75%,transparent)] active:translate-y-0 active:shadow-[var(--shadow-soft)]; }
+  .btn-dark { @apply inline-flex h-11 items-center gap-2 rounded-full bg-fg px-6 font-display text-[12.5px] font-bold uppercase tracking-[0.06em] text-bg transition-all duration-200 hover:-translate-y-px hover:bg-fg/90 hover:shadow-[var(--shadow-lift)] active:translate-y-0 active:shadow-none; }
+  .btn-ghost { @apply inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 font-display text-[12.5px] font-bold uppercase tracking-[0.06em] text-fg-2 transition-all duration-200 hover:-translate-y-px hover:bg-surface-2 hover:text-fg hover:shadow-[0_1px_0_var(--color-line-2),var(--shadow-soft)] active:translate-y-0 active:shadow-none disabled:pointer-events-none disabled:opacity-40; }
+  /* relevo para botões avulsos (ícones redondos, setas de carrossel) */
+  .lift { @apply transition-all duration-200 hover:-translate-y-px hover:shadow-[var(--shadow-lift)] hover:brightness-[1.06] active:translate-y-0 active:shadow-none active:brightness-100; }
+  /* tecla de atalho com relevo (borda inferior mais grossa, como uma tecla física) */
+  .kbd { @apply inline-flex h-6 min-w-6 items-center justify-center rounded-md border border-line-2 border-b-[3px] bg-surface px-1.5 font-sans text-[12px] font-semibold leading-none text-fg-2 shadow-[0_1px_2px_rgb(0_0_0/0.08)]; }
 
   .link { @apply text-fg underline decoration-fg/20 underline-offset-4 hover:decoration-brand; }
 
@@ -294,4 +306,11 @@
   .ticker { overflow-x: auto; scrollbar-width: none; }
   .ticker-copy { display: none; }
   * { transition-duration: 0ms !important; }
+}
+
+/* G7: transições entre páginas (View Transitions API). Página: fade curto; foto do lutador: voa da lista ao perfil. */
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.22s; }
+::view-transition-group(fighter-photo) { animation-duration: 0.45s; animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }

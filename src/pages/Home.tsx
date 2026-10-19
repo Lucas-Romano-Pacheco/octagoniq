@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState, type PointerEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { ArrowRight, ArrowUpRight, CaretLeft, CaretRight, ArrowsLeftRight, CalendarDots, Crown, MapPin, Timer } from '@phosphor-icons/react';
+import { ArrowRight, ArrowUpRight, CaretLeft, CaretRight, ArrowsLeftRight, CalendarDots, Crown, Lightning, MapPin, Timer } from '@phosphor-icons/react';
 import type { FighterRef } from '@shared/types';
-import { fighterHref, useEvent, useRankings, useRankingsMeta, useSchedule, useUpcoming, type UpcomingEvent } from '@/lib/api';
+import { fightHref, fighterHref, useEvent, useRankings, useRankingsMeta, useSchedule, useUpcoming, type UpcomingEvent } from '@/lib/api';
 import { capitalize, dayMonth, fullDate, lastName, longDate, splitEventName, time, weekday, weightPhrase } from '@/lib/format';
 import { FightRow } from '@/components/FightRow';
-import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from '@/components/ui/carousel';
-import { Avatar, BlobClip, Brush, Empty, ErrorState, Flag, FlagBackdrop, LiveTag, OctagonMark, Panel, Reveal, SectionTitle, Skeleton, Spotlight, Tag } from '@/components/kit';
+import { cardSummary, winnerChance } from '@/lib/fights';
+import { fmtMoneyline } from '@shared/format';
+import { SERIES_LABEL, SERIES_TONE } from '@/lib/series';
+import { Avatar, Brush, morphPhoto, OctagonFrame, Empty, ErrorState, Flag, FlagBackdrop, LiveTag, Panel, Reveal, SectionTitle, Skeleton, Spotlight, Tag } from '@/components/kit';
 
 /* ---------- Hero ---------- */
 
@@ -77,7 +79,7 @@ function Hero({ e }: { e: UpcomingEvent }) {
           {series} · {dayMonth(e.date)} · {e.city?.split(',')[0]}
         </motion.div>
         {m ? (
-          <motion.h1 {...fade(0.08)} className="display mt-5 text-[56px] text-fg sm:text-[84px] xl:text-[96px]">
+          <motion.h1 {...fade(0.08)} className="display mt-5 break-words text-[44px] text-fg sm:text-[72px] xl:text-[84px]">
             {lastName(m.red.name)}
             <br />
             <span className="relative inline-block">
@@ -94,7 +96,7 @@ function Hero({ e }: { e: UpcomingEvent }) {
           <Link to={`/eventos/${e.id}`} className="btn-primary">Ver card completo <ArrowRight className="h-4 w-4" /></Link>
           {m && (
             <Link to={`/comparar?a=${m.red.slug}&ae=${m.red.espnId}&b=${m.blue.slug}&be=${m.blue.espnId}`} className="group flex items-center gap-3 text-[15px] font-semibold text-fg-2 hover:text-fg">
-              <span className="grid h-12 w-12 place-items-center rounded-full bg-brand text-white shadow-[0_14px_28px_-10px_rgb(214_40_57/0.7)] transition-transform group-hover:scale-105">
+              <span className="grid h-12 w-12 place-items-center rounded-full bg-brand text-white shadow-[0_14px_28px_-10px_rgb(214_40_57/0.7)] transition-all duration-200 group-hover:-translate-y-0.5 group-hover:brightness-110 group-hover:shadow-[0_20px_34px_-10px_rgb(214_40_57/0.8)]">
                 <ArrowsLeftRight className="h-5 w-5" />
               </span>
               Comparar os dois
@@ -103,17 +105,15 @@ function Hero({ e }: { e: UpcomingEvent }) {
         </motion.div>
       </div>
 
-      {/* Lado direito: forma orgânica, recortes frente a frente e cartões flutuantes */}
+      {/* Lado direito: moldura em octógono, recortes frente a frente e cartões flutuantes */}
       {m && (
         <div className="relative mx-auto h-[420px] w-full max-w-[600px] sm:h-[540px]">
-          {/* forma orgânica com a bandeira de cada lutador do seu lado, esmaecendo até o centro */}
-          <BlobClip className="inset-x-0 bottom-0 h-[92%]">
+          {/* octógono com a bandeira de cada lutador do seu lado, esmaecendo até o centro */}
+          <OctagonFrame className="bottom-0 left-1/2 h-[90%] -translate-x-1/2">
             <div className="absolute inset-0 bg-cream" />
             <FlagBackdrop code={m.red.countryCode} shape="fade-right" className="inset-y-0 left-0 w-[62%] opacity-40 dark:opacity-30" />
             <FlagBackdrop code={m.blue.countryCode} shape="fade-left" className="inset-y-0 right-0 w-[62%] opacity-40 dark:opacity-30" />
-          </BlobClip>
-          <OctagonMark className="float absolute left-6 top-10 h-10 w-10 opacity-80" />
-          <OctagonMark className="float absolute bottom-24 right-0 h-7 w-7 opacity-60 [animation-delay:-3s]" stroke="var(--color-blue)" />
+          </OctagonFrame>
 
           <motion.div initial={reduce ? false : { opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className="absolute bottom-0 left-[2%] h-[94%]">
@@ -126,7 +126,7 @@ function Hero({ e }: { e: UpcomingEvent }) {
 
           {/* cartão: contagem regressiva */}
           <motion.div initial={reduce ? false : { opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55, duration: 0.6 }}
-            className="absolute -bottom-4 left-1/2 w-max -translate-x-1/2 rounded-3xl bg-surface/95 px-5 py-4 shadow-[var(--shadow-lift)] backdrop-blur">
+            className="cut absolute -bottom-4 left-1/2 w-max -translate-x-1/2 rounded-2xl bg-surface/95 px-5 py-4 shadow-[var(--shadow-lift)] backdrop-blur">
             <div className="mb-2 flex items-center gap-1.5 text-[13px] font-semibold text-fg-2"><Timer className="h-3.5 w-3.5 text-brand" /> {e.status === 'in' ? 'Acontecendo agora' : 'Começa em'}</div>
             {e.status === 'in' ? <LiveTag /> : <Countdown iso={e.date} />}
           </motion.div>
@@ -134,7 +134,7 @@ function Hero({ e }: { e: UpcomingEvent }) {
           {/* cartões: cada canto */}
           {[{ f: m.red, side: 'left-0 top-[60%] sm:-left-6', dot: 'bg-red' }, { f: m.blue, side: 'right-0 top-[50%] sm:-right-6', dot: 'bg-blue' }].map(({ f, side, dot }, i) => (
             <motion.div key={f.espnId} initial={reduce ? false : { opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.7 + i * 0.1, duration: 0.5 }}
-              className={`absolute ${side} hidden items-center gap-3 rounded-2xl bg-surface/95 py-2.5 pl-2.5 pr-4 shadow-[var(--shadow-lift)] backdrop-blur sm:flex`}>
+              className={`absolute ${side} cut hidden items-center gap-3 rounded-xl bg-surface/95 py-2.5 pl-2.5 pr-4 shadow-[var(--shadow-lift)] backdrop-blur sm:flex`}>
               <Avatar src={f.headshot} name={f.name} size={38} />
               <div>
                 <div className="flex items-center gap-1.5 text-[14px] font-bold text-fg"><span className={`h-2 w-2 rounded-full ${dot}`} />{f.name}</div>
@@ -160,7 +160,46 @@ const headshot = (espnId?: string) => (espnId ? `https://a.espncdn.com/i/headsho
 
 /* ---------- Mosaico (bento) ---------- */
 
-function Bento({ next }: { next?: UpcomingEvent }) {
+function Highlight({ lastId, after }: { lastId?: string; after?: string }) {
+  const { data: ev } = useEvent(lastId);
+  const upcoming = useUpcoming(10);
+  const tile = 'panel h-full overflow-hidden p-6';
+  const z = ev && cardSummary(ev.fights).biggestUpset;
+  if (z) {
+    const winRed = z.result!.winnerId === z.red.espnId;
+    const w = winRed ? z.red : z.blue, l = winRed ? z.blue : z.red;
+    const ml = winRed ? z.odds?.red : z.odds?.blue;
+    return (
+      <Link to={fightHref(ev.id, z.id)} className={`${tile} group flex items-center gap-5`}>
+        <Avatar src={w.headshot} name={w.name} size={84} flag={w.countryCode} />
+        <div className="min-w-0 flex-1">
+          <div className="label flex items-center gap-1.5"><Lightning weight="fill" className="h-3.5 w-3.5 text-gold" /> Zebra do último evento</div>
+          <h3 className="display mt-1.5 truncate text-[30px] text-fg group-hover:text-brand">{lastName(w.name)} venceu {lastName(l.name)}</h3>
+          <p className="mt-1 text-[14px] text-fg-3">
+            <span className="num font-semibold text-gold-ink">{fmtMoneyline(ml)}</span> · só {Math.round((winnerChance(z) ?? 0) * 100)}% de chance pelas odds · {z.result!.method}, R{z.result!.round}
+          </p>
+        </div>
+      </Link>
+    );
+  }
+  const t = (upcoming.data ?? []).find(e => e.id !== after && e.main?.title);
+  if (!t?.main) return <div className={tile}><Skeleton className="h-20" /></div>;
+  return (
+    <Link to={`/eventos/${t.id}`} className={`${tile} group flex items-center gap-5`}>
+      <span className="flex shrink-0">
+        <Avatar src={t.main.red.headshot} name={t.main.red.name} size={60} ring="var(--color-red)" />
+        <Avatar src={t.main.blue.headshot} name={t.main.blue.name} size={60} ring="var(--color-blue)" className="-ml-3" />
+      </span>
+      <div className="min-w-0">
+        <div className="label flex items-center gap-1.5"><Crown weight="fill" className="h-3.5 w-3.5 text-gold" /> Próxima disputa de cinturão</div>
+        <h3 className="display mt-1.5 truncate text-[30px] text-fg group-hover:text-brand">{lastName(t.main.red.name)} × {lastName(t.main.blue.name)}</h3>
+        <p className="mt-1 text-[14px] text-fg-3">{t.main.weightClass} · {splitEventName(t.name).series} · {dayMonth(t.date)}</p>
+      </div>
+    </Link>
+  );
+}
+
+function Bento({ next, lastId }: { next?: UpcomingEvent; lastId?: string }) {
   const { data } = useRankings();
   const { data: meta } = useRankingsMeta();
   const [women, setWomen] = useState(false);
@@ -176,17 +215,17 @@ function Bento({ next }: { next?: UpcomingEvent }) {
 
   return (
     <section className="py-10">
-      <Reveal><SectionTitle eyebrow="Em números" title="O UFC agora" /></Reveal>
-      <div className="grid auto-rows-[minmax(150px,auto)] gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <Reveal><SectionTitle title="O UFC agora" /></Reveal>
+      <div className="grid auto-rows-[minmax(150px,auto)] grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         {/* P4P top 5 */}
         <Reveal className="md:row-span-2 lg:col-span-2">
           <div className={tile}>
             <div className="flex items-center justify-between">
-              <div><div className="eyebrow">Peso por peso · {women ? 'feminino' : 'masculino'}</div><h3 className="panel-title mt-1">Top 5 do UFC</h3></div>
+              <div><div className="label">Peso por peso · {women ? 'feminino' : 'masculino'}</div><h3 className="panel-title mt-1">Top 5 do UFC</h3></div>
               <div className="flex items-center gap-1">
                 <Link to={p4p ? `/rankings/${p4p.id}` : '/rankings'} className="btn-ghost">Ranking <ArrowUpRight className="h-4 w-4" /></Link>
                 <button onClick={() => setWomen(w => !w)} aria-label={women ? 'Ver peso por peso masculino' : 'Ver peso por peso feminino'}
-                  className="grid h-9 w-9 place-items-center rounded-full bg-fg text-bg transition-transform hover:scale-105">
+                  className="lift grid h-9 w-9 place-items-center rounded-full bg-fg text-bg">
                   {women ? <CaretLeft weight="bold" className="h-4 w-4" /> : <CaretRight weight="bold" className="h-4 w-4" />}
                 </button>
               </div>
@@ -197,7 +236,7 @@ function Bento({ next }: { next?: UpcomingEvent }) {
                 const mm = meta?.[e.slug];
                 return (
                   <li key={e.slug}>
-                    <Link to={fighterHref({ slug: e.slug, espnId: mm?.espnId })} className="flex items-center gap-4 rounded-2xl px-2 py-2 transition-colors hover:bg-surface-2/70">
+                    <Link to={fighterHref({ slug: e.slug, espnId: mm?.espnId })} viewTransition onClick={morphPhoto} className="flex items-center gap-4 rounded-2xl px-2 py-2 transition-colors hover:bg-surface-2/70">
                       <span className="num w-6 text-right font-display text-[22px] font-semibold text-fg-3">{e.rank}</span>
                       <Avatar src={headshot(mm?.espnId)} name={e.name} size={44} flag={mm?.countryCode} />
                       <span className="min-w-0 flex-1 truncate text-[16px] font-bold text-fg">{e.name}</span>
@@ -212,26 +251,13 @@ function Bento({ next }: { next?: UpcomingEvent }) {
           </div>
         </Reveal>
 
-        {/* próximo evento */}
-        <Reveal delay={0.05} className="lg:col-span-2">
-          <div className={tile}>
-            <div className="eyebrow">Próximo evento</div>
-            {next ? (
-              <Link to={`/eventos/${next.id}`} className="mt-2 flex flex-wrap items-end justify-between gap-4">
-                <div className="min-w-0">
-                  <h3 className="display truncate text-[30px] text-fg">{m ? `${lastName(m.red.name)} × ${lastName(m.blue.name)}` : splitEventName(next.name).series}</h3>
-                  <p className="mt-1 text-[14px] text-fg-3">{capitalize(longDate(next.date))} · {next.fightCount} lutas</p>
-                </div>
-                {next.status === 'in' ? <LiveTag /> : <Countdown iso={next.date} />}
-              </Link>
-            ) : <Skeleton className="mt-3 h-16" />}
-          </div>
-        </Reveal>
+        {/* zebra do último evento; sem zebra, a próxima disputa de cinturão (o próximo evento já está no topo) */}
+        <Reveal delay={0.05} className="lg:col-span-2"><Highlight lastId={lastId} after={next?.id} /></Reveal>
 
         {/* campeões por país */}
         <Reveal delay={0.1}>
           <div className={tile}>
-            <div className="eyebrow">Cinturões</div>
+            <div className="label">Cinturões</div>
             <div className="mt-2 flex items-baseline gap-2">
               <span className="display text-[64px] leading-[0.85] text-fg">{champs.length}</span>
               <span className="text-[14px] text-fg-3">campeões de {byCountry.length} países</span>
@@ -251,7 +277,7 @@ function Bento({ next }: { next?: UpcomingEvent }) {
           {m ? (
             <Link to={`/comparar?a=${m.red.slug}&ae=${m.red.espnId}&b=${m.blue.slug}&be=${m.blue.espnId}`} className="block h-full">
               <Spotlight duel className={`${tile} group flex flex-col justify-between`}>
-                <div className="eyebrow">Frente a frente</div>
+                <div className="label">Frente a frente</div>
                 <div className="my-3 flex items-center">
                   <Avatar src={m.red.headshot} name={m.red.name} size={60} ring="var(--color-red)" />
                   <span className="-mx-1 z-10 grid h-8 w-8 place-items-center rounded-full bg-fg text-[12px] font-bold text-bg">VS</span>
@@ -274,41 +300,34 @@ function Champions() {
   return (
     <section className="py-12">
       <Reveal>
-        <SectionTitle eyebrow="Rankings oficiais" title="Os donos dos cinturões" action={<Link to="/rankings" className="btn">Todos os rankings <ArrowUpRight className="h-4 w-4" /></Link>} />
+        <SectionTitle title="Os donos dos cinturões" action={<Link to="/rankings" className="btn">Todos os rankings <ArrowUpRight className="h-4 w-4" /></Link>} />
       </Reveal>
       {isError && <Panel><ErrorState onRetry={() => refetch()} /></Panel>}
-      {isLoading && <div className="flex gap-5">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-[320px] w-[280px] shrink-0" />)}</div>}
+      {isLoading && <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[210px]" />)}</div>}
       {divs.length > 0 && (
         <Reveal delay={0.1}>
-          <Carousel opts={{ align: 'start', dragFree: true }} className="relative">
-            <CarouselContent className="-ml-5 pb-8 pt-2">
-              {divs.map(d => {
-                const c = d.champion!;
-                return (
-                  <CarouselItem key={d.id} className="basis-[78%] pl-5 sm:basis-1/2 lg:basis-1/4">
-                    <Link to={fighterHref({ slug: c.slug, espnId: meta?.[c.slug]?.espnId })} className="group block overflow-hidden rounded-[var(--radius-card)] bg-surface shadow-[var(--shadow-soft)] ring-1 ring-fg/[0.04] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[var(--shadow-lift)]">
-                      <div className="relative h-[190px] overflow-hidden bg-gradient-to-b from-cream to-cream-2">
-                        <FlagBackdrop code={meta?.[c.slug]?.countryCode} className="inset-0 opacity-45 dark:opacity-35" />
-                        {c.image && <img src={c.image} alt="" loading="lazy" className="absolute bottom-0 left-1/2 h-[96%] w-auto max-w-none -translate-x-1/2 object-contain transition-transform duration-500 group-hover:scale-[1.04]" />}
-                      </div>
-                      <div className="px-5 pb-5 pt-4">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="flex items-center gap-1.5 text-[14px] font-semibold text-fg-3"><Crown weight="fill" className="h-4 w-4 text-gold" />{d.name}</span>
-                          {meta?.[c.slug] && <span className="flex items-center gap-2"><Flag code={meta[c.slug].countryCode} title={meta[c.slug].country} size={18} /><span className="num text-[14px] font-semibold text-fg-2">{meta[c.slug].record}</span></span>}
-                        </div>
-                        <div className="mt-1.5 font-display text-[21px] font-semibold leading-tight text-fg">{c.name}</div>
-                        <div className="mt-3 flex items-center gap-1.5 text-[14px] font-semibold text-brand opacity-0 transition-opacity group-hover:opacity-100">Ver perfil <ArrowRight className="h-3.5 w-3.5" /></div>
-                      </div>
-                    </Link>
-                  </CarouselItem>
-                );
-              })}
-            </CarouselContent>
-            <div className="flex gap-2">
-              <CarouselPrevious className="static size-11 translate-y-0 border-0 bg-surface text-fg shadow-[var(--shadow-soft)] ring-1 ring-fg/[0.06] hover:bg-surface-2 dark:bg-surface dark:hover:bg-surface-2" />
-              <CarouselNext className="static size-11 translate-y-0 border-0 bg-fg text-bg shadow-[var(--shadow-soft)] hover:bg-fg/90 hover:text-bg dark:bg-fg dark:hover:bg-fg/90" />
-            </div>
-          </Carousel>
+          {/* todos os cinturões de uma vez (o carrossel escondia 7 dos 11) */}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {divs.map(d => {
+              const c = d.champion!, mm = meta?.[c.slug];
+              return (
+                <Link key={d.id} to={fighterHref({ slug: c.slug, espnId: mm?.espnId })} className="cut group block overflow-hidden rounded-[14px] bg-surface shadow-[var(--shadow-soft)] ring-1 ring-fg/[0.04] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lift)]">
+                  <div className="relative h-[130px] overflow-hidden bg-gradient-to-b from-cream to-cream-2">
+                    <FlagBackdrop code={mm?.countryCode} className="inset-0 opacity-45 dark:opacity-35" />
+                    {c.image && <img src={c.image} alt="" loading="lazy" className="absolute bottom-0 left-1/2 h-[96%] w-auto max-w-none -translate-x-1/2 object-contain transition-transform duration-500 group-hover:scale-[1.05]" />}
+                  </div>
+                  <div className="px-3.5 pb-3.5 pt-3">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="flex min-w-0 items-center gap-1 text-[12.5px] font-semibold text-fg-3"><Crown weight="fill" className="h-3.5 w-3.5 shrink-0 text-gold" /><span className="truncate">{d.name}</span></span>
+                      {mm && <Flag code={mm.countryCode} title={mm.country} size={16} />}
+                    </div>
+                    <div className="mt-1 truncate font-display text-[18px] font-bold uppercase leading-tight text-fg group-hover:text-brand">{c.name}</div>
+                    {mm?.record && <div className="num text-[13px] font-semibold text-fg-3">{mm.record}</div>}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
         </Reveal>
       )}
     </section>
@@ -320,34 +339,40 @@ function Champions() {
 function EventCard({ id, eyebrow, title, limit = 6 }: { id?: string; eyebrow: string; title: string; limit?: number }) {
   const { data, isLoading, isError, refetch } = useEvent(id);
   const fights = data?.fights.filter(f => f.segment === 'main').slice(0, limit) ?? [];
+  // evento encerrado: uma linha-resumo da noite inteira ("4 nocautes · 1 zebra · 2 no 1º round")
+  const sum = data?.status === 'post' ? cardSummary(data.fights) : null;
+  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+  const line = sum && [
+    sum.ko && plural(sum.ko, 'nocaute', 'nocautes'), sum.sub && plural(sum.sub, 'finalização', 'finalizações'),
+    sum.upsets && plural(sum.upsets, 'zebra', 'zebras'), sum.r1 && `${sum.r1} no 1º round`,
+  ].filter(Boolean).join(' · ');
   return (
     <Panel eyebrow={eyebrow}
-      title={<div><h2 className="panel-title">{title}</h2>{data && <p className="mt-0.5 truncate text-[14px] text-fg-3">{data.name} · {fullDate(data.date)}</p>}</div>}
+      title={<div><h2 className="panel-title">{title}</h2>{data && <p className="mt-0.5 truncate text-[14px] text-fg-3">{data.name} · {fullDate(data.date)}</p>}
+        {line && <p className="mt-1.5 text-[14px] font-semibold text-fg-2">{line}</p>}</div>}
       action={id && <Link to={`/eventos/${id}`} className="btn-ghost shrink-0">Ver evento <ArrowRight className="h-4 w-4" /></Link>}
       bodyClass="divide-y divide-line/70 px-2 pb-2">
       {isLoading && Array.from({ length: 4 }).map((_, i) => <div key={i} className="px-4 py-4"><Skeleton className="h-12" /></div>)}
       {isError && <ErrorState onRetry={() => refetch()} />}
-      {fights.map(f => <FightRow key={f.id} fight={f} eventId={id} />)}
+      {fights.map(f => <FightRow key={f.id} fight={f} eventId={id} compact />)}
     </Panel>
   );
 }
 
-/* ---------- Agenda (como os "passos" coloridos da referência) ---------- */
+/* ---------- Agenda: a cor de cada data é o tipo do evento (mesma legenda do calendário) ---------- */
 
-const AGENDA_TONES = ['bg-gold text-[#14183e]', 'bg-brand text-white', 'bg-blue text-white', 'bg-fg text-bg'];
 
 function Agenda({ events }: { events: UpcomingEvent[] }) {
   return (
     <div>
-      <div className="eyebrow mb-2">Calendário</div>
       <h2 className="display text-[32px] text-fg">Próximas datas</h2>
       <ul className="mt-6 space-y-3">
-        {events.map((e, i) => {
+        {events.map(e => {
           const { series, title } = splitEventName(e.name);
           return (
             <li key={e.id}>
               <Link to={`/eventos/${e.id}`} className="group flex items-center gap-4 rounded-2xl p-2 pr-4 transition-all hover:bg-surface hover:shadow-[var(--shadow-soft)]">
-                <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl ${AGENDA_TONES[i % AGENDA_TONES.length]}`}>
+                <div className={`cut grid h-14 w-14 shrink-0 place-items-center rounded-xl ${SERIES_TONE[e.series]}`} title={SERIES_LABEL[e.series]}>
                   <div className="text-center leading-none">
                     <div className="num font-display text-[20px] font-semibold">{dayMonth(e.date).split(' ')[0]}</div>
                     <div className="mt-0.5 text-[11.5px] font-bold uppercase tracking-wider opacity-80">{dayMonth(e.date).split(' ')[1]}</div>
@@ -365,7 +390,10 @@ function Agenda({ events }: { events: UpcomingEvent[] }) {
           );
         })}
       </ul>
-      <Link to="/eventos" className="btn mt-6"><CalendarDots className="h-4 w-4" /> Calendário completo</Link>
+      <div className="mt-5 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-fg-3">
+        {(['ppv', 'fight-night'] as const).map(k => <span key={k} className="flex items-center gap-1.5"><span className={`h-2.5 w-2.5 rounded-sm ${SERIES_TONE[k].split(' ')[0]}`} />{SERIES_LABEL[k]}</span>)}
+      </div>
+      <Link to="/eventos" className="btn mt-5"><CalendarDots className="h-4 w-4" /> Calendário completo</Link>
     </div>
   );
 }
@@ -388,9 +416,9 @@ export default function Home() {
       {upcoming.isLoading && <div className="grid gap-10 py-10 lg:grid-cols-2"><div className="space-y-5"><Skeleton className="h-6 w-60" /><Skeleton className="h-40" /><Skeleton className="h-20" /></div><Skeleton className="h-[480px] rounded-[48%]" /></div>}
       {upcoming.isError && <Panel><ErrorState onRetry={() => upcoming.refetch()} /></Panel>}
       {next && <Hero e={next} />}
-      {!upcoming.isLoading && !next && <Panel><Empty>Nenhum evento anunciado.</Empty></Panel>}
+      {!upcoming.isLoading && !next && <Panel><Empty>Octógono vazio: nenhum evento anunciado por enquanto.</Empty></Panel>}
 
-      <Bento next={next} />
+      <Bento next={next} lastId={lastId} />
       <Champions />
 
       <section className="grid gap-10 py-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">

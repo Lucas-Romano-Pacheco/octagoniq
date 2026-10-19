@@ -21,6 +21,8 @@ export const hasRadar = (s?: OfficialStats) => !!s && AXES.filter(a => a.get(s) 
 
 export function AttrRadar({ series, height = 300 }: { series: { name: string; color: string; stats: OfficialStats }[]; height?: number }) {
   const ink = useInk();
+  // no celular os rótulos dos eixos cortavam nas bordas: raio menor
+  const narrow = typeof window !== 'undefined' && window.innerWidth < 640;
   const option = useMemo(() => ({
     tooltip: {
       ...tooltipBase(ink), trigger: 'item',
@@ -33,7 +35,7 @@ export function AttrRadar({ series, height = 300 }: { series: { name: string; co
     },
     radar: {
       indicator: AXES.map(a => ({ name: a.name, max: 100 })),
-      radius: '62%', center: ['50%', '52%'], splitNumber: 4, shape: 'polygon',
+      radius: narrow ? '50%' : '62%', center: ['50%', '52%'], splitNumber: 4, shape: 'polygon',
       axisName: { color: ink.fg2, fontSize: 12, fontWeight: 600 },
       splitLine: { lineStyle: { color: ink.axis } },
       splitArea: { areaStyle: { color: ['transparent'] } },
@@ -52,7 +54,7 @@ export function AttrRadar({ series, height = 300 }: { series: { name: string; co
         };
       }),
     }],
-  }), [series, ink]);
+  }), [series, ink, narrow]);
   return <EChart option={option} height={height} ariaLabel={`Radar de atributos: ${series.map(s => s.name).join(' e ')}`} />;
 }
 

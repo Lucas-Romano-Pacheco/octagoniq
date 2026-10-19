@@ -6,10 +6,11 @@ import { useSearch } from '@/lib/api';
 import { Avatar } from './kit';
 
 /** Campo de busca com lista suspensa (combobox) para escolher um lutador. */
-export function FighterPicker({ placeholder = 'Buscar lutador…', onPick, autoFocus, className, value, onClear }: {
+export function FighterPicker({ placeholder = 'Buscar lutador…', onPick, autoFocus, className, value, onClear, size = 'md' }: {
   placeholder?: string; onPick: (h: SearchHit) => void; autoFocus?: boolean; className?: string;
-  value?: string; onClear?: () => void;
+  value?: string; onClear?: () => void; size?: 'md' | 'lg';
 }) {
+  const lg = size === 'lg';
   const [q, setQ] = useState('');
   const [dq, setDq] = useState('');
   const [open, setOpen] = useState(false);
@@ -29,8 +30,8 @@ export function FighterPicker({ placeholder = 'Buscar lutador…', onPick, autoF
 
   return (
     <div ref={box} className={clsx('relative', className)}>
-      <div className="flex h-12 items-center gap-3 rounded-full bg-surface px-5 shadow-[var(--shadow-soft)] ring-1 ring-fg/[0.06] transition-shadow focus-within:ring-2 focus-within:ring-blue/50">
-        <MagnifyingGlass className="h-4 w-4 shrink-0 text-fg-3" />
+      <div className={clsx('flex items-center gap-3 rounded-full bg-surface shadow-[var(--shadow-soft)] ring-1 ring-fg/[0.06] transition-shadow focus-within:ring-2 focus-within:ring-blue/50', lg ? 'h-16 px-6' : 'h-12 px-5')}>
+        <MagnifyingGlass className={clsx('shrink-0 text-fg-3', lg ? 'h-5 w-5' : 'h-4 w-4')} />
         {value && !q ? (
           <span className="flex-1 truncate text-[15px] font-semibold text-fg">{value}</span>
         ) : null}
@@ -43,12 +44,12 @@ export function FighterPicker({ placeholder = 'Buscar lutador…', onPick, autoF
             if (e.key === 'Enter') pick(hits[sel]);
             if (e.key === 'Escape') setOpen(false);
           }}
-          className={clsx('h-full min-w-0 bg-transparent text-[15px] text-fg outline-none placeholder:text-fg-3', value && !q ? 'w-4' : 'flex-1')} />
+          className={clsx('h-full min-w-0 bg-transparent text-fg outline-none placeholder:text-fg-3', lg ? 'text-[17px] font-medium' : 'text-[15px]', value && !q ? 'w-4' : 'flex-1')} />
         {isFetching && <CircleNotch className="h-3.5 w-3.5 animate-spin text-fg-3" />}
         {value && onClear && !q && <button onClick={onClear} aria-label="Limpar" className="text-fg-3 hover:text-fg"><X className="h-3.5 w-3.5" /></button>}
       </div>
       {open && hits.length > 0 && (
-        <ul role="listbox" className="absolute inset-x-0 top-14 z-30 max-h-80 overflow-y-auto rounded-2xl bg-surface p-1.5 shadow-[var(--shadow-pop)]">
+        <ul role="listbox" className={clsx('absolute inset-x-0 z-30', lg ? 'top-[72px]' : 'top-14', 'max-h-80 overflow-y-auto rounded-2xl bg-surface p-1.5 shadow-[var(--shadow-pop)]')}>
           {hits.map((h, i) => (
             <li key={h.espnId} role="option" aria-selected={i === sel}>
               <button onMouseEnter={() => setSel(i)} onClick={() => pick(h)}

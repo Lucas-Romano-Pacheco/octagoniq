@@ -187,6 +187,20 @@ export interface SearchHit {
   active?: boolean;
 }
 
+/** Média das estatísticas oficiais dos ranqueados de uma divisão (campeão + top 15), para dar referência aos números. */
+export type AvgKey = 'slpm' | 'sapm' | 'strAcc' | 'strDef' | 'tdAvg' | 'tdAcc' | 'tdDef' | 'subAvg' | 'kdAvg';
+export interface DivisionAverages {
+  division: string;
+  n: number;
+  avg: Partial<Record<AvgKey, number>>;
+  /** valores de cada ranqueado, do melhor para o pior (em "absorvidos", menor é melhor), para calcular posições */
+  ranks: Partial<Record<AvgKey, { slug: string; value: number }[]>>;
+}
+
+/** Próxima luta marcada de um atleta (para "luta em breve" nas listas), indexada pelo id ESPN. */
+export interface BookedFight { eventId: string; fightId: string; eventName: string; date: string; opponent: string; title: boolean }
+export type BookedMap = Record<string, BookedFight>;
+
 /** Dados extras de cada ranqueado (bandeira e cartel), indexados pelo slug do UFC.com. */
 export interface RankMeta { espnId?: string; record?: string; country?: string; countryCode?: string }
 export type RankingsMeta = Record<string, RankMeta>;
@@ -213,6 +227,12 @@ export interface FightSideStats {
   distance: [number, number]; clinch: [number, number]; ground: [number, number];
 }
 
+/** Cartões dos juízes (decisões): pontos por round de cada canto. */
+export interface Scorecards {
+  source: string;
+  judges: { name: string; red: number; blue: number; rounds: { n: number; red: number; blue: number }[] }[];
+}
+
 export interface FightDetail {
   eventId: string;
   eventName: string;
@@ -220,6 +240,7 @@ export interface FightDetail {
   red: FighterRef & { stats?: FightSideStats };
   blue: FighterRef & { stats?: FightSideStats };
   seconds?: number;
+  scorecards?: Scorecards;
 }
 
 export interface ApiError { error: string; detail?: string }

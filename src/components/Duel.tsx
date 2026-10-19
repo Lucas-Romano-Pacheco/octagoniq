@@ -23,9 +23,10 @@ export function DuelRow({ label, a, b, fmt = v => (v === undefined ? '—' : Str
   return (
     <div className="px-5 py-3">
       <div className="mb-1.5 grid grid-cols-[1fr_auto_1fr] items-baseline gap-3">
-        <span className={clsx('num text-right text-[15px]', win === 'a' ? 'font-bold text-fg' : 'text-fg-2')}>{fmt(a)}{sub && <span className="ml-1.5 text-[13px] font-normal text-fg-3">{sub[0]}</span>}</span>
+        {/* o complemento ("de 44 · 50%") fica ao lado no desktop e numa linha própria no celular */}
+        <span className={clsx('num text-right text-[15px]', win === 'a' ? 'font-bold text-fg' : 'text-fg-2')}>{fmt(a)}{sub && <span className="block whitespace-nowrap text-[12.5px] font-normal text-fg-3 sm:ml-1.5 sm:inline sm:text-[13px]">{sub[0]}</span>}</span>
         <span className="text-center text-[13.5px] text-fg-3">{label}{lowerIsBetter && <span className="text-fg-3/70"> (menor é melhor)</span>}</span>
-        <span className={clsx('num text-[15px]', win === 'b' ? 'font-bold text-fg' : 'text-fg-2')}>{fmt(b)}{sub && <span className="ml-1.5 text-[13px] font-normal text-fg-3">{sub[1]}</span>}</span>
+        <span className={clsx('num text-[15px]', win === 'b' ? 'font-bold text-fg' : 'text-fg-2')}>{fmt(b)}{sub && <span className="block whitespace-nowrap text-[12.5px] font-normal text-fg-3 sm:ml-1.5 sm:inline sm:text-[13px]">{sub[1]}</span>}</span>
       </div>
       <div className="grid grid-cols-2 gap-[2px]">
         <div className="flex h-2 justify-end rounded-l-full bg-surface-2"><div className="h-full rounded-l-full transition-[width] duration-700" style={{ width: `${((a ?? 0) / max) * 100}%`, background: CORNER.a }} /></div>
@@ -59,7 +60,7 @@ export function OddsChip({ ml, p, tier, label, compact }: { ml?: number; p: numb
   return (
     <Tip title={`${label} · ${Math.round(p * 100)}% de chance`}
       content={ml === undefined ? 'Probabilidade implícita, sem a margem da casa.' : `Linha ${fmtMoneyline(ml)}: ${ml < 0 ? `aposta ${-ml} para ganhar 100` : `aposta 100 para ganhar ${ml}`}. Probabilidade sem a margem da casa.`}>
-      <span tabIndex={0} className={clsx('inline-flex h-7 cursor-help items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[13px] font-semibold', TIER_CLS[tier])}>
+      <span tabIndex={0} className={clsx('inline-flex h-7 cursor-help items-center gap-1.5 whitespace-nowrap rounded-md px-2.5 text-[13px] font-semibold', TIER_CLS[tier])}>
         <span className="num">{fmtMoneyline(ml)}</span>
         {!compact && <><span className="opacity-40">·</span><span>{label}</span></>}
       </span>

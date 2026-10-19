@@ -1,9 +1,9 @@
 import { Link, useParams } from 'react-router-dom';
 import { clsx } from 'clsx';
 import { ArrowDown, ArrowRight, ArrowUp, Crown } from '@phosphor-icons/react';
-import type { RankEntry, RankingDivision, RankingsMeta } from '@shared/types';
-import { fighterHref, useRankings, useRankingsMeta } from '@/lib/api';
-import { Avatar, ErrorState, FlagBackdrop, NationRecord, PageHeader, Panel, Skeleton, SortTh, Tag, Tip, useSort } from '@/components/kit';
+import type { BookedMap, RankEntry, RankingDivision, RankingsMeta } from '@shared/types';
+import { fighterHref, useBooked, useRankings, useRankingsMeta } from '@/lib/api';
+import { Avatar, BookedTag, ErrorState, morphPhoto, FlagBackdrop, NationRecord, PageHeader, Panel, Skeleton, SortTh, Tag, Tip, useSort } from '@/components/kit';
 
 const headshot = (espnId?: string) => (espnId ? `https://a.espncdn.com/i/headshots/mma/players/full/${espnId}.png` : undefined);
 const wins = (rec?: string) => (rec ? Number(rec.split('-')[0]) : undefined);
@@ -57,20 +57,22 @@ function DivisionNav({ divisions, active }: { divisions: RankingDivision[]; acti
 }
 
 /** Tabela da divisão: ordena por posição, nome, variação ou vitórias. */
-function RankTable({ entries, meta }: { entries: RankEntry[]; meta?: RankingsMeta }) {
+function RankTable({ entries, meta, booked }: { entries: RankEntry[]; meta?: RankingsMeta; booked?: BookedMap }) {
   const { sorted, sort, toggle } = useSort(entries, {
     rank: e => e.rank,
     name: e => e.name,
     change: e => (e.isNew ? 99 : e.change ?? 0),
     wins: e => wins(meta?.[e.slug]?.record),
   }, 'rank', 'asc');
+  // "Variação" só aparece se alguém mudou de posição desde a última atualização (senão era uma coluna inteira de "—")
+  const moved = entries.some(e => e.isNew || e.change);
   return (
-    <table className="table">
+    <table className="table w-full table-fixed sm:table-auto">
       <thead><tr>
-        <SortTh k="rank" sort={sort} toggle={toggle} first="asc" className="w-14 text-right">#</SortTh>
+        <SortTh k="rank" sort={sort} toggle={toggle} first="asc" className="w-12 text-right sm:w-14">#</SortTh>
         <SortTh k="name" sort={sort} toggle={toggle} first="asc">Lutador</SortTh>
-        <SortTh k="change" sort={sort} toggle={toggle} className="w-24 text-center">Variação</SortTh>
-        <SortTh k="wins" sort={sort} toggle={toggle} className="text-right">País · Cartel</SortTh>
+        {moved && <SortTh k="change" sort={sort} toggle={toggle} className="hidden w-24 text-center sm:table-cell">Variação</SortTh>}
+        <SortTh k="wins" sort={sort} toggle={toggle} className="w-28 text-right sm:w-auto"><span className="sm:hidden">Cartel</span><span className="hidden sm:inline">País · Cartel</span></SortTh>
       </tr></thead>
       <tbody>
         {sorted.map(e => {
@@ -79,11 +81,14 @@ function RankTable({ entries, meta }: { entries: RankEntry[]; meta?: RankingsMet
             <tr key={e.slug}>
               <td className="num text-right font-display text-[18px] font-semibold text-fg-3">{e.rank}</td>
               <td>
-                <Link to={fighterHref({ slug: e.slug, espnId: m?.espnId })} className="flex items-center gap-3 text-[15px] font-semibold text-fg hover:text-brand">
-                  <Avatar src={headshot(m?.espnId)} name={e.name} size={36} />{e.name}
-                </Link>
+                <div className="flex items-center gap-3">
+                  <Link to={fighterHref({ slug: e.slug, espnId: m?.espnId })} viewTransition onClick={morphPhoto} className="flex min-w-0 items-center gap-3 text-[15px] font-semibold text-fg hover:text-brand">
+                    <Avatar src={headshot(m?.espnId)} name={e.name} size={36} /><span className="truncate">{e.name}</span>
+                  </Link>
+                  <BookedTag b={m?.espnId ? booked?.[m.espnId] : undefined} />
+                </div>
               </td>
-              <td className="text-center"><Change e={e} /></td>
+              {moved && <td className="hidden text-center sm:table-cell"><Change e={e} /></td>}
               <td><NationRecord code={m?.countryCode} country={m?.country} record={m?.record} /></td>
             </tr>
           );
@@ -93,10 +98,43 @@ function RankTable({ entries, meta }: { entries: RankEntry[]; meta?: RankingsMet
   );
 }
 
+/** Destaque da divisão: o campeão ou, no peso por peso, o nº 1. O link cobre o card inteiro ("stretched link"),
+    o que permite pôr a etiqueta de luta marcada (outro link) por cima. */
+function LeaderCard({ division, divisions, meta, booked }: { division: RankingDivision; divisions: RankingDivision[]; meta?: RankingsMeta; booked?: BookedMap }) {
+  const leader = division.champion ?? (division.p4p ? division.entries[0] : undefined);
+  if (!leader) return null;
+  const m = meta?.[leader.slug];
+  // no peso por peso a lista não traz foto: usa o recorte do cinturão que ele tem em alguma divisão
+  const beltOf = divisions.find(d => !d.p4p && d.champion?.slug === leader.slug);
+  const image = leader.image ?? beltOf?.champion?.image;
+  const label = division.champion
+    ? `${division.women ? 'Campeã' : 'Campeão'} · ${division.name}`
+    : `Nº 1 · ${division.name}`;
+  return (
+    <div className="cut group relative flex min-h-[220px] items-end justify-between overflow-hidden rounded-[18px] bg-gradient-to-br from-cream via-cream-2 to-cream-3 px-7 pt-7 shadow-[var(--shadow-soft)] transition-shadow hover:shadow-[var(--shadow-lift)]">
+      <FlagBackdrop code={m?.countryCode} shape="fade-left" className="inset-y-0 right-0 w-[64%] opacity-35 dark:opacity-25" />
+      <div className="relative pb-7">
+        <div className="flex flex-wrap items-center gap-2">
+          <Tag tone="dark"><Crown className="h-3.5 w-3.5 text-gold" /> {label}</Tag>
+          {!division.champion && beltOf && <Tag tone="gold">{division.women ? 'Campeã' : 'Campeão'} · {beltOf.name}</Tag>}
+          <span className="relative z-10"><BookedTag b={m?.espnId ? booked?.[m.espnId] : undefined} /></span>
+        </div>
+        <Link to={fighterHref({ slug: leader.slug, espnId: m?.espnId })} className="display mt-4 block text-[40px] text-fg after:absolute after:inset-0 sm:text-[56px]">{leader.name}</Link>
+        {m && <div className="mt-3"><NationRecord className="justify-start" code={m.countryCode} country={m.country} record={m.record} /></div>}
+        <div className="mt-3 inline-flex items-center gap-1.5 text-[14px] font-semibold text-fg-2 group-hover:text-brand">Ver perfil e histórico <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></div>
+      </div>
+      {image
+        ? <img src={image} alt="" className="relative -mb-px h-44 w-auto object-contain transition-transform duration-500 group-hover:scale-[1.03] sm:h-56" />
+        : <Avatar src={headshot(m?.espnId)} name={leader.name} size={160} className="relative mb-6 hidden sm:block" />}
+    </div>
+  );
+}
+
 export default function Rankings() {
   const { div } = useParams();
   const { data, isLoading, isError, refetch } = useRankings();
   const { data: meta } = useRankingsMeta();
+  const { data: booked } = useBooked();
   const division = data?.divisions.find(d => d.id === div) ?? data?.divisions[0];
 
   return (
@@ -108,20 +146,11 @@ export default function Rankings() {
         <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
           <DivisionNav divisions={data.divisions} active={division.id} />
           <div className="min-w-0 space-y-4">
-            {division.champion && (
-              <Link to={fighterHref({ slug: division.champion.slug, espnId: meta?.[division.champion.slug]?.espnId })} className="group relative flex min-h-[220px] items-end justify-between overflow-hidden rounded-[var(--radius-card)] bg-gradient-to-br from-cream via-cream-2 to-cream-3 px-7 pt-7 shadow-[var(--shadow-soft)] transition-shadow hover:shadow-[var(--shadow-lift)]">
-                <FlagBackdrop code={meta?.[division.champion.slug]?.countryCode} shape="fade-left" className="inset-y-0 right-0 w-[64%] opacity-35 dark:opacity-25" />
-                <div className="relative pb-7">
-                  <Tag tone="dark"><Crown className="h-3.5 w-3.5 text-gold" /> {division.women ? 'Campeã' : 'Campeão'} · {division.name}</Tag>
-                  <div className="display mt-4 text-[40px] text-fg sm:text-[56px]">{division.champion.name}</div>
-                  {meta?.[division.champion.slug] && <div className="mt-3"><NationRecord className="justify-start" code={meta[division.champion.slug].countryCode} country={meta[division.champion.slug].country} record={meta[division.champion.slug].record} /></div>}
-                  <div className="mt-3 inline-flex items-center gap-1.5 text-[14px] font-semibold text-fg-2 group-hover:text-brand">Ver perfil e histórico <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></div>
-                </div>
-                {division.champion.image && <img src={division.champion.image} alt="" className="relative -mb-px h-44 w-auto object-contain transition-transform duration-500 group-hover:scale-[1.03] sm:h-56" />}
-              </Link>
-            )}
-            <Panel title={division.p4p ? `${division.name} · top 15` : `${division.name} · desafiantes`}>
-              <RankTable entries={division.entries} meta={meta} />
+            <LeaderCard division={division} divisions={data.divisions} meta={meta} booked={booked} />
+            <Panel title={division.p4p ? `${division.name} · top 15` : `${division.name} · desafiantes`}
+              action={!division.entries.some(e => e.isNew || e.change) && <span className="text-[13px] text-fg-3">Sem mudanças de posição na última atualização</span>}>
+              {/* no peso por peso o nº 1 já está no card de destaque, como o campeão nas divisões */}
+              <RankTable entries={division.champion ? division.entries : division.entries.slice(1)} meta={meta} booked={booked} />
             </Panel>
           </div>
         </div>

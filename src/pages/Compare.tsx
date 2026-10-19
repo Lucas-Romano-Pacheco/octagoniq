@@ -1,13 +1,13 @@
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { clsx } from 'clsx';
-import { Crown } from '@phosphor-icons/react';
+import { ArrowsLeftRight, Check, Crown, LinkSimple } from '@phosphor-icons/react';
 import type { FighterProfile, HistoryFight } from '@shared/types';
-import { fighterHref, useFighter } from '@/lib/api';
-import { fullDate, nf, recordStr } from '@/lib/format';
+import { fightHref, fighterHref, useFighter, useRankings, useRankingsMeta, useUpcoming } from '@/lib/api';
+import { dayMonth, fullDate, nf, recordStr, splitEventName } from '@/lib/format';
 import { FighterPicker } from '@/components/FighterPicker';
 import { CORNER as COLOR, DuelRow, better as cmp, type Side } from '@/components/Duel';
-import { Avatar, CountUp, Empty, ErrorState, Flag, HistoryBadge, PageHeader, Panel, Skeleton, Spotlight, Tag, Tip } from '@/components/kit';
+import { Avatar, CountUp, ErrorState, Flag, HistoryBadge, PageHeader, Panel, RankBadge, Skeleton, Spotlight, Tip } from '@/components/kit';
 import { AttrRadar, hasRadar, RADAR_NOTE } from '@/components/Radar';
 
 
@@ -20,9 +20,8 @@ function Card({ p, side }: { p: FighterProfile; side: Side }) {
       <div className="min-w-0">
         <div className={clsx('mb-1.5 h-0.5 w-6 rounded-full', right && 'ml-auto')} style={{ background: COLOR[side] }} />
         <div className="display text-2xl text-fg group-hover:text-brand sm:truncate sm:text-3xl">{b.name}</div>
-        <div className={clsx('mt-1 flex flex-wrap items-center gap-2 text-[13.5px] text-fg-3', right && 'justify-end')}>
-          {b.rankLabel === 'Campeão' && <Tag tone="gold"><Crown className="h-3 w-3" /> Campeão</Tag>}
-          {b.rankLabel && b.rankLabel !== 'Campeão' && <Tag tone="blue">{b.rankLabel}</Tag>}
+        <div className={clsx('mt-3 flex flex-wrap items-center gap-2 text-[13.5px] text-fg-3', right && 'justify-end')}>
+          <RankBadge rankLabel={b.rankLabel} division={b.division} women={b.division?.includes('(F)')} />
           <Flag code={b.countryCode} src={b.flag} title={b.country} size={18} /><span>{b.country}</span>
           <span className="num font-mono">{recordStr(b.record)}</span>
         </div>
@@ -34,9 +33,9 @@ function Card({ p, side }: { p: FighterProfile; side: Side }) {
 /** Linha da ficha: valor A | rótulo | valor B. `better` destaca o lado vantajoso. */
 function TapeRow({ label, a, b, better }: { label: string; a?: ReactNode; b?: ReactNode; better?: Side | null }) {
   return (
-    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-5 py-2.5">
+    <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 py-2.5 sm:gap-4 sm:px-5">
       <span className={clsx('num text-right text-[14px]', better === 'a' ? 'font-semibold text-fg' : 'text-fg-2')}>{a ?? '—'}</span>
-      <span className="label w-36 text-center">{label}</span>
+      <span className="label w-[92px] text-center text-[11px] tracking-[0.04em] sm:w-36 sm:text-[12.5px] sm:tracking-[0.08em]">{label}</span>
       <span className={clsx('num text-[14px]', better === 'b' ? 'font-semibold text-fg' : 'text-fg-2')}>{b ?? '—'}</span>
     </div>
   );
@@ -73,7 +72,11 @@ function EdgeBoard({ a, b }: { a: FighterProfile; b: FighterProfile }) {
       </div>
       <div className="mt-1 truncate text-[14px] text-fg-3">{p.bio.name}</div>
       <div className={clsx('mt-3 flex flex-wrap gap-1.5', s === 'b' && 'justify-end')}>
-        {list.map(r => <span key={r.label} className="rounded-full px-2.5 py-1 text-[12.5px] font-semibold" style={{ background: `color-mix(in oklab, ${COLOR[s]} 12%, transparent)`, color: COLOR[s] }}>{r.label}</span>)}
+        {list.map(r => (
+          <span key={r.label} className="inline-flex items-center gap-1.5 rounded-md bg-surface-2 px-2 py-1 text-[12.5px] font-semibold text-fg-2">
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: COLOR[s] }} />{r.label}
+          </span>
+        ))}
       </div>
     </div>
   );
@@ -103,34 +106,122 @@ function CommonOpponents({ a, b }: { a: FighterProfile; b: FighterProfile }) {
   }, [a, b]);
   const direct = a.history.filter(h => h.opponent.espnId === b.bio.espnId);
 
+  const last = (n: string) => n.split(' ').slice(-1)[0];
   return (
-    <Panel title="Confrontos e adversários em comum">
-      {direct.length > 0 && (
-        <div className="border-b border-line px-5 py-3">
-          <div className="eyebrow mb-2">Confronto direto</div>
-          {direct.map(h => (
-            <div key={h.fightId} className="flex items-center gap-3 text-[14px]">
-              <HistoryBadge h={h} /><span className="text-fg">{a.bio.name}</span>
-              <span className="text-fg-3">{h.method}{h.round ? ` · R${h.round} ${h.clock}` : ''} · {fullDate(h.date)}</span>
-            </div>
-          ))}
-        </div>
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+      {/* confronto direto: cada luta numa frase ("Makhachev venceu Volkanovski"), do ponto de vista do vencedor */}
+      <Panel plain title="Confronto direto" action={direct.length > 0 && <span className="text-[13px] text-fg-3">{direct.length} {direct.length > 1 ? 'lutas' : 'luta'}</span>}>
+        {direct.length === 0 ? <p className="py-2 text-[14px] text-fg-3">Os dois nunca se enfrentaram.</p> : (
+          <ul className="divide-y divide-line/70">
+            {direct.map(h => {
+              const winA = h.outcome === 'W', winB = h.outcome === 'L';
+              const winner = winA ? a.bio : winB ? b.bio : null, loser = winA ? b.bio : a.bio;
+              return (
+                <li key={h.fightId}>
+                  <Link to={fightHref(h.eventId, h.fightId)} className="group flex items-center gap-3 py-3">
+                    {winner ? <Avatar src={winner.headshot} name={winner.name} size={40} ring={COLOR[winA ? 'a' : 'b']} /> : <HistoryBadge h={h} me={a.bio} />}
+                    <div className="min-w-0">
+                      <div className="text-[15px] font-semibold text-fg group-hover:text-brand">
+                        {winner ? <>{last(winner.name)} venceu {last(loser.name)}</> : h.outcome === 'D' ? 'Empate' : 'Sem resultado'}
+                      </div>
+                      <div className="text-[13px] text-fg-3">{[h.method, h.round && `R${h.round} ${h.clock}`, fullDate(h.date)].filter(Boolean).join(' · ')}</div>
+                    </div>
+                    {h.title && <Crown weight="fill" className="ml-auto h-4 w-4 shrink-0 text-gold" aria-label="Disputa de título" />}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </Panel>
+
+      <Panel plain title="Adversários em comum" action={rows.length > 0 && <span className="text-[13px] text-fg-3">{rows.length}</span>}>
+        {rows.length === 0 ? <p className="py-2 text-[14px] text-fg-3">Nenhum adversário em comum.</p> : (
+          <table className="table">
+            <thead><tr><th className="text-right">{last(a.bio.name)}</th><th className="text-center">Adversário</th><th>{last(b.bio.name)}</th></tr></thead>
+            <tbody>
+              {rows.map(r => (
+                <tr key={r.opp.espnId}>
+                  <td className="text-right"><div className="flex justify-end gap-1">{r.a.map(f => <HistoryBadge key={f.fightId} h={f} me={a.bio} />)}</div></td>
+                  <td className="text-center"><Link to={fighterHref(r.opp)} className="font-medium text-fg hover:underline hover:underline-offset-4">{r.opp.name}</Link></td>
+                  <td><div className="flex gap-1">{r.b.map(f => <HistoryBadge key={f.fightId} h={f} me={b.bio} />)}</div></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Panel>
+    </div>
+  );
+}
+
+/* ---------- Tela vazia: comparações sugeridas ---------- */
+
+type Pair = { key: string; label: string; sub: string; a: { slug: string; espnId?: string; name: string; headshot?: string }; b: { slug: string; espnId?: string; name: string; headshot?: string } };
+const headshot = (id?: string) => (id ? `https://a.espncdn.com/i/headshots/mma/players/full/${id}.png` : undefined);
+
+/** Lutas principais dos próximos eventos e "campeão × nº 1" de cada divisão: um clique preenche os dois cantos. */
+function Suggestions({ onPick }: { onPick: (p: Pair) => void }) {
+  const upcoming = useUpcoming(10);
+  const { data: rankings } = useRankings();
+  const { data: meta } = useRankingsMeta();
+  const last = (n: string) => n.split(' ').slice(-1)[0];
+  const mains: Pair[] = (upcoming.data ?? []).filter(e => e.series !== 'dwcs' && e.main).slice(0, 4).map(e => ({
+    key: e.id, label: `${last(e.main!.red.name)} × ${last(e.main!.blue.name)}`, sub: `${splitEventName(e.name).series} · ${dayMonth(e.date)}`,
+    a: { ...e.main!.red, slug: e.main!.red.slug }, b: { ...e.main!.blue, slug: e.main!.blue.slug },
+  }));
+  // sem repetir uma luta principal que já seja campeão × nº 1
+  const inMains = new Set(mains.flatMap(m => [`${m.a.slug}|${m.b.slug}`, `${m.b.slug}|${m.a.slug}`]));
+  const belts: Pair[] = (rankings?.divisions ?? []).filter(d => !d.p4p && d.champion && d.entries[0] && !inMains.has(`${d.champion.slug}|${d.entries[0].slug}`)).slice(0, 8).map(d => {
+    const c = d.champion!, n1 = d.entries[0];
+    return {
+      key: d.id, label: `${last(c.name)} × ${last(n1.name)}`, sub: d.name,
+      a: { slug: c.slug, espnId: meta?.[c.slug]?.espnId, name: c.name, headshot: headshot(meta?.[c.slug]?.espnId) },
+      b: { slug: n1.slug, espnId: meta?.[n1.slug]?.espnId, name: n1.name, headshot: headshot(meta?.[n1.slug]?.espnId) },
+    };
+  });
+  const card = (p: Pair) => (
+    <button key={p.key} onClick={() => onPick(p)} className="lift cut group flex items-center gap-4 rounded-xl bg-surface p-4 text-left ring-1 ring-fg/[0.06]">
+      <span className="flex shrink-0 items-center">
+        <Avatar src={p.a.headshot} name={p.a.name} size={44} ring="var(--color-red)" />
+        <Avatar src={p.b.headshot} name={p.b.name} size={44} ring="var(--color-blue)" className="-ml-2" />
+      </span>
+      <span className="min-w-0">
+        <span className="block truncate text-[15.5px] font-bold text-fg group-hover:text-brand">{p.label}</span>
+        <span className="block truncate text-[13px] text-fg-3">{p.sub}</span>
+      </span>
+    </button>
+  );
+  return (
+    <div className="space-y-8">
+      {mains.length > 0 && (
+        <Panel plain title="Lutas principais que vêm aí">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{mains.map(card)}</div>
+        </Panel>
       )}
-      {rows.length === 0 ? <Empty>Nenhum adversário em comum.</Empty> : (
-        <table className="table">
-          <thead><tr><th className="text-right">{a.bio.name.split(' ').slice(-1)[0]}</th><th className="text-center">Adversário</th><th>{b.bio.name.split(' ').slice(-1)[0]}</th></tr></thead>
-          <tbody>
-            {rows.map(r => (
-              <tr key={r.opp.espnId}>
-                <td className="text-right"><div className="flex justify-end gap-1">{r.a.map(f => <HistoryBadge key={f.fightId} h={f} />)}</div></td>
-                <td className="text-center"><Link to={fighterHref(r.opp)} className="font-medium text-fg hover:underline hover:underline-offset-4">{r.opp.name}</Link></td>
-                <td><div className="flex gap-1">{r.b.map(f => <HistoryBadge key={f.fightId} h={f} />)}</div></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      {belts.length > 0 && (
+        <Panel plain title="Campeão contra o nº 1">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{belts.map(card)}</div>
+        </Panel>
       )}
-    </Panel>
+      {upcoming.isLoading && <Skeleton className="h-40" />}
+    </div>
+  );
+}
+
+/** Copiar o link (a URL já guarda os dois lutadores) e trocar os cantos. */
+function Toolbar({ onSwap }: { onSwap: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(location.href); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* sem permissão: ignora */ }
+  };
+  return (
+    <div className="flex flex-wrap justify-end gap-2">
+      <button onClick={onSwap} className="btn"><ArrowsLeftRight className="h-4 w-4" /> Trocar cantos</button>
+      <button onClick={copy} className="btn" aria-live="polite">
+        {copied ? <><Check weight="bold" className="h-4 w-4 text-win" /> Link copiado</> : <><LinkSimple className="h-4 w-4" /> Copiar link da comparação</>}
+      </button>
+    </div>
   );
 }
 
@@ -146,6 +237,19 @@ export default function Compare() {
     setParams(next, { replace: true });
   };
 
+  const pickPair = (p: Pair) => {
+    const next = new URLSearchParams();
+    next.set('a', p.a.slug); if (p.a.espnId) next.set('ae', p.a.espnId);
+    next.set('b', p.b.slug); if (p.b.espnId) next.set('be', p.b.espnId);
+    setParams(next, { replace: false });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  const swap = () => {
+    const next = new URLSearchParams();
+    for (const [k, v] of params) next.set(k.replace(/^a/, '§').replace(/^b/, 'a').replace(/^§/, 'b'), v);
+    setParams(next, { replace: true });
+  };
+
   const a = A.data, b = B.data;
   const sa = a?.stats, sb = b?.stats;
   const n2 = (v?: number) => nf(v, 2);
@@ -153,7 +257,7 @@ export default function Compare() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Comparação" title="Frente a frente" meta="Escolha dois lutadores para comparar a ficha técnica, as estatísticas oficiais e os adversários em comum." />
+      <PageHeader title="Frente a frente" meta="Escolha dois lutadores para comparar a ficha técnica, as estatísticas oficiais e os adversários em comum." />
       <div className="grid gap-3 sm:grid-cols-2">
         <FighterPicker placeholder="Canto vermelho…" value={a?.bio.name} onClear={() => set('a')} onPick={h => set('a', h.slug, h.espnId)} />
         <FighterPicker placeholder="Canto azul…" value={b?.bio.name} onClear={() => set('b')} onPick={h => set('b', h.slug, h.espnId)} />
@@ -164,6 +268,7 @@ export default function Compare() {
 
       {a && b ? (
         <>
+          <Toolbar onSwap={swap} />
           <Spotlight duel className="panel flex items-center gap-4 px-5 py-6 sm:gap-6">
             <Card p={a} side="a" />
             <span className="display shrink-0 text-2xl text-fg-3">VS</span>
@@ -183,7 +288,7 @@ export default function Compare() {
             </Panel>
           )}
 
-          <div className="grid items-start gap-6 lg:grid-cols-2">
+          <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-2">
             <Panel plain title="Ficha técnica" bodyClass="divide-y divide-line/70">
               <TapeRow label="Cartel" a={recordStr(a.bio.record)} b={recordStr(b.bio.record)} />
               <TapeRow label="Idade" a={a.bio.age ? `${a.bio.age} anos` : undefined} b={b.bio.age ? `${b.bio.age} anos` : undefined} better={cmp(a.bio.age, b.bio.age, true)} />
@@ -194,8 +299,8 @@ export default function Compare() {
               <TapeRow label="Divisão" a={a.bio.division} b={b.bio.division} />
               <TapeRow label="Estilo" a={a.bio.style} b={b.bio.style} />
               <TapeRow label="Últimas 5"
-                a={<span className="inline-flex flex-row-reverse gap-1">{a.history.slice(0, 5).map(h => <HistoryBadge key={h.fightId} h={h} size="sm" />)}</span>}
-                b={<span className="inline-flex gap-1">{b.history.slice(0, 5).map(h => <HistoryBadge key={h.fightId} h={h} size="sm" />)}</span>} />
+                a={<span className="inline-flex flex-row-reverse flex-wrap gap-1">{a.history.slice(0, 5).map(h => <HistoryBadge key={h.fightId} h={h} size="sm" me={a.bio} />)}</span>}
+                b={<span className="inline-flex flex-wrap gap-1">{b.history.slice(0, 5).map(h => <HistoryBadge key={h.fightId} h={h} size="sm" me={b.bio} />)}</span>} />
             </Panel>
 
             <Panel plain title="Estatísticas oficiais" action={<span className="text-[13px] text-fg-3">UFC.com</span>} bodyClass="divide-y divide-line/70">
@@ -214,7 +319,10 @@ export default function Compare() {
           <CommonOpponents a={a} b={b} />
         </>
       ) : !(A.isLoading || B.isLoading) && (
-        <Panel><Empty>{a || b ? 'Escolha o segundo lutador.' : 'Escolha dois lutadores acima.'}</Empty></Panel>
+        <>
+          <p className="text-[15px] text-fg-2">{a || b ? 'Escolha o segundo lutador acima, ou comece por uma destas comparações:' : 'Escolha dois lutadores acima, ou comece por uma destas comparações:'}</p>
+          <Suggestions onPick={pickPair} />
+        </>
       )}
     </div>
   );

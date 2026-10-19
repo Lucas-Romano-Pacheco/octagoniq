@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type CSSProperties, type HTMLAttributes, type PointerEvent, type ReactNode } from 'react';
 import { clsx } from 'clsx';
+import { Link } from 'react-router-dom';
 import { animate, motion, useInView, useReducedMotion } from 'motion/react';
-import { ArrowClockwise, CaretDown, CaretUp, CaretUpDown, Check, Equals, Minus, WarningCircle, X } from '@phosphor-icons/react';
+import { ArrowClockwise, ArrowDown, ArrowUp, CalendarCheck, CaretDown, CaretUp, CaretUpDown, Check, Equals, Minus, WarningCircle, X } from '@phosphor-icons/react';
 import { circleFlag, rectFlag } from '@/lib/flags';
-import type { HistoryFight } from '@shared/types';
+import type { BookedFight, HistoryFight } from '@shared/types';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 /* ---------- Movimento ---------- */
@@ -35,6 +36,16 @@ export function CountUp({ value, decimals = 0, suffix = '' }: { value: number; d
     return () => c.stop();
   }, [inView, value]); // eslint-disable-line react-hooks/exhaustive-deps
   return <span ref={ref} className="num">{fmt(reduce ? value : 0)}</span>;
+}
+
+/* ---------- Transição entre páginas ---------- */
+
+/** No clique de um link para um perfil: a foto daquela linha ganha o nome da transição, e o navegador
+    a anima até a foto do topo do perfil (que tem o mesmo nome). Use com `viewTransition` no <Link>. */
+export function morphPhoto(e: { currentTarget: Element }) {
+  const row = e.currentTarget.closest('li, tr, a, [data-row]') ?? e.currentTarget;
+  const img = row.querySelector<HTMLElement>('[data-photo]');
+  if (img) img.style.viewTransitionName = 'fighter-photo';
 }
 
 /* ---------- Spotlight ---------- */
@@ -70,32 +81,26 @@ export function RecordCount({ record }: { record?: { w: number; l: number; d: nu
 
 /* ---------- Decoração ---------- */
 
-const BLOB_PATH = 'M421 28c84 33 162 112 171 205 9 94-50 202-138 263-88 60-205 74-298 39C63 500-5 420 1 327 7 233 87 128 172 70 257 12 337-5 421 28Z';
-const BLOB_MASK = `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 560' preserveAspectRatio='none'><path d='${BLOB_PATH}'/></svg>`)}")`;
+// octógono regular (lados iguais): cantos a 29,3% de cada borda
+const OCTAGON_POLY = 'polygon(29.3% 0, 70.7% 0, 100% 29.3%, 100% 70.7%, 70.7% 100%, 29.3% 100%, 0 70.7%, 0 29.3%)';
+const OCTAGON_PTS = '29.3,0 70.7,0 100,29.3 100,70.7 70.7,100 29.3,100 0,70.7 0,29.3';
 
-/** Forma orgânica atrás dos recortes dos atletas (como o "blob" do layout de referência). */
-export function Blob({ className, color = 'var(--color-cream)' }: { className?: string; color?: string }) {
+/** Moldura em octógono atrás dos recortes dos atletas: o conteúdo (fundo + bandeira) recortado no octógono
+    e um contorno fino por fora, como a grade do octógono. Sempre quadrada, para o octógono não deformar. */
+export function OctagonFrame({ className, children }: { className?: string; children: ReactNode }) {
   return (
-    <svg viewBox="0 0 600 560" className={className} aria-hidden>
-      <path fill={color} d={BLOB_PATH} />
-    </svg>
-  );
-}
-
-/** Recorta o conteúdo na forma orgânica (para compor bandeiras dentro do blob). */
-export function BlobClip({ className, children }: { className?: string; children: ReactNode }) {
-  return (
-    <div aria-hidden className={clsx('pointer-events-none absolute overflow-hidden', className)}
-      style={{ maskImage: BLOB_MASK, WebkitMaskImage: BLOB_MASK, maskSize: '100% 100%', WebkitMaskSize: '100% 100%' }}>
-      {children}
+    <div aria-hidden className={clsx('pointer-events-none absolute aspect-square', className)}>
+      <div className="absolute inset-[4%] overflow-hidden" style={{ clipPath: OCTAGON_POLY }}>{children}</div>
+      <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full overflow-visible text-fg/15" preserveAspectRatio="none">
+        <polygon points={OCTAGON_PTS} fill="none" stroke="currentColor" strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
+      </svg>
     </div>
   );
 }
 
-/** Bandeira do país como fundo: recortada na forma orgânica (blob) ou esmaecida de cima para baixo (rect).
+/** Bandeira do país como fundo, esmaecida de cima para baixo (rect) ou para um dos lados.
     Substitui a textura de pontos atrás dos atletas. */
 const FADES = {
-  blob: BLOB_MASK,
   rect: 'linear-gradient(to bottom, black 20%, transparent 95%)',
   'fade-right': 'linear-gradient(to right, black 35%, transparent 100%)',
   'fade-left': 'linear-gradient(to left, black 35%, transparent 100%)',
@@ -141,7 +146,7 @@ export function Panel({ title, action, children, className, bodyClass, eyebrow, 
       {(title || action) && (
         <header className={plain ? 'rule-header' : 'panel-header'}>
           <div className="min-w-0">
-            {eyebrow && <div className="eyebrow mb-1">{eyebrow}</div>}
+            {eyebrow && <div className="label mb-1">{eyebrow}</div>}
             {typeof title === 'string' ? <h2 className="panel-title">{title}</h2> : title}
           </div>
           {action}
@@ -186,7 +191,7 @@ const initials = (name: string) => name.split(' ').filter(Boolean).slice(0, 2).m
 export function Avatar({ src, name, size = 40, className, flag, ring }: { src?: string; name: string; size?: number; className?: string; flag?: string; ring?: string }) {
   const [failed, setFailed] = useState(false);
   const photo = (
-    <div className={clsx('relative shrink-0 overflow-hidden rounded-full bg-surface-2', ring ? 'ring-2 ring-offset-2 ring-offset-surface' : 'ring-1 ring-fg/[0.06]', !flag && className)}
+    <div data-photo className={clsx('relative shrink-0 overflow-hidden rounded-full bg-surface-2', ring ? 'ring-2 ring-offset-2 ring-offset-surface' : 'ring-1 ring-fg/[0.06]', !flag && className)}
       style={{ width: size, height: size, ...(ring ? { '--tw-ring-color': ring } : {}) } as CSSProperties}>
       {src && !failed ? (
         <img src={src} alt="" loading="lazy" onError={() => setFailed(true)}
@@ -246,6 +251,22 @@ export function Tip({ content, title, children, side = 'top' }: { content: React
 
 const MaybeTip = ({ content, children }: { content?: ReactNode; children: ReactNode }) => (content ? <Tip content={content}>{children}</Tip> : <>{children}</>);
 
+/** Etiqueta "luta marcada": data curta; o tooltip mostra adversário e evento, e o clique abre a luta. */
+export function BookedTag({ b, className }: { b?: BookedFight; className?: string }) {
+  if (!b) return null;
+  const d = new Date(b.date);
+  const day = d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).replace('.', '').replace(' de ', ' ');
+  return (
+    <Tip title={b.title ? 'Disputa de cinturão marcada' : 'Luta marcada'} content={<>vs {b.opponent}<br />{b.eventName} · {d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}</>}>
+      <Link to={`/eventos/${b.eventId}/lutas/${b.fightId}`} onClick={e => e.stopPropagation()}
+        className={clsx('inline-flex h-6 shrink-0 items-center gap-1 rounded-md px-2 text-[12px] font-semibold transition-colors',
+          b.title ? 'bg-gold-soft text-gold-ink hover:bg-gold/30' : 'bg-blue/10 text-blue hover:bg-blue/20', className)}>
+        <CalendarCheck weight="bold" className="h-3.5 w-3.5" />{day}
+      </Link>
+    </Tip>
+  );
+}
+
 /* ---------- Tabelas ordenáveis ---------- */
 
 export type SortDir = 'asc' | 'desc';
@@ -291,7 +312,7 @@ const OUTCOME = {
 } as const;
 const OCTAGON = 'M10.6 1.5h10.8l9.1 9.1v10.8l-9.1 9.1H10.6l-9.1-9.1V10.6z';
 
-export function OutcomeBadge({ outcome, className, size = 'md', tip }: { outcome: keyof typeof OUTCOME; className?: string; size?: 'sm' | 'md'; tip?: ReactNode }) {
+export function OutcomeBadge({ outcome, className, size = 'md', tip, card }: { outcome: keyof typeof OUTCOME; className?: string; size?: 'sm' | 'md'; tip?: ReactNode; card?: boolean }) {
   const o = OUTCOME[outcome];
   const px = size === 'sm' ? 24 : 30;
   const badge = (
@@ -309,15 +330,60 @@ export function OutcomeBadge({ outcome, className, size = 'md', tip }: { outcome
   return (
     <Tooltip>
       <TooltipTrigger asChild>{badge}</TooltipTrigger>
-      <TooltipContent className="max-w-64 rounded-xl px-3 py-2 text-left">{tip}</TooltipContent>
+      {card
+        // cartão da luta: mesmo visual do carrossel "Últimas 5" do perfil (fundo de superfície, não o tooltip escuro)
+        ? <TooltipContent sideOffset={8} className="cut block w-[280px] max-w-none rounded-2xl bg-surface p-3 text-left text-fg shadow-[var(--shadow-pop)] ring-1 ring-fg/10" arrowClassName="bg-surface fill-surface">{tip}</TooltipContent>
+        : <TooltipContent className="max-w-64 rounded-xl px-3 py-2 text-left">{tip}</TooltipContent>}
     </Tooltip>
+  );
+}
+
+type Face = { name: string; headshot?: string };
+const RESULT = { W: 'Vitória', L: 'Derrota', D: 'Empate', NC: 'Sem resultado', pending: 'Agendada' } as const;
+const lastOf = (n: string) => n.split(' ').slice(-1)[0];
+
+/** Cartão de uma luta (fotos dos dois, faixa "Vitória" sob o vencedor, data, round, tempo e método).
+    `outcome` é do ponto de vista de `me`. */
+export function FightCard({ me, opp, outcome, method, detail, round, clock, date, eventName }: {
+  me: Face; opp: Face; outcome: keyof typeof RESULT; method?: string; detail?: string; round?: number; clock?: string; date?: string; eventName?: string;
+}) {
+  const Photo = ({ f, won }: { f: Face; won: boolean }) => (
+    <div className="relative flex h-full flex-1 items-end justify-center">
+      {f.headshot ? <img src={f.headshot} alt={f.name} className="h-full w-auto object-contain object-bottom" /> : <Avatar name={f.name} size={64} className="mb-3" />}
+      {won && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 whitespace-nowrap bg-brand px-2 py-0.5 font-display text-[11px] font-bold uppercase tracking-wide text-white">Vitória</span>}
+    </div>
+  );
+  const d = date ? new Date(date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : undefined;
+  return (
+    <div>
+      <div className="flex h-[100px] gap-1 overflow-hidden rounded-xl bg-gradient-to-b from-cream to-cream-2">
+        <Photo f={me} won={outcome === 'W'} />
+        <Photo f={opp} won={outcome === 'L'} />
+      </div>
+      <div className="mt-2.5 font-display text-[15px] font-bold uppercase leading-tight tracking-[0.02em] text-fg">{lastOf(me.name)} vs {lastOf(opp.name)}</div>
+      <div className="num text-[12.5px] text-fg-3">{[d, RESULT[outcome]].filter(Boolean).join(' · ')}</div>
+      {method && (
+        <dl className="mt-2 grid grid-cols-[auto_auto_1fr] gap-x-4 border-t border-line pt-2">
+          {([['Round', round ?? '—'], ['Tempo', clock ?? '—'], ['Método', method]] as const).map(([k, v]) => (
+            <div key={k} className="min-w-0"><dt className="text-[11.5px] text-fg-3">{k}</dt><dd className="num text-[13px] font-bold text-fg">{v}</dd></div>
+          ))}
+        </dl>
+      )}
+      {(detail || eventName) && <div className="mt-1.5 truncate text-[12px] text-fg-3">{[detail, eventName].filter(Boolean).join(' · ')}</div>}
+    </div>
   );
 }
 
 const VERB = { W: 'Vitória sobre', L: 'Derrota para', D: 'Empate com', NC: 'Sem resultado contra', pending: 'Luta marcada contra' } as const;
 
-/** Selo de uma luta do histórico: o tooltip mostra o adversário, o método e o evento. */
-export function HistoryBadge({ h, size = 'md' }: { h: HistoryFight; size?: 'sm' | 'md' }) {
+/** Selo de uma luta do histórico. Com `me` (o dono do histórico), o tooltip é o cartão com as fotos dos dois;
+    sem ele, uma descrição em texto. */
+export function HistoryBadge({ h, size = 'md', me }: { h: HistoryFight; size?: 'sm' | 'md'; me?: Face }) {
+  if (me) return (
+    <OutcomeBadge outcome={h.outcome} size={size} card tip={
+      <FightCard me={me} opp={h.opponent} outcome={h.outcome} method={h.method} detail={h.detail} round={h.round} clock={h.clock} date={h.date} eventName={h.eventName} />
+    } />
+  );
   const how = [h.method, h.detail].filter(Boolean).join(' · ');
   const when = [h.round ? `R${h.round} ${h.clock ?? ''}`.trim() : '', new Date(h.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/\./g, '').replace(/ de /g, ' ')].filter(Boolean).join(' · ');
   return (
@@ -332,6 +398,42 @@ export function HistoryBadge({ h, size = 'md' }: { h: HistoryFight; size?: 'sm' 
   );
 }
 
+/* ---------- Selos de posição ---------- */
+
+/** Cinturão em SVG (placa octogonal sobre a faixa), desenhado na grade de 24×16 para ficar nítido em tamanho pequeno. */
+export function BeltIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 16" className={className} aria-hidden shapeRendering="geometricPrecision">
+      {/* faixa com dois rebites, placa octogonal sólida e uma pedra pequena no centro */}
+      <rect x="0" y="4" width="24" height="8" rx="2" fill="currentColor" opacity="0.5" />
+      <circle cx="3" cy="8" r="1" fill="currentColor" />
+      <circle cx="21" cy="8" r="1" fill="currentColor" />
+      <path d="M9.1 0.5h5.8L19 4.6v6.8L14.9 15.5H9.1L5 11.4V4.6z" fill="currentColor" />
+      <path d="M11 6h2l1 1v2l-1 1h-2l-1-1V7z" fill="var(--color-gold)" />
+    </svg>
+  );
+}
+
+/** Selo de posição: "CAMPEÃO" com cinturão (dourado sólido) ou "Nº 3" numa placa escura; a divisão vem ao lado. */
+export function RankBadge({ rankLabel, division, women, className }: { rankLabel?: string; division?: string; women?: boolean; className?: string }) {
+  if (!rankLabel) return division ? <Tag className={className}>{division}</Tag> : null;
+  const champ = rankLabel === 'Campeão';
+  return (
+    <span className={clsx('inline-flex h-7 items-stretch overflow-hidden rounded-md text-[13px] font-semibold ring-1', champ ? 'ring-gold' : 'ring-fg/15', className)}>
+      {champ ? (
+        <span className="flex items-center gap-1.5 bg-gold px-2 font-display text-[15px] font-bold uppercase tracking-[0.02em] text-[#14183e]">
+          <BeltIcon className="h-3.5 w-5 text-[#14183e]" />{women ? 'Campeã' : 'Campeão'}
+        </span>
+      ) : (
+        <span className="flex items-baseline gap-0.5 bg-fg px-2 pt-[3px] font-display text-bg">
+          <span className="text-[11px] font-semibold">Nº</span><span className="text-[17px] font-bold leading-none">{rankLabel.replace('#', '')}</span>
+        </span>
+      )}
+      {division && <span className="flex items-center bg-surface px-2 text-fg-2">{division}</span>}
+    </span>
+  );
+}
+
 export function Tag({ children, tone = 'neutral', className }: { children: ReactNode; tone?: 'neutral' | 'gold' | 'brand' | 'blue' | 'dark'; className?: string }) {
   const tones = {
     neutral: 'bg-surface-2 text-fg-2',
@@ -340,7 +442,7 @@ export function Tag({ children, tone = 'neutral', className }: { children: React
     blue: 'bg-blue/10 text-blue',
     dark: 'bg-fg text-bg',
   };
-  return <span className={clsx('inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-[13.5px] font-semibold', tones[tone], className)}>{children}</span>;
+  return <span className={clsx('inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 font-display text-[12.5px] font-semibold uppercase tracking-[0.04em]', tones[tone], className)}>{children}</span>;
 }
 
 export function LiveTag() {
@@ -353,29 +455,55 @@ export function LiveTag() {
 
 /* ---------- Números ---------- */
 
-export function Stat({ label, value, sub, className }: { label: ReactNode; value: ReactNode; sub?: ReactNode; className?: string }) {
+export function Stat({ label, value, sub, className, footer }: { label: ReactNode; value: ReactNode; sub?: ReactNode; className?: string; footer?: ReactNode }) {
   return (
     <div className={clsx('min-w-0', className)}>
       <div className="label truncate">{label}</div>
       <div className="display mt-2 text-[34px] text-fg">{value}</div>
       {sub && <div className="mt-1 text-[14px] text-fg-3">{sub}</div>}
+      {footer && <div className="mt-1.5">{footer}</div>}
     </div>
   );
 }
 
-export function Meter({ label, value, display, color = 'var(--color-blue)', hint }: { label: string; value?: number; display: ReactNode; color?: string; hint?: string }) {
+/** Barra de percentual. `avg` desenha uma marca vertical com a média de referência (ex.: ranqueados da divisão). */
+export function Meter({ label, value, display, color = 'var(--color-blue)', hint, avg: mark, detail, footer }: {
+  label: string; value?: number; display: ReactNode; color?: string; hint?: ReactNode; avg?: { value: number; label: string };
+  /** texto sob a barra (ex.: "13 quedas em 88 tentativas") */ detail?: ReactNode;
+  /** destaque sob o texto (ex.: posição na divisão) */ footer?: ReactNode;
+}) {
   const v = Math.max(0, Math.min(100, value ?? 0));
   return (
     <MaybeTip content={hint}><div>
       <div className="mb-2 flex items-baseline justify-between gap-2 text-[14px]">
         <span className="text-fg-2">{label}</span>
-        <span className="num font-semibold text-fg">{display}</span>
+        <span className="num font-semibold text-fg">{display}{mark && <span className="ml-2 text-[12.5px] font-medium text-fg-3">média {Math.round(mark.value)}%</span>}</span>
       </div>
-      <div className="h-2 rounded-full bg-surface-2">
+      <div className="relative h-2 rounded-full bg-surface-2">
         <motion.div className="h-full rounded-full" style={{ background: color }}
           initial={{ width: 0 }} whileInView={{ width: `${v}%` }} viewport={{ once: true }} transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }} />
+        {mark && <span aria-hidden className="absolute -top-1 h-4 w-[3px] -translate-x-1/2 rounded-full bg-fg ring-2 ring-bg" style={{ left: `${Math.min(100, mark.value)}%` }} />}
       </div>
+      {detail && <div className="num mt-1.5 text-[13px] text-fg-3">{detail}</div>}
+      {footer && <div className="mt-1.5">{footer}</div>}
     </div></MaybeTip>
+  );
+}
+
+/** Comparação de um número com a média de referência: seta + "x% acima/abaixo da média (valor)". */
+export function VsAvg({ value, avg, lowerIsBetter, fmt }: { value?: number; avg?: number; lowerIsBetter?: boolean; fmt: (v: number) => string }) {
+  if (value === undefined || avg === undefined || avg === 0) return null;
+  const diff = (value - avg) / avg;
+  if (Math.abs(diff) < 0.05) return <span className="block text-fg-3">na média<span className="block text-[12.5px]">média {fmt(avg)}</span></span>;
+  const above = diff > 0, good = above !== !!lowerIsBetter;
+  const Icon = above ? ArrowUp : ArrowDown;
+  return (
+    <span className="block leading-snug">
+      <span className={clsx('inline-flex items-center gap-0.5 whitespace-nowrap font-semibold', good ? 'text-win' : 'text-loss')}>
+        <Icon weight="bold" className="h-3 w-3" />{Math.round(Math.abs(diff) * 100)}% {above ? 'acima' : 'abaixo'}
+      </span>
+      <span className="block whitespace-nowrap text-[12.5px] text-fg-3">média {fmt(avg)}</span>
+    </span>
   );
 }
 
@@ -383,13 +511,13 @@ export function Meter({ label, value, display, color = 'var(--color-blue)', hint
 
 export const Skeleton = ({ className }: { className?: string }) => <div className={clsx('skeleton', className)} />;
 
-export function ErrorState({ message, onRetry, className }: { message?: string; onRetry?: () => void; className?: string }) {
+export function ErrorState({ message, onRetry, className, title = 'Nocaute técnico na fonte de dados' }: { message?: string; onRetry?: () => void; className?: string; title?: string }) {
   return (
     <div className={clsx('flex flex-col items-center justify-center gap-3 px-6 py-14 text-center', className)}>
       <span className="grid h-11 w-11 place-items-center rounded-full bg-brand-soft"><WarningCircle className="h-6 w-6 text-brand" /></span>
       <div>
-        <p className="font-display text-[19px] font-semibold text-fg">Não foi possível carregar os dados</p>
-        <p className="mt-1 text-[13.5px] text-fg-3">{message ?? 'A fonte pode estar indisponível no momento.'}</p>
+        <p className="font-display text-[22px] font-bold text-fg">{title}</p>
+        <p className="mt-1 text-[13.5px] text-fg-3">{message ?? 'O UFC.com ou a ESPN não responderam agora. Tente de novo em instantes.'}</p>
       </div>
       {onRetry && <button className="btn" onClick={onRetry}><ArrowClockwise className="h-4 w-4" /> Tentar de novo</button>}
     </div>
@@ -409,7 +537,7 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
     <div role="tablist" className={clsx('relative inline-flex rounded-full bg-surface p-1 shadow-[var(--shadow-soft)] ring-1 ring-fg/[0.05]', className)}>
       {options.map(o => (
         <button key={o.value} role="tab" aria-selected={o.value === value} onClick={() => onChange(o.value)}
-          className={clsx('relative h-8 rounded-full px-4 text-[14px] font-semibold transition-colors', o.value === value ? 'text-bg' : 'text-fg-2 hover:text-fg')}>
+          className={clsx('relative h-8 whitespace-nowrap rounded-full px-3 text-[14px] font-semibold transition-colors sm:px-4', o.value === value ? 'text-bg' : 'text-fg-2 hover:bg-surface-2 hover:text-fg')}>
           {o.value === value && <motion.span layoutId={`seg-${options.map(x => x.value).join()}`} className="absolute inset-0 rounded-full bg-fg" transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }} />}
           <span className="relative">{o.label}</span>
         </button>

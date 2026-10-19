@@ -1,11 +1,12 @@
 /* Rotas do BFF (/api/*). Independentes de framework: recebem a URL e devolvem
    { status, body, maxAge }. Usadas pelo plugin do Vite (dev) e por server/index.ts (prod). */
 
-import type { EventDetail, EventListItem, FighterBio, FighterProfile, RankingsMeta } from '../shared/types.ts';
+import type { BookedMap, DivisionAverages, EventDetail, EventListItem, FighterBio, FighterProfile, RankingsMeta } from '../shared/types.ts';
 import { fold, slugify } from '../shared/format.ts';
 import * as espn from './espn.ts';
 import * as ufc from './ufc.ts';
 import * as bfo from './bfo.ts';
+import * as tracker from './tracker.ts';
 import { UpstreamError, remember, settle, MIN, HOUR } from './http.ts';
 
 export interface ApiResponse { status: number; body: unknown; maxAge: number }
@@ -29,6 +30,19 @@ async function withHistoricalOdds(ev: EventDetail): Promise<EventDetail> {
     return odds ? { ...f, odds } : f;
   }));
   return { ...ev, fights };
+}
+
+/** Evento completo (títulos + odds históricas). Única função que grava a chave `event:v6:id`: as rotas do evento
+    e da luta compartilhavam a chave com conteúdos diferentes, e quem chegava primeiro deixava o cache sem odds. */
+export const eventFull = (id: string) =>
+  remember(`event:v7:${id}`, 45_000, async () => { const d = await espn.eventDetail(id); return d && withMainCutouts(await withHistoricalOdds(await withTitles(d))); });
+
+/** Recortes de corpo inteiro (UFC.com) da luta principal, para o topo do evento em estilo pôster. */
+async function withMainCutouts(ev: EventDetail): Promise<EventDetail> {
+  const main = ev.fights.find(f => f.order === 1) ?? ev.fights[0];
+  if (!main) return ev;
+  const [rb, bb] = await Promise.all([main.red, main.blue].map(f => ufc.athletePage(f.slug).then(p => p?.bio.bodyImage).catch(() => undefined)));
+  return { ...ev, fights: ev.fights.map(f => (f === main ? { ...f, red: { ...f.red, bodyImage: rb }, blue: { ...f.blue, bodyImage: bb } } : f)) };
 }
 
 /* A ESPN não marca disputa de cinturão: luta de 5 rounds com o campeão atual da divisão conta como título. */
@@ -135,6 +149,47 @@ export function rankingsMeta(): Promise<RankingsMeta> {
   });
 }
 
+const AVG_KEYS = ['slpm', 'sapm', 'strAcc', 'strDef', 'tdAvg', 'tdAcc', 'tdDef', 'subAvg', 'kdAvg'] as const;
+
+/** Média dos ranqueados de uma divisão (nome em pt-BR, como no UFC.com: "Meio-médio", "Mosca (F)"). 24 h em cache. */
+export function divisionAverages(name: string): Promise<DivisionAverages | null> {
+  return remember(`divavg:v2:${fold(name)}`, 24 * HOUR, async () => {
+    const d = (await officialRankings()).divisions.find(x => !x.p4p && fold(x.name) === fold(name));
+    if (!d) return null;
+    const people = [...(d.champion ? [d.champion] : []), ...d.entries];
+    const pages = await settle(people.map(p => ufc.athletePage(p.slug)));
+    const rows = people.map((p, i) => ({ slug: p.slug, stats: pages[i]?.stats })).filter(r => r.stats && r.stats.slpm !== undefined);
+    const avg: DivisionAverages['avg'] = {};
+    const ranks: DivisionAverages['ranks'] = {};
+    for (const k of AVG_KEYS) {
+      const vals = rows.map(r => ({ slug: r.slug, value: r.stats![k] })).filter((v): v is { slug: string; value: number } => typeof v.value === 'number');
+      if (vals.length < 5) continue;
+      avg[k] = Math.round((vals.reduce((a, b) => a + b.value, 0) / vals.length) * 100) / 100;
+      ranks[k] = vals.sort((x, y) => (k === 'sapm' ? x.value - y.value : y.value - x.value));
+    }
+    return { division: d.name, n: rows.length, avg, ranks };
+  });
+}
+
+/** Quem tem luta marcada nos próximos eventos (exceto Contender Series): id ESPN → luta. A mais próxima vence. */
+export function bookedFights(): Promise<BookedMap> {
+  return remember('booked:v1', 30 * MIN, async () => {
+    const list = (await upcoming(14)).filter(e => e.series !== 'dwcs');
+    const details = await settle(list.map(e => espn.eventDetail(e.id)));
+    const out: BookedMap = {};
+    for (const d of details) {
+      if (!d || d.status === 'post') continue;
+      for (const f of d.fights) {
+        if (f.result) continue;
+        for (const [me, opp] of [[f.red, f.blue], [f.blue, f.red]] as const) {
+          if (!out[me.espnId]) out[me.espnId] = { eventId: d.id, fightId: f.id, eventName: d.name, date: d.date, opponent: /\btba\b/i.test(opp.name) ? 'adversário a definir' : opp.name, title: f.title };
+        }
+      }
+    }
+    return out;
+  });
+}
+
 const routes: [RegExp, Handler][] = [
   [/^\/api\/health$/, async () => ok({ ok: true, time: new Date().toISOString() }, 0)],
 
@@ -164,26 +219,34 @@ const routes: [RegExp, Handler][] = [
   }],
 
   [/^\/api\/events\/(?<id>\d+)$/, async ({ id }) => {
-    const ev = await remember(`event:v5:${id}`, 45_000, async () => { const d = await espn.eventDetail(id); return d && withHistoricalOdds(await withTitles(d)); });
+    const ev = await eventFull(id);
     if (!ev) return notFound('Evento não encontrado');
     return ok(ev, ev.status === 'in' ? 15 : 120);
   }],
 
   // luta específica: estatísticas de cada lado (alvo, posição, quedas) + odds; recortes de corpo inteiro do UFC.com
   [/^\/api\/events\/(?<id>\d+)\/fights\/(?<fight>\d+)$/, async ({ id, fight }) => {
-    const d = await remember(`fight:v2:${id}:${fight}`, 60_000, async () => {
+    const d = await remember(`fight:v4:${id}:${fight}`, 60_000, async () => {
       const f = await espn.fightDetail(id, fight);
       if (!f) return null;
       const [rb, bb] = await Promise.all([f.red, f.blue].map(x => ufc.athletePage(x.slug).then(p => p?.bio.bodyImage).catch(() => undefined)));
-      const ev = await remember(`event:v5:${id}`, 45_000, async () => { const e = await espn.eventDetail(id); return e && withTitles(e); });
+      const ev = await eventFull(id);
       const evFight = ev?.fights.find(x => x.id === fight);
       const title = evFight?.title ?? f.fight.title;
-      return { ...f, fight: { ...f.fight, title, odds: f.fight.odds ?? evFight?.odds }, red: { ...f.red, bodyImage: rb }, blue: { ...f.blue, bodyImage: bb } };
+      // decisão: cartões dos juízes do UFC Fight Tracker (null se não achar; a página segue sem eles)
+      const decision = /decis/i.test(f.fight.result?.method ?? '');
+      const scorecards = decision && ev ? await tracker.scorecards(ev.name, ev.date, f.red.name, f.blue.name) : null;
+      return { ...f, scorecards: scorecards ?? undefined, fight: { ...f.fight, title, odds: f.fight.odds ?? evFight?.odds }, red: { ...f.red, bodyImage: rb }, blue: { ...f.blue, bodyImage: bb } };
     });
     return d ? ok(d, d.fight.status === 'in' ? 15 : 300) : notFound('Luta não encontrada');
   }],
   [/^\/api\/rankings$/, async () => ok(await officialRankings(), 600)],
   [/^\/api\/rankings\/meta$/, async () => ok(await rankingsMeta(), 3600)],
+  [/^\/api\/booked$/, async () => ok(await bookedFights(), 900)],
+  [/^\/api\/divisions\/average$/, async (_, q) => {
+    const d = await divisionAverages(q.get('name') ?? '');
+    return d ? ok(d, 3600) : notFound('Divisão não encontrada');
+  }],
 
   [/^\/api\/search$/, async (_, q) => ok(await espn.search(q.get('q') ?? ''), 3600)],
 

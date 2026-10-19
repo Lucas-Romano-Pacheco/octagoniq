@@ -10,8 +10,9 @@ Hub de dados do UFC em tempo real: calendário, cards e resultados, rankings ofi
 - **Motion**: entradas ao rolar, contadores e transições da navegação
 - **Embla Carousel**: carrossel de campeões
 - **ECharts 6** (importação modular, renderer SVG) para os gráficos
+- **three.js**: boneco 3D dos golpes por região na página da luta (carregado só nessa aba). Modelo "Universal Base Characters", de [Quaternius](https://quaternius.itch.io/universal-base-characters), licença CC0 (créditos em `public/models/CREDITS.txt`)
 - **BFF em Node** (`server/`): consolida as fontes, normaliza para tipos próprios e guarda cache
-- Tipografia: Barlow Condensed (títulos e números de destaque) e Inter (texto), via `@fontsource`. Regras de design em [`design.md`](design.md)
+- Tipografia: Saira (títulos, rótulos e botões) e Inter (texto e tabelas), via `@fontsource`. Regras de design em [`design.md`](design.md)
 - **Phosphor Icons** (duotone) nos ícones; **circle-flags** e **flag-icons** (SVG) nas bandeiras; **i18n-iso-countries** no servidor para converter o país da ESPN em código ISO e nome em pt-BR
 
 ## Identidade visual

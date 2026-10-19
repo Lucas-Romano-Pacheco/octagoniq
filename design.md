@@ -4,10 +4,11 @@ Leia antes de criar ou mudar uma tela. O objetivo é uma identidade própria de 
 (placar, jornal de luta), e não o visual padrão de template.
 
 ## Tipografia
-- **Barlow Condensed** (`font-display`, classe `.display`): títulos, nomes de lutadores e números de destaque.
-  `.display` é maiúscula, peso 800, entrelinha apertada. Para um número grande, use `.display` com tamanho explícito.
-- **Inter** (`font-sans`): texto corrido, rótulos, tabelas. Números em tabela levam `.num` (algarismos tabulares).
-- Rótulos pequenos: `.label` (cinza, caixa alta) e `.eyebrow` (vermelho da marca, caixa alta). Use no máximo um eyebrow por seção.
+- **Saira** (`font-display`): títulos (`.display`, caixa alta, bold 700, entrelinha 0,95), títulos de seção (`.panel-title`,
+  caixa alta), rótulos (`.label`, `.eyebrow`), botões, menu e etiquetas (caixa alta, 12–13,5px, espaçamento 0,04–0,16em).
+  Referência: artes de luta, em que títulos e textos de apoio aparecem em caixa alta com letras espaçadas.
+- `.eyebrow` (vermelho, com um traço fino depois): só no topo das páginas principais.
+- **Inter** (`font-sans`): texto corrido e tabelas. Números em tabela levam `.num` (algarismos tabulares).
 
 ## Cores
 - Fundo creme (claro) ou azul-marinho (escuro); tinta `fg` azul-marinho.

@@ -2,12 +2,12 @@ import { useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { clsx } from 'clsx';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { ArrowLeft, ArrowSquareOut, ArrowsLeftRight, CaretLeft, CaretRight, Crown, Flag as FlagIcon, Hand, Lightning, Newspaper, Scales } from '@phosphor-icons/react';
-import type { FighterProfile, HistoryFight, OfficialStats } from '@shared/types';
-import { fightHref, fighterHref, useFighter } from '@/lib/api';
+import { ArrowLeft, ArrowSquareOut, ArrowsLeftRight, CaretLeft, CaretRight, Crown, Flag as FlagIcon, Hand, Lightning, Newspaper, Scales, Trophy } from '@phosphor-icons/react';
+import type { DivisionAverages, FighterProfile, HistoryFight, OfficialStats } from '@shared/types';
+import { fightHref, fighterHref, useDivisionAvg, useFighter } from '@/lib/api';
 import { fullDate, lastName, mmss, nf, pct, ratio, shortEvent } from '@/lib/format';
 import { EChart, SERIES, axisBase, tooltipBase, useInk } from '@/components/EChart';
-import { Avatar, BlobClip, Brush, CountUp, Empty, ErrorState, Flag, FlagBackdrop, HistoryBadge, Meter, OctagonMark, OutcomeBadge, Panel, SortTh, Tip, useSort, RecordCount, Segmented, Skeleton, Stat, Tag } from '@/components/kit';
+import { Avatar, Brush, OctagonFrame, CountUp, Empty, ErrorState, Flag, FlagBackdrop, HistoryBadge, Meter, Panel, RankBadge, SortTh, Tip, useSort, RecordCount, Segmented, Skeleton, Stat, Tag, VsAvg } from '@/components/kit';
 import { AttrRadar, hasRadar, RADAR_NOTE } from '@/components/Radar';
 
 /* ---------- Cabeçalho ---------- */
@@ -35,10 +35,8 @@ function Header({ p }: { p: FighterProfile }) {
       <div aria-hidden className="pointer-events-none absolute -left-40 top-0 h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,var(--glow),transparent_65%)]" />
       <div className="relative min-w-0">
         <motion.div {...fade(0)} className="flex flex-wrap items-center gap-2">
-          {b.rankLabel === 'Campeão' && <Tag tone="gold"><Crown className="h-3.5 w-3.5" /> {women ? 'Campeã' : 'Campeão'}{b.division ? ` · ${b.division}` : ''}</Tag>}
-          {b.rankLabel && b.rankLabel !== 'Campeão' && <Tag tone="blue">{b.rankLabel} · {b.division}</Tag>}
-          {!b.rankLabel && b.division && <Tag>{b.division}</Tag>}
-          {b.p4pRank && <Tag tone="dark">#{b.p4pRank} peso por peso</Tag>}
+          <RankBadge rankLabel={b.rankLabel} division={b.division} women={women} />
+          {b.p4pRank && <RankBadge rankLabel={`#${b.p4pRank}`} division="Peso por peso" />}
           {b.status && <span className="text-[14px] text-fg-3">{b.status}</span>}
         </motion.div>
         <motion.h1 {...fade(0.06)} className="display mt-5 text-[52px] text-fg sm:text-[76px]">
@@ -51,31 +49,44 @@ function Header({ p }: { p: FighterProfile }) {
           {b.hometown && <span className="text-fg-3">Natural de {b.hometown}</span>}
           {b.team && <span className="text-fg-3">{b.team}</span>}
         </motion.div>
-        <motion.div {...fade(0.18)} className="mt-9 flex flex-wrap items-center gap-4">
+        <motion.div {...fade(0.18)} className="mt-9">
           <Link to={`/comparar?a=${b.slug}${b.espnId ? `&ae=${b.espnId}` : ''}`} className="btn-primary"><ArrowsLeftRight className="h-4 w-4" /> Comparar com outro lutador</Link>
-          {b.ufcUrl && <a href={b.ufcUrl} target="_blank" rel="noreferrer" className="btn-ghost">UFC.com <ArrowSquareOut className="h-3.5 w-3.5" /></a>}
-          {b.espnUrl && <a href={b.espnUrl} target="_blank" rel="noreferrer" className="btn-ghost">ESPN <ArrowSquareOut className="h-3.5 w-3.5" /></a>}
-          {/* Tapology e Sherdog não têm API e os termos não permitem reaproveitar os dados; o link leva direto à busca de cada site */}
-          <a href={`https://www.tapology.com/search?term=${encodeURIComponent(b.name)}&mainSearchFilter=fighters`} target="_blank" rel="noreferrer" className="btn-ghost">Tapology <ArrowSquareOut className="h-3.5 w-3.5" /></a>
-          <a href={`https://www.sherdog.com/stats/fightfinder?SearchTxt=${encodeURIComponent(b.name)}`} target="_blank" rel="noreferrer" className="btn-ghost">Sherdog <ArrowSquareOut className="h-3.5 w-3.5" /></a>
+          {/* perfis externos numa linha discreta. Tapology e Sherdog não têm API e os termos não permitem reaproveitar os dados:
+              o link leva direto à busca de cada site */}
+          <div className="mt-6 flex flex-wrap items-center gap-x-1 gap-y-1 text-[14px]">
+            <span className="label mr-2">Perfis</span>
+            {[
+              b.ufcUrl && ['UFC.com', b.ufcUrl],
+              b.espnUrl && ['ESPN', b.espnUrl],
+              ['Tapology', `https://www.tapology.com/search?term=${encodeURIComponent(b.name)}&mainSearchFilter=fighters`],
+              ['Sherdog', `https://www.sherdog.com/stats/fightfinder?SearchTxt=${encodeURIComponent(b.name)}`],
+            ].filter((x): x is [string, string] => !!x).map(([label, href], i) => (
+              <span key={label} className="inline-flex items-center">
+                {i > 0 && <span className="mx-1.5 text-fg-3/60">·</span>}
+                <a href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-fg-2 underline-offset-4 hover:text-brand hover:underline">
+                  {label}<ArrowSquareOut className="h-3 w-3 opacity-60" />
+                </a>
+              </span>
+            ))}
+          </div>
         </motion.div>
       </div>
 
       <div className="relative mx-auto h-[440px] w-full max-w-[520px] sm:h-[520px]">
-        <BlobClip className="inset-x-0 bottom-0 h-[88%]">
+        <OctagonFrame className="bottom-0 left-1/2 h-[86%] -translate-x-1/2">
           <div className="absolute inset-0 bg-cream" />
           <FlagBackdrop code={b.countryCode} shape="rect" className="inset-0 opacity-45 dark:opacity-35" />
-        </BlobClip>
-        <OctagonMark className="float absolute right-8 top-6 h-9 w-9 opacity-80" />
+        </OctagonFrame>
         {b.bodyImage && !imgFailed ? (
           <motion.img initial={reduce ? false : { opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
             src={b.bodyImage} alt={b.name} onError={() => setImgFailed(true)}
+            style={{ viewTransitionName: 'fighter-photo' }}
             className="absolute bottom-0 left-1/2 h-[96%] w-auto -translate-x-1/2 object-contain drop-shadow-[0_30px_40px_var(--cutout-shadow)] [mask-image:linear-gradient(to_bottom,black_82%,transparent)]" />
         ) : (
-          <div className="absolute inset-0 grid place-items-center"><Avatar src={b.headshot} name={b.name} size={220} flag={b.countryCode} /></div>
+          <div className="absolute inset-0 grid place-items-center" style={{ viewTransitionName: 'fighter-photo' }}><Avatar src={b.headshot} name={b.name} size={220} flag={b.countryCode} /></div>
         )}
         <motion.div initial={reduce ? false : { opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.5 }}
-          className="absolute left-0 top-[30%] rounded-3xl bg-surface/95 px-5 py-4 shadow-[var(--shadow-lift)] backdrop-blur sm:-left-4">
+          className="cut absolute left-0 top-[30%] rounded-2xl bg-surface/95 px-5 py-4 shadow-[var(--shadow-lift)] backdrop-blur sm:-left-4">
           <div className="label">Cartel</div>
           <div className="num font-display text-[34px] font-semibold leading-tight text-fg"><RecordCount record={b.record} /></div>
           <div className="text-[13px] text-fg-3">V · D · E</div>
@@ -116,19 +127,19 @@ function RecentFights({ me, fights, streak: st }: { me: FighterProfile['bio']; f
     <motion.div layout transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
       onPointerEnter={() => setOpen(true)} onPointerLeave={() => setOpen(false)}
       onFocus={() => setOpen(true)} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false); }}
-      className={clsx('rounded-3xl bg-surface/95 p-4 shadow-[var(--shadow-lift)] backdrop-blur', open ? 'w-[300px]' : 'w-auto')}>
+      className={clsx('cut rounded-2xl bg-surface/95 p-4 shadow-[var(--shadow-lift)] backdrop-blur', open ? 'w-[300px]' : 'w-auto')}>
       <motion.div layout="position" className="flex items-center justify-between gap-4">
         <div className="label">Últimas {fights.length}</div>
         {open && <div className="flex gap-1">
-          <button onClick={() => go(i - 1)} aria-label="Luta anterior" className="grid h-7 w-7 place-items-center rounded-full bg-surface-2 text-fg-2 transition-colors hover:bg-fg hover:text-bg"><CaretLeft weight="bold" className="h-3.5 w-3.5" /></button>
-          <button onClick={() => go(i + 1)} aria-label="Próxima luta" className="grid h-7 w-7 place-items-center rounded-full bg-fg text-bg transition-transform hover:scale-105"><CaretRight weight="bold" className="h-3.5 w-3.5" /></button>
+          <button onClick={() => go(i - 1)} aria-label="Luta anterior" className="lift grid h-7 w-7 place-items-center rounded-full bg-surface-2 text-fg-2 hover:bg-fg hover:text-bg"><CaretLeft weight="bold" className="h-3.5 w-3.5" /></button>
+          <button onClick={() => go(i + 1)} aria-label="Próxima luta" className="lift grid h-7 w-7 place-items-center rounded-full bg-fg text-bg"><CaretRight weight="bold" className="h-3.5 w-3.5" /></button>
         </div>}
       </motion.div>
       <div className="mt-2 flex gap-1.5">
         {fights.map((f, k) => (
           <button key={f.fightId} onClick={() => go(k)} aria-label={`Luta ${k + 1}: ${RESULT_TAG[f.outcome]} contra ${f.opponent.name}`}
             className={clsx('rounded-full p-0.5 transition-all', open && k === i ? 'ring-2 ring-fg/70' : open ? 'opacity-70 hover:opacity-100' : '')}>
-            <HistoryBadge h={f} size="sm" />
+            <HistoryBadge h={f} size="sm" me={me} />
           </button>
         ))}
       </div>
@@ -190,25 +201,73 @@ function Bio({ p }: { p: FighterProfile }) {
 
 /* ---------- Estatísticas oficiais ---------- */
 
-function OfficialPanel({ s }: { s: OfficialStats }) {
-  const has = s.slpm !== undefined || s.strAcc !== undefined;
+type AvgKey = keyof DivisionAverages['avg'] & string;
+const LOWER_IS_BETTER: Partial<Record<AvgKey, true>> = { sapm: true };
+
+/** Como cada número se lê numa frase de destaque ("1º do leve em quedas por 15 min"). */
+const RANK_PHRASE: Record<AvgKey, string> = {
+  slpm: 'em golpes sig. por minuto', sapm: 'em menos golpes absorvidos', strAcc: 'em precisão de golpes', strDef: 'em defesa de golpes',
+  tdAvg: 'em quedas por 15 min', tdAcc: 'em precisão de quedas', tdDef: 'em defesa de quedas', subAvg: 'em tentativas de finalização', kdAvg: 'em knockdowns',
+};
+
+/** Posição do lutador entre os ranqueados da divisão num número: 1 + quantos têm valor melhor (ele mesmo fora da conta).
+    Vale também para quem não está no ranking (mostra onde ele entraria). */
+function rankIn(d: DivisionAverages | undefined, k: AvgKey, value: number | undefined, slug: string) {
+  const list = d?.ranks[k];
+  if (!list || value === undefined) return undefined;
+  const lower = LOWER_IS_BETTER[k];
+  return 1 + list.filter(r => r.slug !== slug && (lower ? r.value < value : r.value > value)).length;
+}
+
+/** Selo dourado para o top 3 da divisão. */
+function RankLine({ pos, k, div, n }: { pos?: number; k: AvgKey; div?: string; n?: number }) {
+  if (!pos || pos > 3 || !div) return null;
   return (
-    <Panel plain title="Estatísticas oficiais" action={<span className="text-[13px] text-fg-3">UFC.com · carreira no UFC</span>}>
+    <Tip content={`Comparado com os ${n} ranqueados do ${div} (campeão + top 15), pelas estatísticas oficiais do UFC.com.`}>
+      <span tabIndex={0} className="inline-flex cursor-help items-start gap-1 rounded-md bg-gold-soft px-2 py-0.5 text-[12.5px] font-semibold leading-snug text-gold-ink">
+        <Trophy weight="fill" className="mt-[2px] h-3.5 w-3.5 shrink-0" /><span>{pos}º do {div} {RANK_PHRASE[k]}</span>
+      </span>
+    </Tip>
+  );
+}
+
+function OfficialPanel({ s, division, slug }: { s: OfficialStats; division?: string; slug: string }) {
+  const has = s.slpm !== undefined || s.strAcc !== undefined;
+  const { data: d } = useDivisionAvg(division);
+  const avg = d?.avg ?? {};
+  const div = d?.division.toLowerCase();
+  // título com a conclusão: em quantos números ele supera a média dos ranqueados da divisão
+  const keys = (Object.keys(avg) as AvgKey[]).filter(k => s[k] !== undefined);
+  const better = keys.filter(k => (LOWER_IS_BETTER[k] ? s[k]! < avg[k]! : s[k]! > avg[k]!)).length;
+  const title = d && keys.length >= 5 ? `Acima da média do ${div} em ${better} de ${keys.length} números` : 'Estatísticas oficiais';
+  const n2 = (v: number) => nf(v, 2);
+  const rank = (k: AvgKey) => <RankLine pos={rankIn(d, k, s[k], slug)} k={k} div={div} n={d?.n} />;
+  const stat = (label: string, k: AvgKey, fallback: string) => (
+    <Stat label={label} value={<span className="num">{nf(s[k], 2)}</span>} footer={rank(k)}
+      sub={avg[k] !== undefined ? <VsAvg value={s[k]} avg={avg[k]} lowerIsBetter={LOWER_IS_BETTER[k]} fmt={n2} /> : fallback} />
+  );
+  const mark = (k: AvgKey) => (avg[k] !== undefined ? { value: avg[k]!, label: `Média dos ranqueados do ${div}` } : undefined);
+  return (
+    <Panel plain title={<div><h2 className="panel-title">{title}</h2>{d && <p className="mt-0.5 text-[13px] text-fg-3">Estatísticas oficiais · comparadas com a média dos {d.n} ranqueados do {div} (campeão + top 15)</p>}</div>}
+      action={<span className="text-[13px] text-fg-3">UFC.com · carreira no UFC</span>}>
       {!has ? <Empty>Sem estatísticas oficiais no UFC.com para este atleta.</Empty> : (
         <div className="grid gap-8 pt-2 md:grid-cols-[1fr_1.15fr]">
           <div className="grid grid-cols-2 gap-x-4 gap-y-5">
-            <Stat label="Golpes sig. / min" value={<span className="num">{nf(s.slpm, 2)}</span>} sub="conectados" />
-            <Stat label="Absorvidos / min" value={<span className="num">{nf(s.sapm, 2)}</span>} sub="golpes sig. sofridos" />
-            <Stat label="Quedas / 15 min" value={<span className="num">{nf(s.tdAvg, 2)}</span>} sub="média" />
-            <Stat label="Finalizações / 15 min" value={<span className="num">{nf(s.subAvg, 2)}</span>} sub="tentativas" />
-            <Stat label="Knockdowns / 15 min" value={<span className="num">{nf(s.kdAvg, 2)}</span>} />
+            {stat('Golpes sig. / min', 'slpm', 'conectados')}
+            {stat('Absorvidos / min', 'sapm', 'golpes sig. sofridos')}
+            {stat('Quedas / 15 min', 'tdAvg', 'média')}
+            {stat('Finalizações / 15 min', 'subAvg', 'tentativas')}
+            {stat('Knockdowns / 15 min', 'kdAvg', '')}
             <Stat label="Tempo médio de luta" value={<span className="num">{s.avgFightTime ?? '—'}</span>} />
           </div>
-          <div className="space-y-4">
-            <Meter label="Precisão de golpes" value={s.strAcc} display={pct(s.strAcc)} hint={s.sigAttempted ? `${s.sigLanded} de ${s.sigAttempted} golpes significativos` : undefined} />
-            <Meter label="Defesa de golpes" value={s.strDef} display={pct(s.strDef)} />
-            <Meter label="Precisão de quedas" value={s.tdAcc} display={pct(s.tdAcc)} hint={s.tdAttempted ? `${s.tdLanded} de ${s.tdAttempted} quedas` : undefined} />
-            <Meter label="Defesa de quedas" value={s.tdDef} display={pct(s.tdDef)} />
+          <div className="space-y-5">
+            <Meter label="Precisão de golpes" value={s.strAcc} display={pct(s.strAcc)} avg={mark('strAcc')} footer={rank('strAcc')}
+              detail={s.sigAttempted ? <><b className="font-semibold text-fg-2">{nf(s.sigLanded, 0)}</b> golpes sig. conectados em <b className="font-semibold text-fg-2">{nf(s.sigAttempted, 0)}</b> tentativas</> : undefined} />
+            <Meter label="Defesa de golpes" value={s.strDef} display={pct(s.strDef)} avg={mark('strDef')} footer={rank('strDef')} />
+            <Meter label="Precisão de quedas" value={s.tdAcc} display={pct(s.tdAcc)} avg={mark('tdAcc')} footer={rank('tdAcc')}
+              detail={s.tdAttempted ? <><b className="font-semibold text-fg-2">{s.tdLanded}</b> quedas aplicadas em <b className="font-semibold text-fg-2">{s.tdAttempted}</b> tentativas</> : undefined} />
+            <Meter label="Defesa de quedas" value={s.tdDef} display={pct(s.tdDef)} avg={mark('tdDef')} footer={rank('tdDef')} />
+            {d && <p className="flex items-center gap-2 text-[12.5px] text-fg-3"><span className="h-3 w-[3px] rounded-full bg-fg" /> média dos ranqueados do {div}</p>}
           </div>
         </div>
       )}
@@ -221,7 +280,7 @@ function Stacked({ title, parts }: { title: string; parts: { label: string; valu
   const total = parts.reduce((a, p) => a + p.value, 0);
   return (
     <div>
-      <div className="eyebrow mb-2">{title}</div>
+      <div className="mb-2 text-[15px] font-semibold text-fg">{title}</div>
       {total === 0 ? <div className="text-[13px] text-fg-3">Sem dados</div> : (
         <>
           <div className="flex h-2.5 gap-[2px] overflow-hidden rounded-full">
@@ -265,8 +324,16 @@ function WinKpis({ s, history }: { s: OfficialStats; history: HistoryFight[] }) 
   ];
   const [top, ...rest] = [...items].sort((x, y) => y.value - x.value);
   const share = (v: number) => Math.round((v / total) * 100);
+  const how = { 'Por nocaute': 'nocaute', 'Por finalização': 'finalização', 'Por decisão': 'decisão' }[top.label];
+  // como perde: com poucas derrotas, texto em vez de barra (uma barra cheia de "100%" para 1 derrota engana)
+  const losses = history.filter(h => h.outcome === 'L');
+  const lossBy = [
+    ['nocaute', losses.filter(h => h.method === 'KO/TKO').length],
+    ['finalização', losses.filter(h => h.method === 'Finalização').length],
+    ['decisão', losses.filter(h => h.method?.startsWith('Decisão')).length],
+  ].filter(([, n]) => n) as [string, number][];
   return (
-    <Panel plain title="Como vence" action={<span className="text-[13px] text-fg-3">{total} vitórias</span>}>
+    <Panel plain title={`Vence mais por ${how}`} action={<span className="text-[13px] text-fg-3">{total} vitórias</span>}>
       <div className="grid gap-8 pt-1 sm:grid-cols-[1.3fr_1fr]">
         {/* método dominante: número grande */}
         <div>
@@ -292,25 +359,37 @@ function WinKpis({ s, history }: { s: OfficialStats; history: HistoryFight[] }) 
           ))}
         </div>
       </div>
+      <div className="mt-6 flex flex-wrap items-baseline gap-x-3 gap-y-1 border-t border-line pt-4 text-[14px]">
+        <span className="label">Como perde</span>
+        {losses.length === 0 ? <span className="font-semibold text-fg">Invicto no histórico registrado</span> : (
+          <span className="text-fg-2">
+            <span className="font-semibold text-fg">{losses.length} {losses.length > 1 ? 'derrotas' : 'derrota'}</span>
+            {lossBy.length > 0 && <>: {lossBy.map(([k, n]) => `${n} por ${k}`).join(', ')}</>}
+            {losses[0] && <span className="text-fg-3"> · a última para {losses[0].opponent.name} ({new Date(losses[0].date).getFullYear()})</span>}
+          </span>
+        )}
+      </div>
     </Panel>
   );
 }
 
-function Breakdowns({ s, history }: { s: OfficialStats; history: HistoryFight[] }) {
-  const losses = history.filter(h => h.outcome === 'L');
+function Breakdowns({ s }: { s: OfficialStats }) {
+  if (!s.byTarget && !s.byPosition) return null;
+  const top = (parts: [string, number][]) => {
+    const total = parts.reduce((n, [, v]) => n + v, 0);
+    const [label, v] = [...parts].sort((x, y) => y[1] - x[1])[0];
+    return { label, pct: total ? Math.round((v / total) * 100) : 0 };
+  };
+  const t = s.byTarget && top([['na cabeça', s.byTarget.head], ['no corpo', s.byTarget.body], ['nas pernas', s.byTarget.leg]]);
+  const p = s.byPosition && top([['em pé', s.byPosition.standing], ['no clinche', s.byPosition.clinch], ['no solo', s.byPosition.ground]]);
   return (
-    <Panel plain title="Distribuição" bodyClass="grid gap-x-8 gap-y-6 pt-2 sm:grid-cols-2">
-      <Stacked title="Derrotas por método" parts={[
-        { label: 'KO/TKO', value: losses.filter(h => h.method === 'KO/TKO').length, color: SERIES.blue },
-        { label: 'Finalização', value: losses.filter(h => h.method === 'Finalização').length, color: SERIES.orange },
-        { label: 'Decisão', value: losses.filter(h => h.method?.startsWith('Decisão')).length, color: SERIES.aqua },
-      ]} />
-      {s.byTarget && <Stacked title="Golpes sig. por alvo" parts={[
+    <Panel plain title="Onde ele acerta" bodyClass="grid gap-x-8 gap-y-6 pt-2 sm:grid-cols-2">
+      {s.byTarget && <Stacked title={`${t!.pct}% dos golpes ${t!.label}`} parts={[
         { label: 'Cabeça', value: s.byTarget.head, color: SERIES.blue },
         { label: 'Corpo', value: s.byTarget.body, color: SERIES.orange },
         { label: 'Pernas', value: s.byTarget.leg, color: SERIES.aqua },
       ]} />}
-      {s.byPosition && <Stacked title="Golpes sig. por posição" parts={[
+      {s.byPosition && <Stacked title={`${p!.pct}% dos golpes ${p!.label}`} parts={[
         { label: 'Em pé', value: s.byPosition.standing, color: SERIES.blue },
         { label: 'Clinche', value: s.byPosition.clinch, color: SERIES.orange },
         { label: 'Solo', value: s.byPosition.ground, color: SERIES.aqua },
@@ -339,7 +418,7 @@ function PerFightChart({ history }: { history: HistoryFight[] }) {
           <div style="color:${ink.fg3};margin-top:4px">${h.method ?? ''}${h.round ? ` · R${h.round} ${h.clock}` : ''}</div>`;
       },
     },
-    xAxis: { type: 'category', data: rows.map(h => `${h.outcome === 'W' ? 'V' : h.outcome === 'L' ? 'D' : h.outcome}\n${lastName(h.opponent.name)}`), ...axisBase(ink), axisLabel: { ...axisBase(ink).axisLabel, interval: 0, lineHeight: 14, fontSize: 10 }, splitLine: { show: false } },
+    xAxis: { type: 'category', data: rows.map(h => `${h.outcome === 'W' ? 'V' : h.outcome === 'L' ? 'D' : h.outcome}\n${lastName(h.opponent.name)}`), ...axisBase(ink), axisLabel: { ...axisBase(ink).axisLabel, interval: 0, lineHeight: 14, fontSize: 10, width: 54, overflow: 'truncate' }, splitLine: { show: false } },
     yAxis: { type: 'value', ...axisBase(ink), axisLine: { show: false }, splitNumber: 4 },
     series: [
       { name: 'Desferidos', type: 'bar', data: rows.map(h => h.stats!.sigAttempted), barWidth: '46%', barMaxWidth: 22, barGap: '-100%', itemStyle: { color: ink.blueWash, borderRadius: [4, 4, 0, 0] }, z: 1 },
@@ -347,9 +426,21 @@ function PerFightChart({ history }: { history: HistoryFight[] }) {
     ],
   }), [rows, ink]);
 
+  // tendência: golpes conectados por minuto nas 3 últimas lutas contra as anteriores (minutos variam muito entre lutas)
+  const perMin = (h: HistoryFight) => (h.seconds ? h.stats!.sigLanded / (h.seconds / 60) : undefined);
+  const rates = rows.map(perMin);
+  const mean = (xs: (number | undefined)[]) => { const v = xs.filter((x): x is number => x !== undefined); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : undefined; };
+  const recent = mean(rates.slice(-3)), before = mean(rates.slice(0, -3));
+  const change = recent !== undefined && before ? (recent - before) / before : undefined;
+  const headline = change === undefined || rows.length < 6 ? 'Golpes significativos por luta'
+    : change > 0.15 ? 'Volume subiu nas 3 últimas lutas'
+      : change < -0.15 ? 'Volume caiu nas 3 últimas lutas'
+        : 'Volume estável nas últimas lutas';
+
   if (rows.length < 2) return null;
   return (
-    <Panel plain title="Golpes significativos por luta" action={
+    <Panel plain title={<div><h2 className="panel-title">{headline}</h2>
+      {change !== undefined && rows.length >= 6 && <p className="mt-0.5 text-[13px] text-fg-3">Golpes significativos conectados por minuto: <span className="num font-semibold text-fg-2">{nf(recent, 1)}</span> nas 3 últimas, contra <span className="num font-semibold text-fg-2">{nf(before, 1)}</span> antes</p>}</div>} action={
       <div className="flex items-center gap-3 text-[13px] text-fg-3">
         <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-blue" />Conectados</span>
         <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-blue/25" />Desferidos</span>
@@ -363,7 +454,7 @@ function PerFightChart({ history }: { history: HistoryFight[] }) {
 
 /* ---------- Histórico ---------- */
 
-function History({ history }: { history: HistoryFight[] }) {
+function History({ history, me }: { history: HistoryFight[]; me: FighterProfile['bio'] }) {
   const [filter, setFilter] = useState<'all' | 'W' | 'L' | 'title'>('all');
   const filtered = history.filter(h => filter === 'all' || (filter === 'title' ? h.title : h.outcome === filter));
   const { sorted: rows, sort, toggle } = useSort(filtered, {
@@ -400,7 +491,7 @@ function History({ history }: { history: HistoryFight[] }) {
             <tbody>
               {rows.map(h => (
                 <tr key={h.fightId}>
-                  <td><HistoryBadge h={h} /></td>
+                  <td><HistoryBadge h={h} me={me} /></td>
                   <td>
                     <Link to={fighterHref(h.opponent)} className="flex items-center gap-2.5">
                       <Avatar src={h.opponent.headshot} name={h.opponent.name} size={34} flag={h.opponent.countryCode} />
@@ -508,7 +599,14 @@ function milestones(history: HistoryFight[]) {
 }
 
 
-function Timeline({ history }: { history: HistoryFight[] }) {
+/** Cartel do ano ("2-0", "1-1-1"), contando todas as lutas daquele ano (não só as mostradas). */
+function yearRecord(all: HistoryFight[], year: string) {
+  const y = all.filter(h => h.date.startsWith(year));
+  const n = (o: HistoryFight['outcome']) => y.filter(h => h.outcome === o).length;
+  return `${n('W')}-${n('L')}${n('D') ? `-${n('D')}` : ''}`;
+}
+
+function Timeline({ history, me }: { history: HistoryFight[]; me: FighterProfile['bio'] }) {
   const [all, setAll] = useState(false);
   const marks = useMemo(() => milestones(history), [history]);
   const rows = history.filter(h => h.outcome !== 'pending');
@@ -524,12 +622,14 @@ function Timeline({ history }: { history: HistoryFight[] }) {
     <Panel plain title="Linha do tempo" action={<span className="text-[13px] text-fg-3">da mais recente para a mais antiga</span>}>
       {years.map(g => (
         <div key={g.year} className="relative">
-          <div className="sticky top-[136px] z-10 -ml-1 mb-2 mt-4 inline-flex rounded-full bg-fg px-3 py-1 font-display text-[14px] font-bold text-bg">{g.year}</div>
+          <div className="sticky top-[140px] z-10 -ml-1 mb-2 mt-4 inline-flex items-baseline gap-2 rounded-full bg-fg px-3 py-1 font-display text-[14px] font-bold text-bg">
+            {g.year}<span className="num text-[13px] font-semibold opacity-70">{yearRecord(rows, g.year)}</span>
+          </div>
           <ol className="relative ml-[11px] border-l-2 border-line">
             {g.items.map((h, i) => (
               <motion.li key={h.fightId} initial={{ opacity: 0, x: -10 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ duration: 0.45, delay: Math.min(i, 4) * 0.04 }}
                 className="relative pb-5 pl-7 last:pb-2">
-                <span className="absolute -left-[13px] top-0 rounded-full bg-surface p-0.5"><OutcomeBadge outcome={h.outcome} size="sm" /></span>
+                <span className="absolute -left-[13px] top-0 rounded-full bg-surface p-0.5"><HistoryBadge h={h} size="sm" me={me} /></span>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <Link to={fighterHref(h.opponent)} className="flex items-center gap-2 font-semibold text-fg hover:underline hover:underline-offset-4">
                     <Avatar src={h.opponent.headshot} name={h.opponent.name} size={30} flag={h.opponent.countryCode} />{h.opponent.name}
@@ -560,11 +660,17 @@ function News({ items }: { items: FighterProfile['news'] }) {
       <ul className="divide-y divide-line/70">
         {items.slice(0, 6).map(n => (
           <li key={n.url}>
-            <a href={n.url} target="_blank" rel="noreferrer" className="flex gap-3 py-3 transition-colors hover:text-brand">
-              <Newspaper className="mt-0.5 h-3.5 w-3.5 shrink-0 text-fg-3" />
+            <a href={n.url} target="_blank" rel="noreferrer" className="group flex gap-3 py-3">
+              {n.image
+                ? <img src={n.image} alt="" loading="lazy" className="h-14 w-20 shrink-0 rounded-lg object-cover ring-1 ring-fg/[0.06]" />
+                : <span className="grid h-14 w-20 shrink-0 place-items-center rounded-lg bg-surface-2"><Newspaper className="h-5 w-5 text-fg-3" /></span>}
               <div className="min-w-0">
-                <div className="line-clamp-2 text-[14px] leading-snug text-fg">{n.title}</div>
-                <div className="mt-1 text-[13px] text-fg-3">{n.source}{n.date ? ` · ${fullDate(n.date)}` : ''}</div>
+                <div className="line-clamp-2 text-[14px] leading-snug text-fg group-hover:text-brand">{n.title}</div>
+                <div className="mt-1 flex items-center gap-1.5 text-[12.5px] text-fg-3">
+                  {/* as matérias da ESPN são em inglês: avisa antes do clique */}
+                  <Tip content="Matéria em inglês"><span className="rounded bg-surface-2 px-1 text-[11px] font-bold tracking-wide text-fg-2">EN</span></Tip>
+                  {n.source}{n.date ? ` · ${fullDate(n.date)}` : ''}
+                </div>
               </div>
             </a>
           </li>
@@ -599,7 +705,7 @@ export default function Fighter() {
     <div className="space-y-6">
       <Header p={p} />
       <CareerNumbers history={p.history} />
-      <div className="sticky top-[84px] z-20 -mx-1 flex justify-center px-1 py-1">
+      <div className="sticky top-[76px] z-20 -mx-5 flex justify-center bg-bg/85 px-5 py-2.5 backdrop-blur-md sm:-mx-8 sm:px-8">
         <Segmented value={tab} onChange={setTab} className="shadow-[var(--shadow-lift)]" options={[
           { value: 'geral', label: 'Visão geral' }, { value: 'historico', label: `Histórico (${p.history.length})` }, { value: 'carreira', label: 'Linha do tempo' },
         ]} />
@@ -610,20 +716,22 @@ export default function Fighter() {
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
               <div className="min-w-0 space-y-6">
                 <WinKpis s={p.stats} history={p.history} />
-                <OfficialPanel s={p.stats} />
+                <OfficialPanel s={p.stats} division={p.bio.division} slug={p.bio.slug} />
                 <PerFightChart history={p.history} />
-                <Breakdowns s={p.stats} history={p.history} />
+                <Breakdowns s={p.stats} />
               </div>
               <aside className="space-y-6">
-                {p.nextFight && <NextFight h={p.nextFight} />}
+                {p.nextFight ? <NextFight h={p.nextFight} /> : (
+                  <Panel plain title="Próxima luta"><p className="pb-1 text-[14px] text-fg-3">Sem luta marcada. Por enquanto, de folga.</p></Panel>
+                )}
                 <RadarPanel p={p} />
                 <Bio p={p} />
                 <News items={p.news} />
               </aside>
             </div>
           )}
-          {tab === 'historico' && <History history={p.history} />}
-          {tab === 'carreira' && <Timeline history={p.history} />}
+          {tab === 'historico' && <History history={p.history} me={p.bio} />}
+          {tab === 'carreira' && <Timeline history={p.history} me={p.bio} />}
         </motion.div>
       </AnimatePresence>
       <p className="text-[13px] text-fg-3">Fontes: {p.sources.join(' · ')}. Estatísticas oficiais cobrem só as lutas no UFC; o histórico inclui o que a ESPN registra.</p>

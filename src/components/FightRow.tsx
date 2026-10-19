@@ -5,19 +5,23 @@ import type { Fight, FighterRef } from '@shared/types';
 import { fightHref, fighterHref } from '@/lib/api';
 import { OddsChip, oddsView } from './Duel';
 import type { ReactNode } from 'react';
-import { Avatar, Flag, LiveTag, OutcomeBadge, Spotlight, Tag } from './kit';
+import { Avatar, FightCard, Flag, LiveTag, morphPhoto, OutcomeBadge, Spotlight, Tag } from './kit';
 
-function Side({ f, align, state, tip, odds }: { f: FighterRef; align: 'left' | 'right'; state: 'win' | 'loss' | 'none'; tip?: ReactNode; odds?: ReactNode }) {
+function Side({ f, align, state, tip, odds, compact }: { f: FighterRef; align: 'left' | 'right'; state: 'win' | 'loss' | 'none'; tip?: ReactNode; odds?: ReactNode; compact?: boolean }) {
   const right = align === 'right';
   return (
-    <Link to={fighterHref(f)}
-      className={clsx('group flex min-w-0 flex-col items-center gap-2 text-center sm:flex-row sm:gap-3', right ? 'sm:flex-row-reverse sm:text-right' : 'sm:text-left')}>
-      <Avatar src={f.headshot} name={f.name} size={56} ring={right ? 'var(--color-red)' : 'var(--color-blue)'} className={clsx(state === 'loss' && 'opacity-50 grayscale')} />
+    // relative z-10: fica por cima do link da linha inteira (que abre a luta)
+    <Link to={fighterHref(f)} viewTransition onClick={morphPhoto}
+      className={clsx('group/side relative z-10 flex min-w-0 flex-col items-center gap-2 text-center sm:flex-row sm:gap-3', right ? 'sm:flex-row-reverse sm:text-right' : 'sm:text-left')}>
+      <Avatar src={f.headshot} name={f.name} size={compact ? 44 : 56} ring={right ? 'var(--color-red)' : 'var(--color-blue)'} className={clsx(state === 'loss' && 'opacity-50 grayscale')} />
       <div className="min-w-0 max-w-full">
         <div className={clsx('flex items-center justify-center gap-2', right ? 'sm:flex-row-reverse sm:justify-start' : 'sm:justify-start')}>
-          <span className={clsx('text-[14.5px] font-bold leading-tight tracking-[-0.01em] group-hover:underline group-hover:underline-offset-4 sm:text-[16px]',
-            state === 'loss' ? 'text-fg-3' : 'text-fg')}>{f.name}</span>
-          {state === 'win' && <OutcomeBadge outcome="W" size="sm" tip={tip} />}
+          {/* compacta (coluna estreita): nome curto da ESPN numa linha só ("A. Volkanovski") */}
+          <span className={clsx('font-bold leading-tight tracking-[-0.01em] group-hover/side:underline group-hover/side:underline-offset-4',
+            compact ? 'max-w-full truncate text-[14.5px]' : 'text-[14.5px] sm:text-[16px]', state === 'loss' ? 'text-fg-3' : 'text-fg')} title={compact ? f.name : undefined}>
+            {compact ? f.shortName ?? f.name : f.name}
+          </span>
+          {state === 'win' && <OutcomeBadge outcome="W" size="sm" tip={tip} card />}
         </div>
         <div className={clsx('mt-1 flex items-center justify-center gap-2 text-[13.5px] text-fg-2', right ? 'sm:flex-row-reverse sm:justify-start' : 'sm:justify-start')}>
           <Flag code={f.countryCode} src={f.flag} title={f.country} size={20} />
@@ -29,12 +33,9 @@ function Side({ f, align, state, tip, odds }: { f: FighterRef; align: 'left' | '
   );
 }
 
-const winTip = (loser: string, r: NonNullable<Fight['result']>) => (
-  <div className="space-y-0.5">
-    <div className="text-[13.5px] font-semibold">Vitória sobre {loser}</div>
-    <div className="text-[13px] opacity-80">{[r.method, r.detail].filter(Boolean).join(' · ')}</div>
-    {r.round && <div className="text-[13px] opacity-60">R{r.round} · {r.clock}</div>}
-  </div>
+/** Tooltip do selo de vencedor: o cartão da luta, com as fotos dos dois (mesmo visual do histórico). */
+const winTip = (winner: FighterRef, loser: FighterRef, r: NonNullable<Fight['result']>, date?: string) => (
+  <FightCard me={winner} opp={loser} outcome="W" method={r.method} detail={r.detail} round={r.round} clock={r.clock} date={date} />
 );
 
 export function FightRow({ fight, compact, eventId }: { fight: Fight; compact?: boolean; eventId?: string }) {
@@ -45,30 +46,32 @@ export function FightRow({ fight, compact, eventId }: { fight: Fight; compact?: 
   const upset = ov && r?.winnerId && (winRed ? ov.red.p : winBlue ? ov.blue.p : 1) < 0.35;
   const state = (w: boolean) => (!r || !r.winnerId ? 'none' : w ? 'win' : 'loss') as 'win' | 'loss' | 'none';
 
+  const href = eventId ? fightHref(eventId, fight.id) : undefined;
   return (
-    <Spotlight duel className={clsx('grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-2xl px-3 sm:gap-5 sm:px-4', compact ? 'py-3' : 'py-4')}>
-      <Side f={fight.red} align="right" state={state(winRed)} tip={winRed && r ? winTip(fight.blue.name, r) : undefined} odds={ov && <OddsChip {...ov.red} compact={!!r} />} />
-      <div className="flex w-[108px] flex-col items-center gap-1.5 text-center sm:w-[188px]">
+    <Spotlight duel className={clsx('group relative grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-2xl px-3 sm:gap-5 sm:px-4', compact ? 'py-3' : 'py-4')}>
+      <Side f={fight.red} align="right" compact={compact} state={state(winRed)} tip={winRed && r ? winTip(fight.red, fight.blue, r, fight.date) : undefined} odds={ov && <OddsChip {...ov.red} compact={!!r} />} />
+      <div className={clsx('flex flex-col items-center gap-1.5 text-center', compact ? 'w-[96px] sm:w-[150px]' : 'w-[108px] sm:w-[188px]')}>
         <div className="flex flex-wrap items-center justify-center gap-1.5">
           {fight.title && <Tag tone="gold"><Crown weight="fill" className="h-3.5 w-3.5" /> Título</Tag>}
           <span className="text-[14px] font-medium text-fg-3">{fight.weightClass}</span>
         </div>
         {fight.status === 'in' ? <LiveTag /> : r ? (
           <>
-            <span className="text-[14px] font-semibold text-fg">{r.method}{r.detail && r.method !== 'Decisão unânime' ? <span className="text-fg-2"> · {r.detail}</span> : null}</span>
-            <span className="num rounded-full bg-surface-2 px-2.5 py-0.5 text-[13.5px] font-semibold text-fg-2">R{r.round} · {r.clock}</span>
+            <span className="text-[14px] font-semibold text-fg">{r.method}{r.detail && r.method !== 'Decisão unânime' && !compact ? <span className="text-fg-2"> · {r.detail}</span> : null}</span>
+            <span className="num rounded-md bg-surface-2 px-2 py-0.5 text-[13.5px] font-semibold text-fg-2">R{r.round} · {r.clock}</span>
           </>
         ) : (
           <span className="text-[14px] font-medium text-fg-3">{fight.rounds} rounds</span>
         )}
         {upset && <Tag tone="gold"><Lightning weight="fill" className="h-3.5 w-3.5" /> Zebra!</Tag>}
-        {eventId && (
-          <Link to={fightHref(eventId, fight.id)} className="mt-0.5 inline-flex items-center gap-1 text-[13.5px] font-semibold text-brand hover:underline hover:underline-offset-4">
-            {fight.status === 'post' ? 'Ver a luta' : 'Odds e prévia'} <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        )}
       </div>
-      <Side f={fight.blue} align="left" state={state(winBlue)} tip={winBlue && r ? winTip(fight.red.name, r) : undefined} odds={ov && <OddsChip {...ov.blue} compact={!!r} />} />
+      <Side f={fight.blue} align="left" compact={compact} state={state(winBlue)} tip={winBlue && r ? winTip(fight.blue, fight.red, r, fight.date) : undefined} odds={ov && <OddsChip {...ov.blue} compact={!!r} />} />
+      {/* a linha inteira abre a luta; a seta só aparece ao passar o mouse (no lugar dos links "Ver a luta" repetidos) */}
+      {href && (
+        <Link to={href} aria-label={`${fight.status === 'post' ? 'Ver a luta' : 'Odds e prévia'}: ${fight.red.name} × ${fight.blue.name}`} className="absolute inset-0 rounded-2xl">
+          <ArrowRight weight="bold" className="absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-brand opacity-0 transition-all group-hover:right-1 group-hover:opacity-100" />
+        </Link>
+      )}
     </Spotlight>
   );
 }
