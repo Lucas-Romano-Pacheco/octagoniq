@@ -120,9 +120,11 @@ export function mergeSaved(a: SavedBook, b: SavedBook): SavedBook {
 
 /** Destino remoto (nuvem) dos palpites salvos; registrado quando há conta conectada. */
 export interface RemoteSink {
-  saveEvent(eventId: string, next: SavedEvent, prev?: SavedEvent): void;
-  clearEvent(eventId: string): void;
+  /** `locks`: horário de cada luta (vai junto para o banco; a partir dele o palpite fica visível no ranking) */
+  saveEvent(eventId: string, next: SavedEvent, prev: SavedEvent | undefined, locks: Record<string, string>): void;
 }
+
+const locksOf = (fights: Fight[]) => Object.fromEntries(fights.filter(f => f.date).map(f => [f.id, f.date!]));
 let remote: RemoteSink | null = null;
 export const setRemoteSink = (r: RemoteSink | null) => { remote = r; };
 
@@ -179,7 +181,7 @@ export function usePicks() {
     savedStore.write({ ...s, [eventId]: next });
     const { [eventId]: _x, ...rest } = d;
     draftStore.write(rest);
-    remote?.saveEvent(eventId, next, s[eventId]);
+    remote?.saveEvent(eventId, next, s[eventId], locksOf(fights));
     return next;
   }, []);
 
@@ -189,12 +191,17 @@ export function usePicks() {
     draftStore.write(rest);
   }, []);
 
-  /** Apaga rascunho e salvos do evento. */
-  const clearEvent = useCallback((eventId: string) => {
+  /** Apaga o rascunho e os palpites salvos das lutas que ainda não começaram (os das lutas fechadas ficam: já valem). */
+  const clearEvent = useCallback((eventId: string, fights: Fight[]) => {
     const { [eventId]: _a, ...d } = draftStore.read();
-    const { [eventId]: _b, ...s } = savedStore.read();
-    draftStore.write(d); savedStore.write(s);
-    remote?.clearEvent(eventId);
+    const s = savedStore.read();
+    const prev = s[eventId];
+    const kept = Object.fromEntries(fights.filter(f => isLocked(f) && prev?.picks[f.id]).map(f => [f.id, prev!.picks[f.id]]));
+    const next: SavedEvent = { savedAt: Date.now(), picks: kept };
+    draftStore.write(d);
+    if (Object.keys(kept).length) savedStore.write({ ...s, [eventId]: next });
+    else { const { [eventId]: _b, ...rest } = s; savedStore.write(rest); }
+    if (prev) remote?.saveEvent(eventId, next, prev, locksOf(fights));
   }, []);
 
   return { draft, saved, draftOf, setPick, save, discard, clearEvent };

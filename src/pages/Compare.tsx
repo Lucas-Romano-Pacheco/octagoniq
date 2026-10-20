@@ -4,10 +4,10 @@ import { clsx } from 'clsx';
 import { ArrowsLeftRight, Check, Crown, LinkSimple } from '@phosphor-icons/react';
 import type { FighterProfile, HistoryFight } from '@shared/types';
 import { fightHref, fighterHref, useFighter, useRankings, useRankingsMeta, useUpcoming } from '@/lib/api';
-import { dayMonth, fullDate, nf, recordStr, splitEventName } from '@/lib/format';
+import { dayMonth, fullDate, lastName, nf, recordStr, splitEventName } from '@/lib/format';
 import { FighterPicker } from '@/components/FighterPicker';
-import { CORNER as COLOR, DuelRow, better as cmp, type Side } from '@/components/Duel';
-import { Avatar, CountUp, ErrorState, Flag, HistoryBadge, OutcomeBadge, PageHeader, Panel, RankBadge, Skeleton, Spotlight, Tip, usePageTitle } from '@/components/kit';
+import { CORNER as COLOR, DuelHead, DuelRow, better as cmp, type Side } from '@/components/Duel';
+import { Avatar, CountUp, ErrorState, Flag, HistoryBadge, OutcomeBadge, PageHeader, Panel, RankBadge, Skeleton, Tip, usePageTitle } from '@/components/kit';
 import { AttrRadar, hasRadar, RADAR_NOTE } from '@/components/Radar';
 
 
@@ -19,9 +19,10 @@ function Card({ p, side }: { p: FighterProfile; side: Side }) {
       <Avatar src={b.headshot} name={b.name} size={72} flag={b.countryCode} ring={COLOR[side]} className="hidden sm:block" />
       <div className="min-w-0">
         <div className={clsx('mb-1.5 h-0.5 w-6 rounded-full', right && 'ml-auto')} style={{ background: COLOR[side] }} />
-        <div className="display text-2xl text-fg group-hover:text-brand sm:truncate sm:text-3xl">{b.name}</div>
-        <div className={clsx('mt-3 flex flex-wrap items-center gap-2 text-[13.5px] text-fg-3', right && 'justify-end')}>
-          <RankBadge rankLabel={b.rankLabel} division={b.division} women={b.division?.includes('(F)')} />
+        <div className="display break-words text-[18px] leading-tight text-fg group-hover:text-brand sm:truncate sm:text-[32px]">{b.name}</div>
+        <div className={clsx('mt-3 flex flex-wrap items-center gap-2 text-[13px] text-fg-3', right && 'justify-end')}>
+          {/* no celular, a divisão sai do selo (não cabe na meia tela) */}
+          <RankBadge rankLabel={b.rankLabel} division={b.division} women={b.division?.includes("(F)")} className="max-sm:[&_.rb-div]:hidden" />
           <Flag code={b.countryCode} src={b.flag} title={b.country} size={18} /><span>{b.country}</span>
           <span className="num font-mono">{recordStr(b.record)}</span>
         </div>
@@ -35,7 +36,7 @@ function TapeRow({ label, a, b, better }: { label: string; a?: ReactNode; b?: Re
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 py-2.5 sm:gap-4 sm:px-5">
       <span className={clsx('num text-right text-[14px]', better === 'a' ? 'font-semibold text-fg' : 'text-fg-2')}>{a ?? '—'}</span>
-      <span className="label w-[92px] text-center text-[11px] tracking-[0.04em] sm:w-36 sm:text-[12.5px] sm:tracking-[0.08em]">{label}</span>
+      <span className="label w-[92px] text-center text-[12px] tracking-[0.04em] sm:w-36 sm:text-[13px] sm:tracking-[0.08em]">{label}</span>
       <span className={clsx('num text-[14px]', better === 'b' ? 'font-semibold text-fg' : 'text-fg-2')}>{b ?? '—'}</span>
     </div>
   );
@@ -67,13 +68,13 @@ function EdgeBoard({ a, b }: { a: FighterProfile; b: FighterProfile }) {
   const side = (p: FighterProfile, list: typeof A, s: Side) => (
     <div className={clsx('min-w-0', s === 'b' && 'text-right')}>
       <div className={clsx('flex items-baseline gap-2', s === 'b' && 'justify-end')}>
-        <span className="display text-[88px] leading-[0.85]" style={{ color: COLOR[s] }}><CountUp value={list.length} /></span>
+        <span className="display text-[72px] leading-[0.85]" style={{ color: COLOR[s] }}><CountUp value={list.length} /></span>
         <span className="text-[14px] font-semibold text-fg-2">vantagens</span>
       </div>
       <div className="mt-1 truncate text-[14px] text-fg-3">{p.bio.name}</div>
       <div className={clsx('mt-3 flex flex-wrap gap-1.5', s === 'b' && 'justify-end')}>
         {list.map(r => (
-          <span key={r.label} className="inline-flex items-center gap-1.5 rounded-md bg-surface-2 px-2 py-1 text-[12.5px] font-semibold text-fg-2">
+          <span key={r.label} className="inline-flex items-center gap-1.5 rounded-md bg-surface-2 px-2 py-1 text-[13px] font-semibold text-fg-2">
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: COLOR[s] }} />{r.label}
           </span>
         ))}
@@ -121,7 +122,7 @@ function CommonOpponents({ a, b }: { a: FighterProfile; b: FighterProfile }) {
                   <Link to={fightHref(h.eventId, h.fightId)} className="group flex items-center gap-3 py-3">
                     {winner ? <Avatar src={winner.headshot} name={winner.name} size={40} ring={COLOR[winA ? 'a' : 'b']} /> : <OutcomeBadge outcome={h.outcome} />}
                     <div className="min-w-0">
-                      <div className="text-[15px] font-semibold text-fg group-hover:text-brand">
+                      <div className="text-[16px] font-semibold text-fg group-hover:text-brand">
                         {winner ? <>{last(winner.name)} venceu {last(loser.name)}</> : h.outcome === 'D' ? 'Empate' : 'Sem resultado'}
                       </div>
                       <div className="text-[13px] text-fg-3">{[h.method, h.round && `R${h.round} ${h.clock}`, fullDate(h.date)].filter(Boolean).join(' · ')}</div>
@@ -187,7 +188,7 @@ function Suggestions({ onPick }: { onPick: (p: Pair) => void }) {
         <Avatar src={p.b.headshot} name={p.b.name} size={44} ring="var(--color-blue)" className="-ml-2" />
       </span>
       <span className="min-w-0">
-        <span className="block truncate text-[15.5px] font-bold text-fg group-hover:text-brand">{p.label}</span>
+        <span className="block truncate text-[16px] font-bold text-fg group-hover:text-brand">{p.label}</span>
         <span className="block truncate text-[13px] text-fg-3">{p.sub}</span>
       </span>
     </button>
@@ -272,11 +273,11 @@ export default function Compare() {
       {a && b ? (
         <>
           <Toolbar onSwap={swap} />
-          <Spotlight duel className="panel flex items-center gap-4 px-5 py-6 sm:gap-6">
+          <div className="panel flex items-center gap-2 px-4 py-6 sm:gap-6 sm:px-5">
             <Card p={a} side="a" />
-            <span className="display shrink-0 text-2xl text-fg-3">VS</span>
+            <span className="display shrink-0 text-[18px] text-fg-3 sm:text-[24px]">VS</span>
             <Card p={b} side="b" />
-          </Spotlight>
+          </div>
 
           <EdgeBoard a={a} b={b} />
 
@@ -287,7 +288,7 @@ export default function Compare() {
                 <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-blue" />{b.bio.name}</span>
               </div>}>
               <AttrRadar height={340} series={[{ name: a.bio.name, color: 'red', stats: sa! }, { name: b.bio.name, color: 'blue', stats: sb! }]} />
-              <p className="text-[12.5px] text-fg-3">{RADAR_NOTE}</p>
+              <p className="text-[13px] text-fg-3">{RADAR_NOTE}</p>
             </Panel>
           )}
 
@@ -307,6 +308,7 @@ export default function Compare() {
             </Panel>
 
             <Panel plain title="Estatísticas oficiais" action={<span className="text-[13px] text-fg-3">UFC.com</span>} bodyClass="divide-y divide-line/70">
+              <DuelHead a={lastName(a.bio.name)} b={lastName(b.bio.name)} />
               <DuelRow label="Golpes sig. / min" a={sa?.slpm} b={sb?.slpm} fmt={n2} />
               <DuelRow label="Absorvidos / min" a={sa?.sapm} b={sb?.sapm} fmt={n2} lowerIsBetter />
               <DuelRow label="Precisão de golpes" a={sa?.strAcc} b={sb?.strAcc} fmt={p0} />
@@ -323,7 +325,7 @@ export default function Compare() {
         </>
       ) : !(loadA || loadB) && (
         <>
-          <p className="text-[15px] text-fg-2">{a || b ? 'Escolha o segundo lutador acima, ou comece por uma destas comparações:' : 'Escolha dois lutadores acima, ou comece por uma destas comparações:'}</p>
+          <p className="text-[16px] text-fg-2">{a || b ? 'Escolha o segundo lutador acima, ou comece por uma destas comparações:' : 'Escolha dois lutadores acima, ou comece por uma destas comparações:'}</p>
           <Suggestions onPick={pickPair} />
         </>
       )}

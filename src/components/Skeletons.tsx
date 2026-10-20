@@ -80,7 +80,7 @@ export function FightSkeleton() {
       <section className="grid grid-cols-2 items-start gap-x-3 gap-y-6 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:gap-8">
         {corner()}
         <div className="order-last col-span-2 space-y-4 sm:order-none sm:col-span-1 sm:w-[380px] sm:pt-24">
-          <S className="mx-auto h-7 w-28 rounded-md" /><S className="h-20 rounded-2xl" />
+          <S className="mx-auto h-7 w-28 rounded-md" /><S className="h-20 rounded-xl" />
           {Array.from({ length: 4 }).map((_, i) => <S key={i} className="h-9" />)}
         </div>
         {corner(true)}

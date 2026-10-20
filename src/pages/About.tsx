@@ -47,14 +47,14 @@ export default function About() {
   usePageTitle('Sobre o projeto');
   return (
     <div className="space-y-12">
-      <PageHeader eyebrow="Sobre o projeto" title="Como o OctagonIQ foi feito"
+      <PageHeader title="Como o OctagonIQ foi feito"
         meta="Um hub de dados do UFC em português: eventos, resultados, rankings, odds e estatísticas de cada lutador. Projeto de portfólio, sem vínculo com o UFC ou a ESPN." />
 
       <Section title="Em números">
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-line">
           {NUMBERS.map(([v, l, d], i) => (
             <div key={l} className={i ? 'lg:pl-6' : 'lg:pr-6'}>
-              <div className="display whitespace-nowrap text-[40px] normal-case text-fg">{v}</div>
+              <div className="display whitespace-nowrap text-[44px] normal-case text-fg">{v}</div>
               <div className="label mt-1">{l}</div>
               <p className="mt-2 text-[14px] leading-relaxed text-fg-3">{d}</p>
             </div>
@@ -80,26 +80,26 @@ export default function About() {
         <dl className="grid gap-x-10 gap-y-6 md:grid-cols-2">
           {DECISIONS.map(([t, d]) => (
             <div key={t}>
-              <dt className="text-[15.5px] font-semibold text-fg">{t}</dt>
-              <dd className="mt-1.5 text-[14.5px] leading-relaxed text-fg-2">{d}</dd>
+              <dt className="text-[16px] font-semibold text-fg">{t}</dt>
+              <dd className="mt-1.5 text-[14px] leading-relaxed text-fg-2">{d}</dd>
             </div>
           ))}
         </dl>
       </Section>
 
       <Section title="Créditos">
-        <ul className="space-y-2 text-[14.5px] text-fg-2">
+        <ul className="space-y-2 text-[14px] text-fg-2">
           <li>Dados: ESPN, UFC.com, UFC Fight Tracker e BestFightOdds. Fotos dos atletas servidas pelas próprias fontes.</li>
           <li>Modelo 3D: <a className="link" href="https://quaternius.itch.io/universal-base-characters" target="_blank" rel="noreferrer">Universal Base Characters, de Quaternius</a> (CC0).</li>
           <li>Bandeiras: circle-flags e flag-icons. Ícones: Phosphor. Fontes: Saira e Inter.</li>
         </ul>
       </Section>
 
-      <section className="cut flex flex-wrap items-center justify-between gap-6 rounded-2xl bg-fg p-8 text-bg">
+      <section className="cut flex flex-wrap items-center justify-between gap-6 rounded-xl bg-fg p-8 text-bg">
         <div>
           <div className="label text-bg/70">Feito por</div>
-          <div className="display mt-1 text-[36px]">Lucas Pacheco</div>
-          <p className="mt-1 text-[14.5px] text-bg/70">Estudante de Ciência da Computação.</p>
+          <div className="display mt-1 text-[32px]">Lucas Pacheco</div>
+          <p className="mt-1 text-[14px] text-bg/70">Estudante de Ciência da Computação.</p>
         </div>
         <div className="flex flex-wrap gap-3">
           <a href="https://github.com/Lucas-Romano-Pacheco/octagoniq" target="_blank" rel="noreferrer" className="btn-primary"><GithubLogo weight="bold" className="h-4 w-4" /> Código no GitHub <ArrowSquareOut className="h-3.5 w-3.5" /></a>

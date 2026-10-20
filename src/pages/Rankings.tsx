@@ -45,11 +45,11 @@ function DivisionNav({ divisions, active }: { divisions: RankingDivision[]; acti
         {groups.map(g => (
           <div key={g.label}>
             <div className="label mb-2 flex items-center gap-2 px-3"><span className="h-2 w-2 rounded-full" style={{ background: ACCENT[g.label] }} />{g.label}</div>
-            <ul className="overflow-hidden rounded-2xl bg-surface/50 ring-1 ring-fg/[0.05]">
+            <ul className="overflow-hidden rounded-xl bg-surface/50 ring-1 ring-fg/[0.05]">
               {g.items.map(d => (
                 <li key={d.id} className="contents">
                   <Link to={`/rankings/${d.id}`} aria-current={d.id === active ? 'page' : undefined} style={{ ['--item-accent' as string]: ACCENT[g.label] }}
-                    className={clsx('item-fx flex items-center justify-between gap-3 px-4 py-3 text-[14.5px]', d.id === active ? 'is-active font-bold text-fg' : 'font-medium text-fg-2 hover:text-fg')}>
+                    className={clsx('item-fx flex items-center justify-between gap-3 px-4 py-3 text-[14px]', d.id === active ? 'is-active font-bold text-fg' : 'font-medium text-fg-2 hover:text-fg')}>
                     <span>{d.name}</span>
                     {d.champion && <span className={clsx('max-w-[110px] truncate text-[13px]', d.id === active ? 'text-fg-2' : 'text-fg-3')}>{d.champion.name.split(' ').slice(-1)[0]}</span>}
                   </Link>
@@ -89,7 +89,7 @@ function RankTable({ entries, meta, booked }: { entries: RankEntry[]; meta?: Ran
               <td className="num text-right font-display text-[18px] font-semibold text-fg-3">{e.rank}</td>
               <td>
                 <div className="flex items-center gap-3">
-                  <Link to={fighterHref({ slug: e.slug, espnId: m?.espnId })} viewTransition onClick={morphPhoto} className="flex min-w-0 items-center gap-3 text-[15px] font-semibold text-fg hover:text-brand">
+                  <Link to={fighterHref({ slug: e.slug, espnId: m?.espnId })} viewTransition onClick={morphPhoto} className="flex min-w-0 items-center gap-3 text-[16px] font-semibold text-fg hover:text-brand">
                     <Avatar src={headshot(m?.espnId)} name={e.name} size={36} /><span className="truncate">{e.name}</span>
                   </Link>
                   <BookedTag b={m?.espnId ? booked?.[m.espnId] : undefined} />
@@ -118,7 +118,7 @@ function LeaderCard({ division, divisions, meta, booked }: { division: RankingDi
     ? `${division.women ? 'Campeã' : 'Campeão'} · ${division.name}`
     : `Nº 1 · ${division.name}`;
   return (
-    <div className="cut group relative flex min-h-[220px] items-end justify-between overflow-hidden rounded-[18px] bg-gradient-to-br from-cream via-cream-2 to-cream-3 px-7 pt-7 shadow-[var(--shadow-soft)] transition-shadow hover:shadow-[var(--shadow-lift)]">
+    <div className="cut group relative flex min-h-[220px] items-end justify-between overflow-hidden rounded-xl bg-cream px-7 pt-7 ring-1 ring-line transition-colors hover:bg-cream-2">
       <FlagBackdrop code={m?.countryCode} shape="fade-left" className="inset-y-0 right-0 w-[64%] opacity-35 dark:opacity-25" />
       <div className="relative pb-7">
         <div className="flex flex-wrap items-center gap-2">
@@ -126,7 +126,7 @@ function LeaderCard({ division, divisions, meta, booked }: { division: RankingDi
           {!division.champion && beltOf && <Tag tone="gold">{division.women ? 'Campeã' : 'Campeão'} · {beltOf.name}</Tag>}
           <span className="relative z-10"><BookedTag b={m?.espnId ? booked?.[m.espnId] : undefined} /></span>
         </div>
-        <Link to={fighterHref({ slug: leader.slug, espnId: m?.espnId })} className="display mt-4 block text-[40px] text-fg after:absolute after:inset-0 sm:text-[56px]">{leader.name}</Link>
+        <Link to={fighterHref({ slug: leader.slug, espnId: m?.espnId })} className="display mt-4 block text-[44px] text-fg after:absolute after:inset-0 sm:text-[64px]">{leader.name}</Link>
         {m && <div className="mt-3"><NationRecord className="justify-start" code={m.countryCode} country={m.country} record={m.record} /></div>}
         <div className="mt-3 inline-flex items-center gap-1.5 text-[14px] font-semibold text-fg-2 group-hover:text-brand">Ver perfil e histórico <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></div>
       </div>
@@ -147,7 +147,7 @@ export default function Rankings() {
 
   return (
     <div>
-      <PageHeader eyebrow="Rankings oficiais do UFC" title="Quem manda em cada divisão" meta={data && <>Fonte: <a className="link" href={data.source} target="_blank" rel="noreferrer">UFC.com</a> · consultado às {new Date(data.updatedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</>} />
+      <PageHeader title="Quem manda em cada divisão" meta={data && <>Fonte: <a className="link" href={data.source} target="_blank" rel="noreferrer">UFC.com</a> · consultado às {new Date(data.updatedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</>} />
       {isError && <Panel><ErrorState onRetry={() => refetch()} /></Panel>}
       {isLoading && <div className="grid min-h-[1200px] gap-6 lg:grid-cols-[220px_1fr]"><Skeleton className="hidden h-96 lg:block" /><Skeleton className="h-[1100px]" /></div>}
       {data && division && (

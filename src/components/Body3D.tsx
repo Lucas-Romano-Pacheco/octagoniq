@@ -27,7 +27,16 @@ const loadModel = () => {
   return gltfPromise;
 };
 
-const css = (name: string, fallback: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+/** Cor de um token em hexadecimal. Os tokens estão em OKLCH, que o three.js não lê: um pixel de canvas faz a conversão. */
+const css = (name: string, fallback: string) => {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const ctx = v && document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+  if (!ctx) return fallback;
+  ctx.fillStyle = v;
+  ctx.fillRect(0, 0, 1, 1);
+  const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+  return `#${[r, g, b].map(x => x.toString(16).padStart(2, '0')).join('')}`;
+};
 
 /** Baixa os braços (pose de T → ao lado do corpo, com o cotovelo levemente dobrado) girando os ossos no espaço do mundo. */
 function lowerArms(root: THREE.Object3D) {

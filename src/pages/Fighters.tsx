@@ -25,7 +25,7 @@ function Row({ e, meta, booked }: { e: RankEntry; meta?: RankingsMeta; booked?: 
       </span>
       <Avatar src={headshot(m?.espnId)} name={e.name} size={38} flag={m?.countryCode} />
       <Link to={fighterHref({ slug: e.slug, espnId: m?.espnId })} viewTransition onClick={morphPhoto}
-        className={clsx('min-w-0 flex-1 truncate after:absolute after:inset-0', champ ? 'text-[15.5px] font-bold text-fg' : 'text-[15px] font-semibold text-fg-2 group-hover:text-fg')}>
+        className={clsx('min-w-0 flex-1 truncate after:absolute after:inset-0', champ ? 'text-[16px] font-bold text-fg' : 'text-[16px] font-semibold text-fg-2 group-hover:text-fg')}>
         {e.name}
       </Link>
       <span className="relative z-10"><BookedTag b={m?.espnId ? booked?.[m.espnId] : undefined} /></span>
@@ -40,7 +40,7 @@ function Chip({ on, onClick, children, count }: { on: boolean; onClick: () => vo
       className={clsx('lift inline-flex h-10 shrink-0 items-center gap-2 rounded-full px-4 text-[14px] font-semibold ring-1',
         on ? 'bg-fg text-bg ring-fg' : 'bg-surface text-fg-2 ring-fg/[0.08] hover:bg-surface-2 hover:text-fg hover:ring-fg/20')}>
       {children}
-      {count !== undefined && <span className={clsx('num rounded px-1.5 text-[12px]', on ? 'bg-bg/15' : 'bg-surface-2 text-fg-3')}>{count}</span>}
+      {count !== undefined && <span className={clsx('num rounded-md px-1.5 text-[12px]', on ? 'bg-bg/15' : 'bg-surface-2 text-fg-3')}>{count}</span>}
     </button>
   );
 }
@@ -103,7 +103,7 @@ export default function Fighters() {
         <div className="no-scrollbar -mx-5 mt-3 flex gap-1 overflow-x-auto px-5 sm:mx-0 sm:flex-wrap sm:px-0">
           {[{ id: 'todas', name: 'Todas as divisões' }, ...divisions].map(d => (
             <button key={d.id} onClick={() => set('divisao', d.id, 'todas')}
-              className={clsx('h-9 shrink-0 rounded-full px-3.5 text-[13.5px] font-semibold transition-colors',
+              className={clsx('h-9 shrink-0 rounded-full px-3.5 text-[13px] font-semibold transition-colors',
                 div === d.id ? 'bg-surface-2 text-fg ring-1 ring-fg/15' : 'text-fg-3 hover:bg-surface-2/70 hover:text-fg')}>
               {d.name}
             </button>
@@ -122,7 +122,7 @@ export default function Fighters() {
             {groups.map(({ d, rows }) => (
               <section key={d.id} className="rule">
                 <div className="rule-header">
-                  <h2 className="display text-[30px] text-fg">{d.name}</h2>
+                  <h2 className="display text-[32px] text-fg">{d.name}</h2>
                   <Link to={`/rankings/${d.id}`} className="btn-ghost">Ranking completo <ArrowRight className="h-4 w-4" /></Link>
                 </div>
                 {/* duas colunas no desktop: metade da altura de uma lista única */}

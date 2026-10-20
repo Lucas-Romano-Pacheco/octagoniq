@@ -174,8 +174,9 @@ export function Panel({ title, action, children, className, bodyClass, eyebrow, 
       {(title || action) && (
         <header className={plain ? 'rule-header' : 'panel-header'}>
           <div className="min-w-0">
-            {eyebrow && <div className="label mb-1">{eyebrow}</div>}
             {typeof title === 'string' ? <h2 className="panel-title">{title}</h2> : title}
+            {/* fonte ou contexto do painel: abaixo do título, em texto comum (rótulo em caixa alta acima do título é sinal de template) */}
+            {eyebrow && <div className="mt-0.5 text-[13px] text-fg-3">{eyebrow}</div>}
           </div>
           {action}
         </header>
@@ -185,25 +186,23 @@ export function Panel({ title, action, children, className, bodyClass, eyebrow, 
   );
 }
 
-export function PageHeader({ eyebrow, title, children, meta }: { eyebrow?: ReactNode; title: ReactNode; children?: ReactNode; meta?: ReactNode }) {
+export function PageHeader({ title, children, meta }: { title: ReactNode; children?: ReactNode; meta?: ReactNode }) {
   return (
     <Reveal className="flex flex-wrap items-end justify-between gap-6 pb-8 pt-2">
       <div className="min-w-0 max-w-3xl">
-        {eyebrow && <div className="eyebrow mb-3">{eyebrow}</div>}
-        <h1 className="display text-[44px] text-fg sm:text-[60px]">{title}</h1>
-        {meta && <div className="mt-3 max-w-2xl text-[15px] leading-relaxed text-fg-2">{meta}</div>}
+        <h1 className="display text-[44px] text-fg sm:text-[64px]">{title}</h1>
+        {meta && <div className="mt-3 max-w-2xl text-[16px] leading-relaxed text-fg-2">{meta}</div>}
       </div>
       {children}
     </Reveal>
   );
 }
 
-export function SectionTitle({ eyebrow, title, action }: { eyebrow?: string; title: ReactNode; action?: ReactNode }) {
+export function SectionTitle({ title, action }: { title: ReactNode; action?: ReactNode }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>
-        {eyebrow && <div className="eyebrow mb-2">{eyebrow}</div>}
-        <h2 className="display text-[32px] text-fg sm:text-[40px]">{title}</h2>
+        <h2 className="display text-[32px] text-fg sm:text-[44px]">{title}</h2>
       </div>
       {action}
     </div>
@@ -255,7 +254,7 @@ export function NationRecord({ code, country, record, className }: { code?: stri
     <span className={clsx('flex shrink-0 items-center justify-end gap-2.5', className)}>
       {country && <span className="hidden text-[14px] text-fg-3 xl:inline">{country}</span>}
       <Flag code={code} title={country} size={20} />
-      {record && <span className="num w-[62px] text-right text-[13.5px] font-semibold text-fg-2">{record}</span>}
+      {record && <span className="num w-[62px] text-right text-[13px] font-semibold text-fg-2">{record}</span>}
     </span>
   );
 }
@@ -269,7 +268,7 @@ export function Tip({ content, title, children, side = 'top' }: { content: React
       <TooltipTrigger asChild>{children}</TooltipTrigger>
       <TooltipContent side={side} sideOffset={6} className="max-w-72 rounded-xl px-3 py-2 text-left text-[13px] leading-snug shadow-[var(--shadow-lift)]">
         <div>
-          {title && <div className="mb-0.5 text-[13.5px] font-semibold">{title}</div>}
+          {title && <div className="mb-0.5 text-[13px] font-semibold">{title}</div>}
           <div className={title ? 'opacity-80' : undefined}>{content}</div>
         </div>
       </TooltipContent>
@@ -288,7 +287,7 @@ export function BookedTag({ b, className }: { b?: BookedFight; className?: strin
     <Tip title={b.title ? 'Disputa de cinturão marcada' : 'Luta marcada'} content={<>vs {b.opponent}<br />{b.eventName} · {d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}</>}>
       <Link to={`/eventos/${b.eventId}/lutas/${b.fightId}`} onClick={e => e.stopPropagation()}
         className={clsx('inline-flex h-6 shrink-0 items-center gap-1 rounded-md px-2 text-[12px] font-semibold transition-colors',
-          b.title ? 'bg-gold-soft text-gold-ink hover:bg-gold/30' : 'bg-blue/10 text-blue hover:bg-blue/20', className)}>
+          b.title ? 'bg-gold-soft text-gold-ink hover:bg-gold/30' : 'bg-blue/10 text-blue-ink hover:bg-blue/20', className)}>
         <CalendarCheck weight="bold" className="h-3.5 w-3.5" />{day}
       </Link>
     </Tip>
@@ -362,7 +361,7 @@ export function OutcomeBadge({ outcome, className, size = 'md', tip, card, href 
       <TooltipTrigger asChild>{badge}</TooltipTrigger>
       {card
         // cartão da luta: mesmo visual do carrossel "Últimas 5" do perfil (fundo de superfície, não o tooltip escuro)
-        ? <TooltipContent sideOffset={8} className="cut block w-[280px] max-w-none rounded-2xl bg-surface p-3 text-left text-fg shadow-[var(--shadow-pop)] ring-1 ring-fg/10" arrowClassName="bg-surface fill-surface">{tip}</TooltipContent>
+        ? <TooltipContent sideOffset={8} className="cut block w-[280px] max-w-none rounded-xl bg-surface p-3 text-left text-fg shadow-[var(--shadow-pop)] ring-1 ring-fg/10" arrowClassName="bg-surface fill-surface">{tip}</TooltipContent>
         : <TooltipContent className="max-w-64 rounded-xl px-3 py-2 text-left">{tip}</TooltipContent>}
     </Tooltip>
   );
@@ -380,27 +379,27 @@ export function FightCard({ me, opp, outcome, method, detail, round, clock, date
   const Photo = ({ f, won }: { f: Face; won: boolean }) => (
     <div className="relative flex h-full flex-1 items-end justify-center">
       {f.headshot ? <img src={proxy(f.headshot, 320)} alt={f.name} loading="lazy" decoding="async" className="h-full w-auto object-contain object-bottom" /> : <Avatar name={f.name} size={64} className="mb-3" />}
-      {won && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 whitespace-nowrap bg-brand px-2 py-0.5 font-display text-[11px] font-bold uppercase tracking-wide text-white">Vitória</span>}
+      {won && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 whitespace-nowrap bg-brand px-2 py-0.5 font-display text-[12px] font-bold uppercase tracking-wide text-white">Vitória</span>}
     </div>
   );
   const d = date ? new Date(date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : undefined;
   return (
     <div>
-      <div className="flex h-[100px] gap-1 overflow-hidden rounded-xl bg-gradient-to-b from-cream to-cream-2">
+      <div className="flex h-[100px] gap-1 overflow-hidden rounded-xl bg-cream">
         <Photo f={me} won={outcome === 'W'} />
         <Photo f={opp} won={outcome === 'L'} />
       </div>
-      <div className="mt-2.5 text-center font-display text-[15px] font-bold uppercase leading-tight tracking-[0.02em] text-fg">{lastOf(me.name)} vs {lastOf(opp.name)}</div>
-      <div className="num text-center text-[12.5px] text-fg-3">{[d, RESULT[outcome]].filter(Boolean).join(' · ')}</div>
+      <div className="mt-2.5 text-center font-display text-[16px] font-bold uppercase leading-tight tracking-[0.02em] text-fg">{lastOf(me.name)} vs {lastOf(opp.name)}</div>
+      <div className="num text-center text-[13px] text-fg-3">{[d, RESULT[outcome]].filter(Boolean).join(' · ')}</div>
       {method && (
         <dl className="mt-2 grid grid-cols-[1fr_1fr_2fr] gap-x-2 border-t border-line pt-2 text-center">
           {([['Round', round ?? '—'], ['Tempo', clock ?? '—'], ['Método', method]] as const).map(([k, v]) => (
-            <div key={k} className="min-w-0"><dt className="text-[11.5px] text-fg-3">{k}</dt><dd className="num text-[13px] font-bold text-fg">{v}</dd></div>
+            <div key={k} className="min-w-0"><dt className="text-[12px] text-fg-3">{k}</dt><dd className="num text-[13px] font-bold text-fg">{v}</dd></div>
           ))}
         </dl>
       )}
       {(detail || eventName) && <div className="mt-1.5 truncate text-center text-[12px] text-fg-3">{[detail, eventName].filter(Boolean).join(' · ')}</div>}
-      {clickHint && <div className="mt-2 text-center text-[11.5px] font-semibold uppercase tracking-[0.08em] text-brand">Clique para ver a luta</div>}
+      {clickHint && <div className="mt-2 text-center text-[12px] font-semibold uppercase tracking-[0.08em] text-brand">Clique para ver a luta</div>}
     </div>
   );
 }
@@ -420,7 +419,7 @@ export function HistoryBadge({ h, size = 'md', me }: { h: HistoryFight; size?: '
   return (
     <OutcomeBadge outcome={h.outcome} size={size} href={h.outcome !== 'pending' ? `/eventos/${h.eventId}/lutas/${h.fightId}` : undefined} tip={
       <div className="space-y-0.5">
-        <div className="text-[13.5px] font-semibold">{VERB[h.outcome]} {h.opponent.name}</div>
+        <div className="text-[13px] font-semibold">{VERB[h.outcome]} {h.opponent.name}</div>
         {how && <div className="text-[13px] opacity-80">{how}</div>}
         <div className="text-[13px] opacity-60">{when}</div>
         <div className="text-[13px] opacity-60">{h.eventName}</div>
@@ -450,35 +449,36 @@ export function RankBadge({ rankLabel, division, women, className }: { rankLabel
   if (!rankLabel) return division ? <Tag className={className}>{division}</Tag> : null;
   const champ = rankLabel === 'Campeão';
   return (
-    <span className={clsx('inline-flex h-7 items-stretch overflow-hidden rounded-md text-[13px] font-semibold ring-1', champ ? 'ring-gold' : 'ring-fg/15', className)}>
+    <span className={clsx('inline-flex h-7 max-w-full items-stretch overflow-hidden rounded-md text-[13px] font-semibold ring-1', champ ? 'ring-gold' : 'ring-fg/15', className)}>
       {champ ? (
-        <span className="flex items-center gap-1.5 bg-gold px-2 font-display text-[15px] font-bold uppercase tracking-[0.02em] text-[#14183e]">
+        <span className="flex items-center gap-1.5 bg-gold px-2 font-display text-[16px] font-bold uppercase tracking-[0.02em] text-[#14183e]">
           <BeltIcon className="h-3.5 w-5 text-[#14183e]" />{women ? 'Campeã' : 'Campeão'}
         </span>
       ) : (
         <span className="flex items-baseline gap-0.5 bg-fg px-2 pt-[3px] font-display text-bg">
-          <span className="text-[11px] font-semibold">Nº</span><span className="text-[17px] font-bold leading-none">{rankLabel.replace('#', '')}</span>
+          <span className="text-[12px] font-semibold">Nº</span><span className="text-[18px] font-bold leading-none">{rankLabel.replace('#', '')}</span>
         </span>
       )}
-      {division && <span className="flex items-center bg-surface px-2 text-fg-2">{division}</span>}
+      {division && <span className="rb-div min-w-0 truncate bg-surface px-2 leading-7 text-fg-2">{division}</span>}
     </span>
   );
 }
 
-export function Tag({ children, tone = 'neutral', className }: { children: ReactNode; tone?: 'neutral' | 'gold' | 'brand' | 'blue' | 'dark'; className?: string }) {
+export function Tag({ children, tone = 'neutral', className }: { children: ReactNode; tone?: 'neutral' | 'gold' | 'orange' | 'brand' | 'blue' | 'dark'; className?: string }) {
   const tones = {
     neutral: 'bg-surface-2 text-fg-2',
-    gold: 'bg-gold-soft text-gold-ink',
+    gold: 'bg-gold-soft text-gold-ink',   // só cinturão e títulos
+    orange: 'bg-orange/15 text-orange-ink', // zebras
     brand: 'bg-brand-soft text-brand',
-    blue: 'bg-blue/10 text-blue',
+    blue: 'bg-blue/10 text-blue-ink',
     dark: 'bg-fg text-bg',
   };
-  return <span className={clsx('inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 font-display text-[12.5px] font-semibold uppercase tracking-[0.04em]', tones[tone], className)}>{children}</span>;
+  return <span className={clsx('inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 font-display text-[13px] font-semibold uppercase tracking-[0.04em]', tones[tone], className)}>{children}</span>;
 }
 
 export function LiveTag() {
   return (
-    <span className="inline-flex h-6 items-center gap-1.5 rounded-full bg-brand px-2.5 text-[12.5px] font-bold uppercase tracking-wider text-white">
+    <span className="inline-flex h-6 items-center gap-1.5 rounded-full bg-brand px-2.5 text-[13px] font-bold uppercase tracking-wider text-white">
       <span className="live-dot h-1.5 w-1.5 rounded-full bg-white" /> Ao vivo
     </span>
   );
@@ -490,7 +490,7 @@ export function Stat({ label, value, sub, className, footer }: { label: ReactNod
   return (
     <div className={clsx('min-w-0', className)}>
       <div className="label truncate">{label}</div>
-      <div className="display mt-2 text-[34px] text-fg">{value}</div>
+      <div className="display mt-2 text-[32px] text-fg">{value}</div>
       {sub && <div className="mt-1 text-[14px] text-fg-3">{sub}</div>}
       {footer && <div className="mt-1.5">{footer}</div>}
     </div>
@@ -508,7 +508,7 @@ export function Meter({ label, value, display, color = 'var(--color-blue)', hint
     <MaybeTip content={hint}><div>
       <div className="mb-2 flex items-baseline justify-between gap-2 text-[14px]">
         <span className="text-fg-2">{label}</span>
-        <span className="num font-semibold text-fg">{display}{mark && <span className="ml-2 text-[12.5px] font-medium text-fg-3">média {Math.round(mark.value)}%</span>}</span>
+        <span className="num font-semibold text-fg">{display}{mark && <span className="ml-2 text-[13px] font-medium text-fg-3">média {Math.round(mark.value)}%</span>}</span>
       </div>
       <div className="relative h-2 rounded-full bg-surface-2">
         <motion.div className="h-full rounded-full" style={{ background: color }}
@@ -525,7 +525,7 @@ export function Meter({ label, value, display, color = 'var(--color-blue)', hint
 export function VsAvg({ value, avg, lowerIsBetter, fmt }: { value?: number; avg?: number; lowerIsBetter?: boolean; fmt: (v: number) => string }) {
   if (value === undefined || avg === undefined || avg === 0) return null;
   const diff = (value - avg) / avg;
-  if (Math.abs(diff) < 0.05) return <span className="block text-fg-3">na média<span className="block text-[12.5px]">média {fmt(avg)}</span></span>;
+  if (Math.abs(diff) < 0.15) return <span className="block text-[13px] text-fg-3">perto da média ({fmt(avg)})</span>;
   const above = diff > 0, good = above !== !!lowerIsBetter;
   const Icon = above ? ArrowUp : ArrowDown;
   return (
@@ -533,7 +533,7 @@ export function VsAvg({ value, avg, lowerIsBetter, fmt }: { value?: number; avg?
       <span className={clsx('inline-flex items-center gap-0.5 whitespace-nowrap font-semibold', good ? 'text-win' : 'text-loss')}>
         <Icon weight="bold" className="h-3 w-3" />{Math.round(Math.abs(diff) * 100)}% {above ? 'acima' : 'abaixo'}
       </span>
-      <span className="block whitespace-nowrap text-[12.5px] text-fg-3">média {fmt(avg)}</span>
+      <span className="block whitespace-nowrap text-[13px] text-fg-3">média {fmt(avg)}</span>
     </span>
   );
 }
@@ -547,8 +547,8 @@ export function ErrorState({ message, onRetry, className, title = 'Nocaute técn
     <div className={clsx('flex flex-col items-center justify-center gap-3 px-6 py-14 text-center', className)}>
       <span className="grid h-11 w-11 place-items-center rounded-full bg-brand-soft"><WarningCircle className="h-6 w-6 text-brand" /></span>
       <div>
-        <p className="font-display text-[22px] font-bold text-fg">{title}</p>
-        <p className="mt-1 text-[13.5px] text-fg-3">{message ?? 'O UFC.com ou a ESPN não responderam agora. Tente de novo em instantes.'}</p>
+        <p className="font-display text-[20px] font-bold text-fg">{title}</p>
+        <p className="mt-1 text-[13px] text-fg-3">{message ?? 'O UFC.com ou a ESPN não responderam agora. Tente de novo em instantes.'}</p>
       </div>
       {onRetry && <button className="btn" onClick={onRetry}><ArrowClockwise className="h-4 w-4" /> Tentar de novo</button>}
     </div>
@@ -569,7 +569,7 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
       {options.map(o => (
         <button key={o.value} role="tab" aria-selected={o.value === value} onClick={() => onChange(o.value)}
           className={clsx('relative h-8 whitespace-nowrap rounded-full px-3 text-[14px] font-semibold transition-colors sm:px-4', o.value === value ? 'text-bg' : 'text-fg-2 hover:bg-surface-2 hover:text-fg')}>
-          {o.value === value && <motion.span layoutId={`seg-${options.map(x => x.value).join()}`} className="absolute inset-0 rounded-full bg-fg" transition={{ type: 'spring', bounce: 0.18, duration: 0.45 }} />}
+          {o.value === value && <motion.span layoutId={`seg-${options.map(x => x.value).join()}`} className="absolute inset-0 rounded-full bg-fg" transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }} />}
           <span className="relative">{o.label}</span>
         </button>
       ))}

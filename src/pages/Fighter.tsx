@@ -35,19 +35,18 @@ function Header({ p }: { p: FighterProfile }) {
   const fade = (d: number) => (reduce ? {} : { initial: { opacity: 0, y: 22 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.65, delay: d, ease: [0.22, 1, 0.36, 1] as const } });
   return (
     <section className="relative grid items-center gap-8 pb-6 pt-2 lg:grid-cols-[1.1fr_1fr]">
-      <div aria-hidden className="pointer-events-none absolute -left-40 top-0 h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,var(--glow),transparent_65%)]" />
       <div className="relative min-w-0">
         <motion.div {...fade(0)} className="flex flex-wrap items-center gap-2">
           <RankBadge rankLabel={b.rankLabel} division={b.division} women={women} />
           {b.p4pRank && <RankBadge rankLabel={`#${b.p4pRank}`} division="Peso por peso" />}
           {b.status && <span className="text-[14px] text-fg-3">{b.status}</span>}
         </motion.div>
-        <motion.h1 {...fade(0.06)} className="display mt-5 text-[52px] text-fg sm:text-[76px]">
+        <motion.h1 {...fade(0.06)} className="display mt-5 text-[44px] text-fg min-[440px]:text-[64px] sm:text-[72px]">
           {b.name.split(' ').slice(0, -1).join(' ')}{' '}
           <span className="relative inline-block whitespace-nowrap">{b.name.split(' ').slice(-1)[0]}<Brush className="absolute -bottom-2 left-[6%] h-4 w-[92%]" /></span>
         </motion.h1>
-        <motion.div {...fade(0.12)} className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-[15px] text-fg-2">
-          {b.nickname && <span className="font-display text-[19px] italic text-fg">“{b.nickname}”</span>}
+        <motion.div {...fade(0.12)} className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-[16px] text-fg-2">
+          {b.nickname && <span className="font-display text-[18px] italic text-fg">“{b.nickname}”</span>}
           {b.country && <span className="inline-flex items-center gap-2 font-semibold text-fg"><Flag code={b.countryCode} src={b.flag} title={b.country} size={22} />{b.country}</span>}
           {b.hometown && <span className="text-fg-3">Natural de {b.hometown}</span>}
           {b.team && <span className="text-fg-3">{b.team}</span>}
@@ -89,9 +88,9 @@ function Header({ p }: { p: FighterProfile }) {
           <div className="absolute inset-0 grid place-items-center" style={{ viewTransitionName: 'fighter-photo' }}><Avatar src={b.headshot} name={b.name} size={220} flag={b.countryCode} /></div>
         )}
         <motion.div initial={reduce ? false : { opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.5 }}
-          className="cut absolute left-0 top-[30%] rounded-2xl bg-surface/95 px-5 py-4 shadow-[var(--shadow-lift)] backdrop-blur sm:-left-4">
+          className="cut absolute left-0 top-[30%] rounded-xl bg-surface/95 px-5 py-4 shadow-[var(--shadow-lift)] backdrop-blur sm:-left-4">
           <div className="label">Cartel</div>
-          <div className="num font-display text-[34px] font-semibold leading-tight text-fg"><RecordCount record={b.record} /></div>
+          <div className="num font-display text-[32px] font-semibold leading-tight text-fg"><RecordCount record={b.record} /></div>
           <div className="text-[13px] text-fg-3">V · D · E</div>
         </motion.div>
         {last5.length > 0 && (
@@ -118,7 +117,7 @@ function RecentFights({ me, fights, streak: st }: { me: FighterProfile['bio']; f
   const go = (n: number) => { setDir(n > i ? 1 : -1); setI((n + fights.length) % fights.length); };
   const h = fights[i];
   const won = h.outcome === 'W', lost = h.outcome === 'L';
-  const tagCls = 'absolute bottom-0 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white';
+  const tagCls = 'absolute bottom-0 left-1/2 -translate-x-1/2 whitespace-nowrap px-2 py-0.5 text-[12px] font-bold uppercase tracking-wide text-white';
   const Face = ({ src, name, tag }: { src?: string; name: string; tag?: string }) => (
     <div className="relative flex h-full flex-1 items-end justify-center">
       {src ? <img src={src} alt={name} className="h-full w-auto object-contain object-bottom" /> : <Avatar src={undefined} name={name} size={72} className="mb-3" />}
@@ -130,7 +129,7 @@ function RecentFights({ me, fights, streak: st }: { me: FighterProfile['bio']; f
     <motion.div layout transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
       onPointerEnter={() => setOpen(true)} onPointerLeave={() => setOpen(false)}
       onFocus={() => setOpen(true)} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false); }}
-      className={clsx('cut rounded-2xl bg-surface/95 p-4 shadow-[var(--shadow-lift)] backdrop-blur', open ? 'w-[300px]' : 'w-auto')}>
+      className={clsx('cut rounded-xl bg-surface/95 p-4 shadow-[var(--shadow-lift)] backdrop-blur', open ? 'w-[300px]' : 'w-auto')}>
       <motion.div layout="position" className="flex items-center justify-between gap-4">
         <div className="label">Últimas {fights.length}</div>
         {open && <div className="flex gap-1">
@@ -151,17 +150,17 @@ function RecentFights({ me, fights, streak: st }: { me: FighterProfile['bio']; f
           <motion.div key={h.fightId} custom={dir}
             initial={{ x: dir * 60, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: dir * -60, opacity: 0 }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}>
             <Link to={fightHref(h.eventId, h.fightId)} className="group block">
-              <div className="flex h-[112px] gap-1 overflow-hidden rounded-2xl bg-gradient-to-b from-cream to-cream-2">
+              <div className="flex h-[112px] gap-1 overflow-hidden rounded-xl bg-cream">
                 <Face src={me.headshot} name={me.name} tag={won ? 'Vitória' : undefined} />
                 <Face src={h.opponent.headshot} name={h.opponent.name} tag={lost ? 'Vitória' : undefined} />
               </div>
               <div className="mt-3 line-clamp-2 font-display text-[16px] font-bold uppercase leading-tight tracking-tight text-fg group-hover:text-brand">
                 {lastName(me.name)} vs {lastName(h.opponent.name)}
               </div>
-              <div className="num text-[12.5px] text-fg-3">{shortDate(h.date)} · {RESULT_TAG[h.outcome]}</div>
+              <div className="num text-[13px] text-fg-3">{shortDate(h.date)} · {RESULT_TAG[h.outcome]}</div>
               <dl className="mt-2 grid grid-cols-[auto_auto_1fr] gap-x-4 border-t border-line pt-2">
                 {[['Round', h.round ?? '—'], ['Tempo', h.clock ?? '—'], ['Método', h.method ?? '—']].map(([k, v]) => (
-                  <div key={k} className="min-w-0"><dt className="text-[11.5px] text-fg-3">{k}</dt><dd className="num truncate text-[13px] font-bold text-fg">{v}</dd></div>
+                  <div key={k} className="min-w-0"><dt className="text-[12px] text-fg-3">{k}</dt><dd className="num truncate text-[13px] font-bold text-fg">{v}</dd></div>
                 ))}
               </dl>
             </Link>
@@ -194,7 +193,7 @@ function Bio({ p }: { p: FighterProfile }) {
         {rows.filter(r => r[1]).map(([k, v]) => (
           <div key={k}>
             <dt className="label">{k}</dt>
-            <dd className="num mt-1 text-[15px] font-semibold text-fg">{v}</dd>
+            <dd className="num mt-1 text-[16px] font-semibold text-fg">{v}</dd>
           </div>
         ))}
       </dl>
@@ -227,7 +226,7 @@ function RankLine({ pos, k, div, n }: { pos?: number; k: AvgKey; div?: string; n
   if (!pos || pos > 3 || !div) return null;
   return (
     <Tip content={`Comparado com os ${n} ranqueados do ${div} (campeão + top 15), pelas estatísticas oficiais do UFC.com.`}>
-      <span tabIndex={0} className="inline-flex cursor-help items-start gap-1 rounded-md bg-gold-soft px-2 py-0.5 text-[12.5px] font-semibold leading-snug text-gold-ink">
+      <span tabIndex={0} className="inline-flex cursor-help items-start gap-1 rounded-md bg-gold-soft px-2 py-0.5 text-[13px] font-semibold leading-snug text-gold-ink">
         <Trophy weight="fill" className="mt-[2px] h-3.5 w-3.5 shrink-0" /><span>{pos}º do {div} {RANK_PHRASE[k]}</span>
       </span>
     </Tip>
@@ -270,7 +269,7 @@ function OfficialPanel({ s, division, slug }: { s: OfficialStats; division?: str
             <Meter label="Precisão de quedas" value={s.tdAcc} display={pct(s.tdAcc)} avg={mark('tdAcc')} footer={rank('tdAcc')}
               detail={s.tdAttempted ? <><b className="font-semibold text-fg-2">{s.tdLanded}</b> quedas aplicadas em <b className="font-semibold text-fg-2">{s.tdAttempted}</b> tentativas</> : undefined} />
             <Meter label="Defesa de quedas" value={s.tdDef} display={pct(s.tdDef)} avg={mark('tdDef')} footer={rank('tdDef')} />
-            {d && <p className="flex items-center gap-2 text-[12.5px] text-fg-3"><span className="h-3 w-[3px] rounded-full bg-fg" /> média dos ranqueados do {div}</p>}
+            {d && <p className="flex items-center gap-2 text-[13px] text-fg-3"><span className="h-3 w-[3px] rounded-full bg-fg" /> média dos ranqueados do {div}</p>}
           </div>
         </div>
       )}
@@ -283,7 +282,7 @@ function Stacked({ title, parts }: { title: string; parts: { label: string; valu
   const total = parts.reduce((a, p) => a + p.value, 0);
   return (
     <div>
-      <div className="mb-2 text-[15px] font-semibold text-fg">{title}</div>
+      <div className="mb-2 text-[16px] font-semibold text-fg">{title}</div>
       {total === 0 ? <div className="text-[13px] text-fg-3">Sem dados</div> : (
         <>
           <div className="flex h-2.5 gap-[2px] overflow-hidden rounded-full">
@@ -294,7 +293,7 @@ function Stacked({ title, parts }: { title: string; parts: { label: string; valu
           <ul className="mt-2.5 grid grid-cols-3 gap-2">
             {parts.map(p => (
               <li key={p.label} className="min-w-0">
-                <div className="flex items-center gap-1.5 text-[13px] text-fg-2"><span className="h-2 w-2 shrink-0 rounded-sm" style={{ background: p.color }} /><span className="truncate">{p.label}</span></div>
+                <div className="flex items-center gap-1.5 text-[13px] text-fg-2"><span className="h-2 w-2 shrink-0 rounded-md" style={{ background: p.color }} /><span className="truncate">{p.label}</span></div>
                 <div className="num mt-0.5 text-[14px] font-medium text-fg">{p.value} <span className="text-fg-3">· {Math.round((p.value / total) * 100)}%</span></div>
               </li>
             ))}
@@ -340,10 +339,10 @@ function WinKpis({ s, history }: { s: OfficialStats; history: HistoryFight[] }) 
       <div className="grid gap-8 pt-1 sm:grid-cols-[1.3fr_1fr]">
         {/* método dominante: número grande */}
         <div>
-          <div className="flex items-center gap-2 text-[15px] font-semibold text-fg-2"><top.Icon weight="bold" className="h-4 w-4" style={{ color: top.color }} />{top.label}</div>
+          <div className="flex items-center gap-2 text-[16px] font-semibold text-fg-2"><top.Icon weight="bold" className="h-4 w-4" style={{ color: top.color }} />{top.label}</div>
           <div className="mt-1 flex items-end gap-3">
-            <span className="display text-[120px] leading-[0.8] text-fg"><CountUp value={top.value} /></span>
-            <span className="display pb-1 text-[40px] leading-none" style={{ color: top.color }}>{share(top.value)}%</span>
+            <span className="display text-[96px] leading-[0.8] text-fg"><CountUp value={top.value} /></span>
+            <span className="display pb-1 text-[44px] leading-none" style={{ color: top.color }}>{share(top.value)}%</span>
           </div>
           <div className="mt-2 text-[14px] text-fg-3">das vitórias · {top.sub}</div>
         </div>
@@ -352,8 +351,8 @@ function WinKpis({ s, history }: { s: OfficialStats; history: HistoryFight[] }) 
           {rest.map(it => (
             <div key={it.label}>
               <div className="flex items-baseline justify-between gap-2">
-                <span className="flex items-center gap-2 text-[15px] font-semibold text-fg-2"><it.Icon weight="bold" className="h-4 w-4" style={{ color: it.color }} />{it.label}</span>
-                <span className="display text-[34px] leading-none text-fg">{it.value}<span className="ml-1.5 text-[20px] text-fg-3">{share(it.value)}%</span></span>
+                <span className="flex items-center gap-2 text-[16px] font-semibold text-fg-2"><it.Icon weight="bold" className="h-4 w-4" style={{ color: it.color }} />{it.label}</span>
+                <span className="display text-[32px] leading-none text-fg">{it.value}<span className="ml-1.5 text-[20px] text-fg-3">{share(it.value)}%</span></span>
               </div>
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-2">
                 <motion.div className="h-full rounded-full" style={{ background: it.color }} initial={{ width: 0 }} whileInView={{ width: `${share(it.value)}%` }} viewport={{ once: true }} transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }} />
@@ -445,8 +444,8 @@ function PerFightChart({ history }: { history: HistoryFight[] }) {
     <Panel plain title={<div><h2 className="panel-title">{headline}</h2>
       {change !== undefined && rows.length >= 6 && <p className="mt-0.5 text-[13px] text-fg-3">Golpes significativos conectados por minuto: <span className="num font-semibold text-fg-2">{nf(recent, 1)}</span> nas 3 últimas, contra <span className="num font-semibold text-fg-2">{nf(before, 1)}</span> antes</p>}</div>} action={
       <div className="flex items-center gap-3 text-[13px] text-fg-3">
-        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-blue" />Conectados</span>
-        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-sm bg-blue/25" />Desferidos</span>
+        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-md bg-blue" />Conectados</span>
+        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-md bg-blue/25" />Desferidos</span>
       </div>}>
       <div className="-mx-2 pt-1">
         <EChart option={option} height={260} ariaLabel={`Golpes significativos conectados e desferidos nas últimas ${rows.length} lutas`} />
@@ -510,7 +509,7 @@ function History({ history, me }: { history: HistoryFight[]; me: FighterProfile[
                   <td>
                     <Link to={`/eventos/${h.eventId}`} className="block max-w-[260px] hover:underline hover:underline-offset-4">
                       <div className="truncate text-fg-2">{shortEvent(h.eventName)}</div>
-                      <div className="num font-mono text-[12.5px] text-fg-3">{fullDate(h.date)}{h.weightClass ? ` · ${h.weightClass}` : ''}</div>
+                      <div className="num font-mono text-[13px] text-fg-3">{fullDate(h.date)}{h.weightClass ? ` · ${h.weightClass}` : ''}</div>
                     </Link>
                   </td>
                 </tr>
@@ -559,7 +558,7 @@ function NextFight({ h }: { h: HistoryFight }) {
       <Link to={`/eventos/${h.eventId}`} className="flex items-center gap-3 p-4 transition-colors hover:bg-surface-2/60">
         <Avatar src={h.opponent.headshot} name={h.opponent.name} size={44} />
         <div className="min-w-0">
-          <div className="text-[13.5px] font-medium text-fg">vs {h.opponent.name}{h.title && <Crown className="ml-1.5 inline h-3.5 w-3.5 text-gold" />}</div>
+          <div className="text-[13px] font-medium text-fg">vs {h.opponent.name}{h.title && <Crown className="ml-1.5 inline h-3.5 w-3.5 text-gold" />}</div>
           <div className="truncate text-[13px] text-fg-3">{shortEvent(h.eventName)} · {fullDate(h.date)}</div>
         </div>
       </Link>
@@ -574,7 +573,7 @@ function RadarPanel({ p }: { p: FighterProfile }) {
   return (
     <Panel plain title="Perfil de luta" action={<span className="text-[13px] text-fg-3">UFC.com</span>}>
       <AttrRadar series={[{ name: p.bio.name, color: 'blue', stats: p.stats }]} height={280} />
-      <p className="text-[12.5px] leading-relaxed text-fg-3">{RADAR_NOTE}</p>
+      <p className="text-[13px] leading-relaxed text-fg-3">{RADAR_NOTE}</p>
     </Panel>
   );
 }
@@ -665,13 +664,13 @@ function News({ items }: { items: FighterProfile['news'] }) {
           <li key={n.url}>
             <a href={n.url} target="_blank" rel="noreferrer" className="group flex gap-3 py-3">
               {n.image
-                ? <img src={proxy(n.image, 240)} alt="" loading="lazy" decoding="async" className="h-14 w-20 shrink-0 rounded-lg object-cover ring-1 ring-fg/[0.06]" />
-                : <span className="grid h-14 w-20 shrink-0 place-items-center rounded-lg bg-surface-2"><Newspaper className="h-5 w-5 text-fg-3" /></span>}
+                ? <img src={proxy(n.image, 240)} alt="" loading="lazy" decoding="async" className="h-14 w-20 shrink-0 rounded-md object-cover ring-1 ring-fg/[0.06]" />
+                : <span className="grid h-14 w-20 shrink-0 place-items-center rounded-md bg-surface-2"><Newspaper className="h-5 w-5 text-fg-3" /></span>}
               <div className="min-w-0">
                 <div className="line-clamp-2 text-[14px] leading-snug text-fg group-hover:text-brand">{n.title}</div>
-                <div className="mt-1 flex items-center gap-1.5 text-[12.5px] text-fg-3">
+                <div className="mt-1 flex items-center gap-1.5 text-[13px] text-fg-3">
                   {/* as matérias da ESPN são em inglês: avisa antes do clique */}
-                  <Tip content="Matéria em inglês"><span className="rounded bg-surface-2 px-1 text-[11px] font-bold tracking-wide text-fg-2">EN</span></Tip>
+                  <Tip content="Matéria em inglês"><span className="rounded-md bg-surface-2 px-1 text-[12px] font-bold tracking-wide text-fg-2">EN</span></Tip>
                   {n.source}{n.date ? ` · ${fullDate(n.date)}` : ''}
                 </div>
               </div>

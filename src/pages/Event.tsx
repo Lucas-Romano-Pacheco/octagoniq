@@ -31,7 +31,8 @@ function Summary({ fights }: { fights: Fight[] }) {
       {items.map((it, i) => (
         <div key={it.label} className={i ? 'lg:pl-5' : 'lg:pr-5'}>
           <div className="label">{it.label}</div>
-          <div className="display mt-1 text-[44px] text-fg">{it.value}</div>
+          {/* um protagonista: o primeiro número maior, os outros menores */}
+          <div className={`display mt-1 text-fg ${i ? 'text-[32px]' : 'text-[64px] leading-[0.9]'}`}>{it.value}</div>
           <div className="mt-1 text-[13px] text-fg-3">{it.sub}</div>
         </div>
       ))}
@@ -60,15 +61,11 @@ function Poster({ e, live }: { e: EventDetail; live?: React.ReactNode }) {
   return (
     <section className="grid items-end gap-8 lg:grid-cols-[1.1fr_1fr]">
       <div className="min-w-0 pb-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="eyebrow">{series}</span>
-          {e.status === 'in' && <LiveTag />}
-          {e.status === 'post' && <Tag>Encerrado</Tag>}
-        </div>
-        <h1 className="display mt-4 text-[48px] text-fg sm:text-[72px]">{title || series}</h1>
+        {(e.status === 'in' || e.status === 'post') && <div className="mb-4 flex flex-wrap items-center gap-2">{e.status === 'in' ? <LiveTag /> : <Tag>Encerrado</Tag>}</div>}
+        <h1 className="display text-[44px] text-fg sm:text-[72px]">{title || series}</h1>
         {main?.title && <div className="mt-4"><Tag tone="gold"><Crown weight="fill" className="h-3.5 w-3.5" /> Disputa de cinturão · {main.weightClass}</Tag></div>}
-        <p className="mt-4 flex flex-wrap gap-x-3 gap-y-1 text-[15px] text-fg-2">
-          <span className="first-letter:uppercase">{longDate(e.date)} · card principal às {time(e.date)} (Brasília)</span>
+        <p className="mt-4 flex flex-wrap gap-x-3 gap-y-1 text-[16px] text-fg-2">
+          <span className="first-letter:uppercase"><b className="font-semibold text-fg">{series}</b> · {longDate(e.date)} · card principal às {time(e.date)} (Brasília)</span>
           {e.venue && <span className="inline-flex items-center gap-1 text-fg-3"><MapPin className="h-3.5 w-3.5" />{e.venue} · {e.city}{e.country ? `, ${e.country}` : ''}</span>}
         </p>
         {live}
@@ -116,7 +113,7 @@ function Segment({ e, seg }: { e: EventDetail; seg: CardSegment }) {
       title={<h2 className="panel-title">{SEGMENT_LABEL[seg]} <span className="ml-1.5 align-middle font-sans text-[14px] font-semibold text-fg-3">{fights.length} lutas</span></h2>}
       action={
         <div className="flex items-center gap-2">
-          <span className="num rounded-md bg-surface-2 px-2.5 py-1 text-[13.5px] font-semibold text-fg-2">{[e.segmentStart[seg] && time(e.segmentStart[seg]!), fights[0].broadcast].filter(Boolean).join(' · ')}</span>
+          <span className="num rounded-md bg-surface-2 px-2.5 py-1 text-[13px] font-semibold text-fg-2">{[e.segmentStart[seg] && time(e.segmentStart[seg]!), fights[0].broadcast].filter(Boolean).join(' · ')}</span>
           <button onClick={() => setOpen(o => !o)} aria-expanded={open} className="btn-ghost">
             {open ? 'Recolher' : 'Mostrar'} <CaretDown weight="bold" className={clsx('h-3.5 w-3.5 transition-transform', !open && '-rotate-90')} />
           </button>

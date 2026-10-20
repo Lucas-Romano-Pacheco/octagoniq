@@ -15,7 +15,7 @@ const resolve = (p: ThemePref) => (p === 'system' ? (media().matches ? 'dark' : 
 
 function apply(p: ThemePref) {
   document.documentElement.classList.toggle('dark', resolve(p) === 'dark');
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', resolve(p) === 'dark' ? '#0d0f22' : '#faf8f4');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', resolve(p) === 'dark' ? '#0d0f22' : '#f8f9fc');
 }
 
 const listeners = new Set<() => void>();

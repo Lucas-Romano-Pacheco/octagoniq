@@ -4,7 +4,7 @@ import { ArrowsOutLineHorizontal, Fire, Flame, Hand, HourglassMedium, Lightning,
 import type { FighterProfile, HistoryFight } from '@shared/types';
 import { useFighter } from '@/lib/api';
 import { lastName, nf } from '@/lib/format';
-import { CORNER, DuelRow, better, type Side } from './Duel';
+import { CORNER, DuelHead, DuelRow, better, type Side } from './Duel';
 import { AttrRadar, hasRadar, RADAR_NOTE } from './Radar';
 import { HistoryBadge, Panel, Segmented, Skeleton } from './kit';
 
@@ -110,9 +110,9 @@ function insights(a: FighterProfile, b: FighterProfile): Insight[] {
 function Tape({ label, a, b, win }: { label: string; a?: ReactNode; b?: ReactNode; win?: Side | null }) {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-5 py-2.5">
-      <span className={`num text-right text-[14.5px] ${win === 'a' ? 'font-bold text-fg' : 'text-fg-2'}`}>{a ?? '—'}</span>
+      <span className={`num text-right text-[14px] ${win === 'a' ? 'font-bold text-fg' : 'text-fg-2'}`}>{a ?? '—'}</span>
       <span className="label w-28 text-center">{label}</span>
-      <span className={`num text-[14.5px] ${win === 'b' ? 'font-bold text-fg' : 'text-fg-2'}`}>{b ?? '—'}</span>
+      <span className={`num text-[14px] ${win === 'b' ? 'font-bold text-fg' : 'text-fg-2'}`}>{b ?? '—'}</span>
     </div>
   );
 }
@@ -157,7 +157,7 @@ export function FightPreview({ red, blue }: { red: Ref; blue: Ref }) {
               {keys.length === 0 ? <p className="py-2 text-[14px] text-fg-3">Números muito parecidos: nenhuma vantagem clara no papel.</p> : (
                 <ul className="divide-y divide-line/70">
                   {keys.map((k, i) => (
-                    <li key={i} className="flex gap-3 py-3 text-[14.5px] leading-snug text-fg-2">
+                    <li key={i} className="flex gap-3 py-3 text-[14px] leading-snug text-fg-2">
                       <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full text-white" style={{ background: k.side ? CORNER[k.side] : 'var(--color-fg-3)' }}>{k.icon}</span>
                       <span>{k.text}</span>
                     </li>
@@ -174,13 +174,14 @@ export function FightPreview({ red, blue }: { red: Ref; blue: Ref }) {
                     </span>
                   </div>
                   <AttrRadar height={300} series={[{ name: a.bio.name, color: 'red', stats: sa }, { name: b.bio.name, color: 'blue', stats: sb }]} />
-                  <p className="text-[12.5px] text-fg-3">{RADAR_NOTE}</p>
+                  <p className="text-[13px] text-fg-3">{RADAR_NOTE}</p>
                 </div>
               )}
             </div>
           )}
           {tab === 'numeros' && (
             <div className="divide-y divide-line/70 pb-2">
+              <DuelHead a={lastName(a.bio.name)} b={lastName(b.bio.name)} />
               <DuelRow label="Golpes sig. / min" a={sa.slpm} b={sb.slpm} fmt={n2} />
               <DuelRow label="Absorvidos / min" a={sa.sapm} b={sb.sapm} fmt={n2} lowerIsBetter />
               <DuelRow label="Precisão de golpes" a={sa.strAcc} b={sb.strAcc} fmt={p0} />
@@ -189,7 +190,7 @@ export function FightPreview({ red, blue }: { red: Ref; blue: Ref }) {
               <DuelRow label="Defesa de quedas" a={sa.tdDef} b={sb.tdDef} fmt={p0} />
               <DuelRow label="Finalizações / 15 min" a={sa.subAvg} b={sb.subAvg} fmt={n2} />
               <DuelRow label="Knockdowns / 15 min" a={sa.kdAvg} b={sb.kdAvg} fmt={n2} />
-              <p className="px-5 pt-3 text-[12.5px] text-fg-3">Médias da carreira no UFC (UFC.com).</p>
+              <p className="px-5 pt-3 text-[13px] text-fg-3">Médias da carreira no UFC (UFC.com).</p>
             </div>
           )}
           {tab === 'ficha' && (

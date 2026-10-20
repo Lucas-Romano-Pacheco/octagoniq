@@ -25,7 +25,9 @@
 - **Luta:** estatísticas por alvo num **boneco 3D** que gira com o mouse, odds com movimento da linha (abertura → fechamento), **cartões dos juízes round a round** e, para lutas futuras, uma prévia comparando a carreira dos dois.
 - **Lutador:** estatísticas oficiais comparadas com a média dos ranqueados da divisão (e destaque do top 3), vitórias e derrotas por método, linha do tempo com marcos, histórico ordenável e notícias.
 - **Rankings, Lutadores e Comparar:** rankings oficiais com luta marcada, filtros (brasileiros, campeões), placar de vantagens, radar de atributos e confronto direto.
-- **Palpites:** escolha vencedor, método e round de cada luta do card. Os palpites fecham luta a luta e, quando os resultados saem, a página calcula acertos e pontos (10 pelo vencedor, +5 método, +5 round, +5 palpite perfeito, bônus por zebra). O botão **Salvar palpites** confirma o que foi computado; ficam no navegador ou, com login, na conta (Supabase). A pontuação é uma função pura e testada (`src/lib/picks.ts`).
+- **Palpites:** escolha vencedor, método e round de cada luta do card. Os palpites fecham luta a luta e, quando os resultados saem, a página calcula acertos e pontos (10 pelo vencedor, +5 método, +5 round, +5 palpite perfeito, bônus por zebra). O botão **Salvar palpites** confirma o que foi computado e grava no banco (Supabase/Postgres), na conta de cada pessoa. A pontuação é uma função pura e testada (`src/lib/picks.ts`).
+- **Ranking entre usuários:** aba dentro de Palpites com a classificação (do evento ou geral, com empate dividindo a posição) e os palpites de cada pessoa, luta a luta. O banco só revela o palpite de alguém depois do horário da luta, e palpite gravado depois do início não conta (`src/lib/picks-ranking.ts`, testado).
+- **Contas:** login com **apelido e senha**, sem e-mail (apelido único, conferido enquanto a pessoa digita, e o apelido aparece no cartaz da tela de entrar) e página **Minha conta** com a pontuação somada e a troca de senha.
 - **Prévias ao compartilhar:** cada luta, evento e lutador tem imagem e título próprios no WhatsApp, LinkedIn etc.
 
 ## Stack
@@ -36,7 +38,7 @@
 - **three.js:** boneco 3D da aba "Por alvo", carregado só nessa aba. Modelo "Universal Base Characters", de [Quaternius](https://quaternius.itch.io/universal-base-characters), CC0 (créditos em `public/models/CREDITS.txt`)
 - **BFF em Node** (`server/`): consolida as fontes, normaliza para tipos próprios e guarda cache
 - **satori + resvg** (imagens de prévia) e **sharp** (fotos redimensionadas em WebP)
-- Tipografia: Saira (títulos, rótulos e botões) e Inter (texto e tabelas). Regras de design em [`design.md`](design.md)
+- Tipografia: Saira (títulos, rótulos e botões) e IBM Plex Sans (texto e tabelas). Regras de design em [`design.md`](design.md) e objetivos de cada tela em [`PRODUCT.md`](PRODUCT.md)
 - Testes com **Vitest**; CI no GitHub Actions; publicação no **Vercel**
 
 ## Como rodar
@@ -102,7 +104,7 @@ server/
 src/
   lib/           cliente da API (hooks) e formatação
   components/    layout, linha de luta, gráficos, boneco 3D, prévia da luta, primitivos de UI
-  pages/         Início, Eventos, Evento, Rankings, Lutadores, Lutador, Luta, Comparar, Sobre
+  pages/         Início, Eventos, Evento, Rankings, Lutadores, Lutador, Luta, Comparar, Palpites, Entrar, Conta, Sobre
 scripts/     build do Vercel e cópia das bandeiras
 docs/        capturas de tela deste README
 legacy/      versão anterior (HTML/JS puro com dados estáticos), mantida como referência
@@ -124,16 +126,18 @@ legacy/      versão anterior (HTML/JS puro com dados estáticos), mantida como 
 | `GET /api/search?q=` | busca de lutadores |
 | `GET /img?u=&w=` · `GET /og/...png` | foto redimensionada · imagem de prévia |
 
-## Palpites e conta (Supabase, opcional)
+## Contas e palpites (Supabase)
 
-Sem configuração, os palpites ficam no navegador (rascunho a cada clique; só o que for **salvo** conta pontos). Para guardá-los numa conta e usar em qualquer aparelho:
+Com o Supabase configurado, cada pessoa tem login próprio: o rascunho fica no navegador a cada clique e o **Salvar palpites** exige entrar e grava no banco. A segurança fica no próprio banco: RLS (cada conta só lê e altera os próprios palpites), apelido único e hora do palpite sempre a do servidor. Sem as variáveis abaixo o site continua funcionando, com os palpites só no navegador e sem tela de login. Para ativar:
 
 1. Crie um projeto grátis em [supabase.com](https://supabase.com) e rode `docs/supabase.sql` no **SQL Editor** (cria a tabela `picks` com segurança por linha: cada pessoa só acessa os próprios palpites).
-2. Em **Authentication → Providers** deixe **Email** ativo (link por e-mail) e, se quiser, ative **Google**. Em **Authentication → URL Configuration** coloque o endereço do site (`https://octagoniq.vercel.app`) em *Site URL* e, junto com `http://localhost:5173`, em *Redirect URLs*.
+2. Em **Authentication → Providers** deixe **Email** ativo e **desligue *Confirm email***. O login é por apelido: por baixo, cada conta usa um e-mail interno (`apelido@octagoniq.vercel.app`) que nunca recebe mensagens, então a conta precisa entrar direto depois do cadastro. Para o botão do Google (opcional), ative o provedor **Google** e cadastre também `VITE_SUPABASE_GOOGLE=1`. Em **Authentication → URL Configuration** coloque o endereço do site (`https://octagoniq.vercel.app`) em *Site URL* e, junto com `http://localhost:5173`, em *Redirect URLs*.
 3. Copie `.env.example` para `.env.local` e preencha `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (Project Settings → API). A chave `anon` é pública; quem protege os dados é o RLS.
 4. No Vercel, cadastre as mesmas duas variáveis em **Settings → Environment Variables** e publique de novo.
 
-Ao entrar, os palpites salvos neste navegador são unidos aos da conta (vale o mais recente de cada luta) e cada "Salvar palpites" é enviado para o banco.
+As contas aparecem em **Authentication → Users** (com o e-mail interno), os apelidos na tabela `profiles` e os palpites na `picks`. As senhas ficam só como hash; para redefinir a de alguém, há um comando comentado no fim de `docs/supabase.sql`.
+
+Ao entrar, os palpites da conta são baixados para o navegador e cada "Salvar palpites" é enviado para o banco. Ao sair, os palpites deixam o navegador (num aparelho compartilhado, a próxima pessoa não vê os seus); se outra conta entrar no mesmo navegador, os palpites de uma nunca sobem para a outra.
 
 ## Prévias para compartilhar (Open Graph)
 
@@ -151,5 +155,5 @@ No Vercel o cache fica em `/tmp`, que só dura enquanto a instância da função
 
 ## Créditos
 
-Dados: ESPN, UFC.com, UFC Fight Tracker e BestFightOdds. Modelo 3D: Quaternius (CC0). Bandeiras: circle-flags e flag-icons. Ícones: Phosphor. Fontes: Saira e Inter.
+Dados: ESPN, UFC.com, UFC Fight Tracker e BestFightOdds. Modelo 3D: Quaternius (CC0). Bandeiras: circle-flags e flag-icons. Ícones: Phosphor. Fontes: Saira e IBM Plex Sans.
 Feito por **Lucas Pacheco**.

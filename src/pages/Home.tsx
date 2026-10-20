@@ -9,7 +9,7 @@ import { FightRow } from '@/components/FightRow';
 import { cardSummary, fightSeconds, winnerChance } from '@/lib/fights';
 import { fairProbs, fmtMoneyline } from '@shared/format';
 import { SERIES_LABEL, SERIES_TONE } from '@/lib/series';
-import { Avatar, Brush, Defer, morphPhoto, OctagonFrame, Empty, ErrorState, Flag, FlagBackdrop, LiveTag, Panel, Reveal, SectionTitle, Skeleton, Spotlight, Tag } from '@/components/kit';
+import { Avatar, Brush, Defer, morphPhoto, OctagonFrame, Empty, ErrorState, Flag, FlagBackdrop, LiveTag, Panel, Reveal, SectionTitle, Skeleton, Tag } from '@/components/kit';
 import { proxy } from '@/lib/img';
 
 /* ---------- Hero ---------- */
@@ -33,7 +33,7 @@ function Countdown({ iso }: { iso: string }) {
     <div className="flex gap-2">
       {parts.map(p => (
         <div key={p.l} className="w-[52px] text-center">
-          <div className="num font-display text-[26px] font-semibold leading-none text-fg">{String(p.v).padStart(2, '0')}</div>
+          <div className="num font-display text-[24px] font-semibold leading-none text-fg">{String(p.v).padStart(2, '0')}</div>
           <div className="mt-1 text-[12px] font-semibold uppercase tracking-wider text-fg-3">{p.l}</div>
         </div>
       ))}
@@ -68,19 +68,15 @@ function Hero({ e }: { e: UpcomingEvent }) {
   const fade = (d: number) => (reduce ? {} : { initial: { opacity: 0, y: 24 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.7, delay: d, ease: [0.22, 1, 0.36, 1] as const } });
 
   return (
-    // brilho dourado que segue o cursor; a camada ocupa a largura da janela e esmaece nas bordas, sem caixa visível
-    <section onPointerMove={moveGlow} className="relative grid items-center gap-10 pb-10 pt-6 lg:grid-cols-[1.05fr_1fr] lg:gap-6 lg:pb-16">
-      <div aria-hidden data-glow className="hero-glow" />
-      {/* brilho lateral, como o gradiente suave da referência */}
-      <div aria-hidden className="pointer-events-none absolute -left-40 top-10 h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,var(--glow),transparent_65%)]" />
+    // brilho dourado que segue o cursor, só em disputa de cinturão (dourado é a cor do título);
+    // a camada ocupa a largura da janela e esmaece nas bordas, sem caixa visível
+    <section onPointerMove={m?.title ? moveGlow : undefined} className="relative grid items-center gap-10 pb-10 pt-6 lg:grid-cols-[1.05fr_1fr] lg:gap-6 lg:pb-16">
+      {m?.title && <div aria-hidden data-glow className="hero-glow" />}
 
       <div className="relative">
-        <motion.div {...fade(0)} className="eyebrow flex flex-wrap items-center gap-2">
-          {e.status === 'in' ? <LiveTag /> : null}
-          {series} · {dayMonth(e.date)} · {e.city?.split(',')[0]}
-        </motion.div>
+        {e.status === 'in' && <motion.div {...fade(0)} className="mb-4"><LiveTag /></motion.div>}
         {m ? (
-          <motion.h1 {...fade(0.08)} className="display mt-5 break-words text-[44px] text-fg sm:text-[72px] xl:text-[84px]">
+          <motion.h1 {...fade(0.08)} className="display break-words text-[44px] text-fg sm:text-[72px] xl:text-[72px]">
             {lastName(m.red.name)}
             <br />
             <span className="relative inline-block">
@@ -89,18 +85,18 @@ function Hero({ e }: { e: UpcomingEvent }) {
             </span>
           </motion.h1>
         ) : <h1 className="display mt-5 text-[64px] text-fg">{series}</h1>}
-        <motion.p {...fade(0.16)} className="mt-8 max-w-[520px] text-[16.5px] leading-[1.75] text-fg-2">
-          {m?.title ? <>Disputa de cinturão do {weightPhrase(m.weightClass)}. </> : m ? <>Luta principal no {weightPhrase(m.weightClass)}. </> : null}
+        <motion.p {...fade(0.16)} className="mt-8 max-w-[520px] text-[16px] leading-[1.75] text-fg-2">
+          <b className="font-semibold text-fg">{series}</b> · {m?.title ? <>disputa de cinturão do {weightPhrase(m.weightClass)}. </> : m ? <>luta principal no {weightPhrase(m.weightClass)}. </> : null}
           {capitalize(longDate(e.date))}, às {time(e.date)} (Brasília){e.venue ? `, na ${e.venue}` : ''}. {e.fightCount} lutas no card.
         </motion.p>
         <motion.div {...fade(0.24)} className="mt-10 flex flex-wrap items-center gap-6">
-          <Link to={`/eventos/${e.id}`} className="btn-primary">Ver card completo <ArrowRight className="h-4 w-4" /></Link>
+          <Link to={`/eventos/${e.id}`} className="btn-primary">Ver as {e.fightCount} lutas <ArrowRight className="h-4 w-4" /></Link>
           {m && (
-            <Link to={`/comparar?a=${m.red.slug}&ae=${m.red.espnId}&b=${m.blue.slug}&be=${m.blue.espnId}`} className="group flex items-center gap-3 text-[15px] font-semibold text-fg-2 hover:text-fg">
+            <Link to={`/comparar?a=${m.red.slug}&ae=${m.red.espnId}&b=${m.blue.slug}&be=${m.blue.espnId}`} className="group flex items-center gap-3 text-[16px] font-semibold text-fg-2 hover:text-fg">
               <span className="grid h-12 w-12 place-items-center rounded-full bg-brand text-white shadow-[0_14px_28px_-10px_rgb(214_40_57/0.7)] transition-all duration-200 group-hover:-translate-y-0.5 group-hover:brightness-110 group-hover:shadow-[0_20px_34px_-10px_rgb(214_40_57/0.8)]">
                 <ArrowsLeftRight className="h-5 w-5" />
               </span>
-              Comparar os dois
+              Comparar {lastName(m.red.name)} e {lastName(m.blue.name)}
             </Link>
           )}
         </motion.div>
@@ -127,7 +123,7 @@ function Hero({ e }: { e: UpcomingEvent }) {
 
           {/* cartão: contagem regressiva */}
           <motion.div initial={reduce ? false : { opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55, duration: 0.6 }}
-            className="cut absolute -bottom-4 left-1/2 w-max -translate-x-1/2 rounded-2xl bg-surface/95 px-5 py-4 shadow-[var(--shadow-lift)] backdrop-blur">
+            className="cut absolute -bottom-4 left-1/2 w-max -translate-x-1/2 rounded-xl bg-surface/95 px-5 py-4 shadow-[var(--shadow-lift)] backdrop-blur">
             <div className="mb-2 flex items-center gap-1.5 text-[13px] font-semibold text-fg-2"><Timer className="h-3.5 w-3.5 text-brand" /> {e.status === 'in' ? 'Acontecendo agora' : 'Começa em'}</div>
             {e.status === 'in' ? <LiveTag /> : <Countdown iso={e.date} />}
           </motion.div>
@@ -139,14 +135,14 @@ function Hero({ e }: { e: UpcomingEvent }) {
               <Avatar src={f.headshot} name={f.name} size={38} />
               <div>
                 <div className="flex items-center gap-1.5 text-[14px] font-bold text-fg"><span className={`h-2 w-2 rounded-full ${dot}`} />{f.name}</div>
-                <div className="mt-0.5 flex items-center gap-1.5 text-[13.5px] text-fg-2"><Flag code={f.countryCode} src={f.flag} title={f.country} size={16} /><span>{f.country}</span><span className="text-fg-3">·</span><span className="num font-semibold">{f.record}</span></div>
+                <div className="mt-0.5 flex items-center gap-1.5 text-[13px] text-fg-2"><Flag code={f.countryCode} src={f.flag} title={f.country} size={16} /><span>{f.country}</span><span className="text-fg-3">·</span><span className="num font-semibold">{f.record}</span></div>
               </div>
             </motion.div>
           ))}
           {m.title && (
             <motion.div initial={reduce ? false : { opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}
               className="absolute left-1/2 top-2 -translate-x-1/2">
-              <Tag tone="gold" className="h-8 px-3.5 text-[13.5px] shadow-[var(--shadow-soft)]"><Crown className="h-4 w-4" /> Cinturão · {m.weightClass}</Tag>
+              <Tag tone="gold" className="h-8 px-3.5 text-[13px] shadow-[var(--shadow-soft)]"><Crown className="h-4 w-4" /> Cinturão · {m.weightClass}</Tag>
             </motion.div>
           )}
         </div>
@@ -179,7 +175,7 @@ function Highlight({ lastId }: { lastId?: string }) {
     const z = cardSummary(ev.fights).biggestUpset;
     if (z) {
       const [w, l] = winLose(z);
-      slides.push({ key: 'zebra', label: 'Zebra do evento', icon: <Lightning weight="fill" className="h-3.5 w-3.5 text-gold" />, title: `${last(w.name)} venceu ${last(l.name)}`,
+      slides.push({ key: 'zebra', label: 'Zebra do evento', icon: <Lightning weight="fill" className="h-3.5 w-3.5 text-orange-fill" />, title: `${last(w.name)} venceu ${last(l.name)}`,
         sub: `${fmtMoneyline(z.result!.winnerId === z.red.espnId ? z.odds?.red : z.odds?.blue)} · só ${Math.round((winnerChance(z) ?? 0) * 100)}% de chance pelas odds · ${how(z)}`, href: href(z), faces: [w, l] });
     }
     // maior favorito do card (com odds): confirmou ou não
@@ -217,7 +213,7 @@ function Highlight({ lastId }: { lastId?: string }) {
         <div className="label flex items-center gap-1.5">{sl.icon} {sl.label}{ev && !sl.key.startsWith('title') && <span className="normal-case tracking-normal text-fg-3">· {splitEventName(ev.name).series}</span>}</div>
         {slides.length > 1 && (
           <div className="flex shrink-0 items-center gap-1">
-            <span className="num mr-1 text-[12.5px] text-fg-3">{k + 1}/{slides.length}</span>
+            <span className="num mr-1 text-[13px] text-fg-3">{k + 1}/{slides.length}</span>
             <button onClick={() => setI(k - 1)} aria-label="Destaque anterior" className="lift grid h-8 w-8 place-items-center rounded-full bg-surface-2 text-fg-2"><CaretLeft weight="bold" className="h-3.5 w-3.5" /></button>
             <button onClick={() => setI(k + 1)} aria-label="Próximo destaque" className="lift grid h-8 w-8 place-items-center rounded-full bg-fg text-bg"><CaretRight weight="bold" className="h-3.5 w-3.5" /></button>
           </div>
@@ -278,10 +274,10 @@ function Bento({ next, lastId }: { next?: UpcomingEvent; lastId?: string }) {
                 const mm = meta?.[e.slug];
                 return (
                   <li key={e.slug}>
-                    <Link to={fighterHref({ slug: e.slug, espnId: mm?.espnId })} viewTransition onClick={morphPhoto} className="flex items-center gap-3 rounded-2xl px-1 py-2 transition-colors hover:bg-surface-2/70 sm:gap-4 sm:px-2">
-                      <span className="num w-6 text-right font-display text-[22px] font-semibold text-fg-3">{e.rank}</span>
+                    <Link to={fighterHref({ slug: e.slug, espnId: mm?.espnId })} viewTransition onClick={morphPhoto} className="flex items-center gap-3 rounded-xl px-1 py-2 transition-colors hover:bg-surface-2/70 sm:gap-4 sm:px-2">
+                      <span className="num w-6 text-right font-display text-[20px] font-semibold text-fg-3">{e.rank}</span>
                       <Avatar src={headshot(mm?.espnId)} name={e.name} size={52} flag={mm?.countryCode} className="max-sm:-mr-1" />
-                      <span className="min-w-0 flex-1 line-clamp-2 text-[17px] font-bold leading-tight text-fg sm:text-[18px]">{e.name}</span>
+                      <span className="min-w-0 flex-1 line-clamp-2 text-[18px] font-bold leading-tight text-fg sm:text-[18px]">{e.name}</span>
                       <span className="num text-[16px] font-semibold text-fg-2">{mm?.record}</span>
                     </Link>
                   </li>
@@ -306,7 +302,7 @@ function Bento({ next, lastId }: { next?: UpcomingEvent; lastId?: string }) {
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               {byCountry.map(([code, v]) => (
-                <span key={code} className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 py-1.5 pl-1.5 pr-3 text-[15px] font-semibold text-fg-2">
+                <span key={code} className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 py-1.5 pl-1.5 pr-3 text-[16px] font-semibold text-fg-2">
                   <Flag code={code} title={v.country} size={26} />{v.n}
                 </span>
               ))}
@@ -318,16 +314,16 @@ function Bento({ next, lastId }: { next?: UpcomingEvent; lastId?: string }) {
         <Reveal delay={0.15}>
           {m ? (
             <Link to={`/comparar?a=${m.red.slug}&ae=${m.red.espnId}&b=${m.blue.slug}&be=${m.blue.espnId}`} className="block h-full">
-              <Spotlight duel className={`${tile} group flex flex-col items-center justify-between text-center`}>
+              <div className={`${tile} group flex flex-col items-center justify-between text-center transition-colors hover:bg-surface-2/60`}>
                 <div className="label">Frente a frente</div>
                 <div className="my-4 flex w-full items-center justify-center">
                   <Avatar src={m.red.headshot} name={m.red.name} size={116} ring="var(--color-red)" flag={m.red.countryCode} />
                   <span className="z-10 -mx-2 grid h-10 w-10 place-items-center rounded-full bg-fg font-display text-[13px] font-bold text-bg ring-4 ring-surface">VS</span>
                   <Avatar src={m.blue.headshot} name={m.blue.name} size={116} ring="var(--color-blue)" flag={m.blue.countryCode} />
                 </div>
-                <div className="font-display text-[17px] font-bold uppercase leading-tight text-fg">{lastName(m.red.name)} × {lastName(m.blue.name)}</div>
+                <div className="font-display text-[18px] font-bold uppercase leading-tight text-fg">{lastName(m.red.name)} × {lastName(m.blue.name)}</div>
                 <div className="mt-2 flex items-center gap-1.5 text-[14px] font-semibold text-fg-2 group-hover:text-brand">Comparar a luta principal <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></div>
-              </Spotlight>
+              </div>
             </Link>
           ) : <Skeleton className="h-full" />}
         </Reveal>
@@ -354,18 +350,18 @@ function Champions() {
             {divs.map(d => {
               const c = d.champion!, mm = meta?.[c.slug];
               return (
-                <Link key={d.id} to={fighterHref({ slug: c.slug, espnId: mm?.espnId })} className="cut group block overflow-hidden rounded-[14px] bg-surface shadow-[var(--shadow-soft)] ring-1 ring-fg/[0.04] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lift)]">
-                  <div className="relative h-[170px] overflow-hidden bg-gradient-to-b from-cream to-cream-2 lg:h-[150px]">
+                <Link key={d.id} to={fighterHref({ slug: c.slug, espnId: mm?.espnId })} className="cut group block overflow-hidden rounded-xl bg-surface shadow-[var(--shadow-soft)] ring-1 ring-fg/[0.04] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lift)]">
+                  <div className="relative h-[170px] overflow-hidden bg-cream lg:h-[150px]">
                     <FlagBackdrop code={mm?.countryCode} className="inset-0 opacity-45 dark:opacity-35" />
                     {c.image && <img src={proxy(c.image, 640)} alt="" loading="lazy" decoding="async" className="absolute bottom-0 left-1/2 h-[96%] w-auto max-w-none -translate-x-1/2 object-contain transition-transform duration-500 group-hover:scale-[1.05]" />}
                   </div>
                   <div className="px-4 pb-4 pt-3.5">
                     <div className="flex items-center justify-between gap-1">
-                      <span className="flex min-w-0 items-center gap-1 text-[12.5px] font-semibold text-fg-3"><Crown weight="fill" className="h-3.5 w-3.5 shrink-0 text-gold" /><span className="truncate">{d.name}</span></span>
+                      <span className="flex min-w-0 items-center gap-1 text-[13px] font-semibold text-fg-3"><Crown weight="fill" className="h-3.5 w-3.5 shrink-0 text-gold" /><span className="truncate">{d.name}</span></span>
                       {mm && <Flag code={mm.countryCode} title={mm.country} size={16} />}
                     </div>
-                    <div className="mt-1 line-clamp-2 font-display text-[19px] font-bold uppercase leading-tight text-fg group-hover:text-brand">{c.name}</div>
-                    {mm?.record && <div className="num text-[14.5px] font-semibold text-fg-3">{mm.record}</div>}
+                    <div className="mt-1 line-clamp-2 font-display text-[18px] font-bold uppercase leading-tight text-fg group-hover:text-brand">{c.name}</div>
+                    {mm?.record && <div className="num text-[14px] font-semibold text-fg-3">{mm.record}</div>}
                   </div>
                 </Link>
               );
@@ -394,7 +390,7 @@ function EventCard({ id, eyebrow, title, limit = 6 }: { id?: string; eyebrow: st
     <Panel eyebrow={eyebrow}
       title={<div><h2 className="panel-title">{title}</h2>{data && <p className="mt-0.5 truncate text-[14px] text-fg-3">{data.name} · {fullDate(data.date)}</p>}
         {line && <p className="mt-1.5 text-[14px] font-semibold text-fg-2">{line}</p>}</div>}
-      action={id && <Link to={`/eventos/${id}`} className="btn-ghost shrink-0">Ver evento <ArrowRight className="h-4 w-4" /></Link>}
+      action={id && <Link to={`/eventos/${id}`} className="btn-ghost shrink-0">{data ? `Ver as ${data.fights.length} lutas` : 'Ver evento'} <ArrowRight className="h-4 w-4" /></Link>}
       bodyClass="divide-y divide-line/70 px-2 pb-2">
       {isLoading && Array.from({ length: 4 }).map((_, i) => <div key={i} className="px-4 py-4"><Skeleton className="h-12" /></div>)}
       {isError && <ErrorState onRetry={() => refetch()} />}
@@ -415,15 +411,15 @@ function Agenda({ events }: { events: UpcomingEvent[] }) {
           const { series, title } = splitEventName(e.name);
           return (
             <li key={e.id}>
-              <Link to={`/eventos/${e.id}`} className="group flex items-center gap-4 rounded-2xl p-2 pr-4 transition-all hover:bg-surface hover:shadow-[var(--shadow-soft)]">
+              <Link to={`/eventos/${e.id}`} className="group flex items-center gap-4 rounded-xl p-2 pr-4 transition-all hover:bg-surface hover:shadow-[var(--shadow-soft)]">
                 <div className={`cut grid h-14 w-14 shrink-0 place-items-center rounded-xl ${SERIES_TONE[e.series]}`} title={SERIES_LABEL[e.series]}>
                   <div className="text-center leading-none">
                     <div className="num font-display text-[20px] font-semibold">{dayMonth(e.date).split(' ')[0]}</div>
-                    <div className="mt-0.5 text-[11.5px] font-bold uppercase tracking-wider opacity-80">{dayMonth(e.date).split(' ')[1]}</div>
+                    <div className="mt-0.5 text-[12px] font-bold uppercase tracking-wider">{dayMonth(e.date).split(' ')[1]}</div>
                   </div>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[15px] font-bold text-fg">{title || series}</div>
+                  <div className="truncate text-[16px] font-bold text-fg">{title || series}</div>
                   <div className="flex items-center gap-1.5 truncate text-[14px] text-fg-3">
                     {title ? `${series} · ` : ''}<MapPin className="h-3 w-3 shrink-0" />{e.city || 'Local a definir'}
                   </div>
@@ -435,7 +431,7 @@ function Agenda({ events }: { events: UpcomingEvent[] }) {
         })}
       </ul>
       <div className="mt-5 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-fg-3">
-        {(['ppv', 'fight-night'] as const).map(k => <span key={k} className="flex items-center gap-1.5"><span className={`h-2.5 w-2.5 rounded-sm ${SERIES_TONE[k].split(' ')[0]}`} />{SERIES_LABEL[k]}</span>)}
+        {(['ppv', 'fight-night'] as const).map(k => <span key={k} className="flex items-center gap-1.5"><span className={`h-2.5 w-2.5 rounded-md ${SERIES_TONE[k].split(' ')[0]}`} />{SERIES_LABEL[k]}</span>)}
       </div>
       <Link to="/eventos" className="btn mt-5"><CalendarDots className="h-4 w-4" /> Calendário completo</Link>
     </div>

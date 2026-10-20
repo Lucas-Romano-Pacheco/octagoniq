@@ -20,8 +20,8 @@ export const BOT_UA = /facebookexternalhit|facebot|linkedinbot|whatsapp|twitterb
 const FONT_FILES = {
   saira800: '@fontsource/saira/files/saira-latin-800-normal.woff',
   saira700: '@fontsource/saira/files/saira-latin-700-normal.woff',
-  inter400: '@fontsource/inter/files/inter-latin-400-normal.woff',
-  inter600: '@fontsource/inter/files/inter-latin-600-normal.woff',
+  plex400: '@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-400-normal.woff',
+  plex600: '@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-600-normal.woff',
 };
 function font(rel: string) {
   const name = rel.split('/').pop()!;
@@ -34,8 +34,8 @@ let fonts: Parameters<typeof satori>[1]['fonts'] | null = null;
 const loadFonts = () => (fonts ??= [
   { name: 'Saira', data: font(FONT_FILES.saira800), weight: 800, style: 'normal' },
   { name: 'Saira', data: font(FONT_FILES.saira700), weight: 700, style: 'normal' },
-  { name: 'Inter', data: font(FONT_FILES.inter400), weight: 400, style: 'normal' },
-  { name: 'Inter', data: font(FONT_FILES.inter600), weight: 600, style: 'normal' },
+  { name: 'Plex', data: font(FONT_FILES.plex400), weight: 400, style: 'normal' },
+  { name: 'Plex', data: font(FONT_FILES.plex600), weight: 600, style: 'normal' },
 ]);
 
 /* ---------- Mini-JSX para o satori ---------- */
@@ -64,7 +64,7 @@ const logo = () => h('div', { alignItems: 'center', gap: 12 },
   h('div', { fontFamily: 'Saira', fontWeight: 800, fontSize: 34, color: C.fg, letterSpacing: 1 }, 'OCTAGON'),
   h('div', { fontFamily: 'Saira', fontWeight: 800, fontSize: 30, color: '#fff', background: C.brand, padding: '0 10px', borderRadius: 4 }, 'IQ'));
 
-const frame = (...children: El[]) => h('div', { width: 1200, height: 630, background: C.bg, color: C.fg, flexDirection: 'column', fontFamily: 'Inter', position: 'relative', overflow: 'hidden' }, ...children);
+const frame = (...children: El[]) => h('div', { width: 1200, height: 630, background: C.bg, color: C.fg, flexDirection: 'column', fontFamily: 'Plex', position: 'relative', overflow: 'hidden' }, ...children);
 
 /* ---------- Modelos ---------- */
 

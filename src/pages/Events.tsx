@@ -16,7 +16,7 @@ const MONTHS = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Jul
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const CHIP = SERIES_TONE;
 /** Cor de cada tipo de evento (a mesma da legenda e do resto do site). */
-const TONE: Record<EventListItem['series'], string> = { ppv: 'var(--color-brand)', 'fight-night': 'var(--color-blue)', dwcs: 'var(--color-gold)', other: 'var(--color-fg)' };
+const TONE: Record<EventListItem['series'], string> = { ppv: 'var(--color-brand)', 'fight-night': 'var(--color-blue)', dwcs: 'var(--color-slate-fill)', other: 'var(--color-fg)' };
 const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 
 export default function Events() {
@@ -63,7 +63,7 @@ export default function Events() {
               className={clsx('lift relative inline-flex h-10 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[13px] font-bold uppercase tracking-[0.06em] ring-1 transition-colors',
                 on ? 'bg-fg text-bg ring-fg' : 'bg-surface text-fg-2 ring-fg/[0.08] hover:bg-surface-2 hover:text-fg')}>
               {n.slice(0, 3)}
-              {perMonth[i] > 0 && <span className={clsx('num rounded px-1.5 text-[11.5px]', on ? 'bg-bg/15' : 'bg-surface-2 text-fg-3')}>{perMonth[i]}</span>}
+              {perMonth[i] > 0 && <span className={clsx('num rounded-md px-1.5 text-[12px]', on ? 'bg-bg/15' : 'bg-surface-2 text-fg-3')}>{perMonth[i]}</span>}
               {now && !on && <span aria-label="mês atual" className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-blue ring-2 ring-bg" />}
             </button>
           );
@@ -77,7 +77,7 @@ export default function Events() {
           <div className="relative h-[52px] min-w-0 flex-1 overflow-hidden sm:h-[64px] sm:w-[470px] sm:flex-none">
             <AnimatePresence mode="popLayout" initial={false} custom={dir}>
               <motion.h2 key={idx} custom={dir} initial={{ y: dir * 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: dir * -40, opacity: 0 }} transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                className={clsx('display absolute inset-0 whitespace-nowrap text-[40px] leading-[52px] text-fg sm:text-[56px] sm:leading-[64px]', isFetching && 'opacity-60')}>
+                className={clsx('display absolute inset-0 whitespace-nowrap text-[44px] leading-[52px] text-fg sm:text-[64px] sm:leading-[64px]', isFetching && 'opacity-60')}>
                 {MONTHS[month]} <span className="text-[0.55em] text-fg-3">{year}</span>
               </motion.h2>
             </AnimatePresence>
@@ -90,13 +90,20 @@ export default function Events() {
         </div>
       </div>
 
-      <div className="rule mb-6 grid grid-cols-2 gap-y-4 sm:grid-cols-4 sm:divide-x sm:divide-line">
-        {[['No mês', inThisMonth.length, 'var(--color-fg)'], ['Numerados', count('ppv'), TONE.ppv], ['Fight Night', count('fight-night'), TONE['fight-night']], ['Contender Series', count('dwcs'), TONE.dwcs]].map(([l, v, c], i) => (
-          <div key={l as string} className={clsx('flex items-center gap-3', i && 'sm:pl-6')}>
-            <span className="h-9 w-1 rounded-full" style={{ background: c as string }} />
-            <div><div className="label">{l}</div><motion.div key={`${idx}-${l}`} initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="display text-[34px] text-fg">{v}</motion.div></div>
-          </div>
-        ))}
+      {/* números do mês: o total é o protagonista; os tipos ficam menores ao lado */}
+      <div className="rule mb-6 flex flex-wrap items-end gap-x-10 gap-y-4">
+        <div>
+          <div className="label">Eventos no mês</div>
+          <motion.div key={idx} initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.2 }} className="display text-[64px] leading-[0.9] text-fg">{inThisMonth.length}</motion.div>
+        </div>
+        <dl className="flex flex-wrap gap-x-8 gap-y-2 pb-1.5">
+          {([['Numerados', count('ppv'), TONE.ppv], ['Fight Night', count('fight-night'), TONE['fight-night']], ['Contender Series', count('dwcs'), TONE.dwcs]] as const).map(([l, v, c]) => (
+            <div key={l} className="flex items-baseline gap-2">
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: c }} />
+              <dt className="text-[14px] text-fg-2">{l}</dt><dd className="num font-display text-[24px] font-bold text-fg">{v}</dd>
+            </div>
+          ))}
+        </dl>
       </div>
 
       {isError && <Panel><ErrorState onRetry={() => refetch()} /></Panel>}
@@ -121,16 +128,12 @@ function NextUp() {
   if (!e) return <div className="mb-6 h-[132px]" />;
   const { series, title } = splitEventName(e.name), m = e.main;
   return (
-    <Link to={`/eventos/${e.id}`} className="cut group relative mb-6 block overflow-hidden rounded-2xl bg-[#14183e] p-5 text-white shadow-[var(--shadow-lift)] transition-transform duration-300 hover:-translate-y-0.5 sm:p-6">
-      <span aria-hidden className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full opacity-40 blur-3xl transition-opacity duration-500 group-hover:opacity-70" style={{ background: TONE[e.series] }} />
+    <Link to={`/eventos/${e.id}`} className="cut group relative mb-6 block overflow-hidden rounded-xl bg-[#14183e] p-5 text-white shadow-[var(--shadow-lift)] transition-transform duration-300 hover:-translate-y-0.5 sm:p-6">
       <div className="relative flex flex-wrap items-center justify-between gap-5">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 font-display text-[12.5px] font-semibold uppercase tracking-[0.14em] text-white/70">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-gold" /> Próximo evento · {series}
-          </div>
-          <div className="display mt-2 text-[34px] sm:text-[44px]">{m ? `${lastName(m.red.name)} × ${lastName(m.blue.name)}` : title || series}</div>
-          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[15px] text-white/75">
-            <span className="first-letter:uppercase">{weekday(e.date)}, {dayMonth(e.date)} · {time(e.date)}</span>
+          <div className="display text-[32px] sm:text-[44px]">{m ? `${lastName(m.red.name)} × ${lastName(m.blue.name)}` : title || series}</div>
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[16px] text-white/75">
+            <span><b className="font-semibold text-white">Próximo evento</b> · {series} · <span className="first-letter:uppercase">{weekday(e.date)}, {dayMonth(e.date)} · {time(e.date)}</span></span>
             {e.city && <span className="text-white/55">{e.city}</span>}
             {m?.title && <span className="inline-flex items-center gap-1 rounded-md bg-gold px-2 py-0.5 font-display text-[12px] font-bold uppercase tracking-[0.06em] text-[#14183e]"><Crown weight="fill" className="h-3 w-3" /> Cinturão · {m.weightClass}</span>}
           </div>
@@ -138,7 +141,7 @@ function NextUp() {
         <div className="flex items-center gap-5">
           {m && <span className="hidden items-center sm:flex"><Avatar src={m.red.headshot} name={m.red.name} size={72} ring="var(--color-red)" /><Avatar src={m.blue.headshot} name={m.blue.name} size={72} ring="var(--color-blue)" className="-ml-4" /></span>}
           <div className="text-right">
-            <div className="num display text-[30px] text-gold sm:text-[38px]">{e.status === 'in' ? 'AO VIVO' : countdown(e.date)}</div>
+            <div className="num display text-[32px] text-gold sm:text-[44px]">{e.status === 'in' ? 'AO VIVO' : countdown(e.date)}</div>
             <div className="mt-1 inline-flex items-center gap-1.5 font-display text-[13px] font-bold uppercase tracking-[0.08em] text-white/80 transition-transform group-hover:translate-x-1">Ver card <ArrowRight weight="bold" className="h-4 w-4" /></div>
           </div>
         </div>
@@ -185,8 +188,8 @@ function MonthGrid({ year, month, events }: { year: number; month: number; event
                 !inMonth && 'bg-surface-2/50', inMonth && weekend && 'bg-surface-2/25', dayKey(d) === sel && 'max-sm:bg-surface-2', isToday && 'bg-blue/[0.07]')}>
               {evs.length > 0 && inMonth && <span aria-hidden className="absolute inset-x-0 top-0 h-[3px]" style={{ background: `linear-gradient(90deg, ${TONE[evs[0].series]}, transparent)` }} />}
               <div className="mb-1.5 flex items-center justify-between">
-                <span className={clsx('num grid h-9 min-w-9 place-items-center rounded-full px-1.5 font-display text-[19px] font-bold transition-transform duration-200 group-hover/cell:scale-110',
-                  isToday ? 'today-pulse bg-blue text-white' : inMonth ? 'text-fg' : 'text-fg-3/70')}>
+                <span className={clsx('num grid h-9 min-w-9 place-items-center rounded-full px-1.5 font-display text-[18px] font-bold transition-transform duration-200 group-hover/cell:scale-110',
+                  isToday ? 'bg-blue-fill text-white' : inMonth ? 'text-fg' : 'text-fg-3')}>
                   {d.getDate()}
                 </span>
                 {d.getDate() === 1 && <span className="hidden font-display text-[12px] font-bold uppercase tracking-[0.1em] text-fg-3 sm:inline">{MONTHS[d.getMonth()].slice(0, 3)}</span>}
@@ -202,8 +205,8 @@ function MonthGrid({ year, month, events }: { year: number; month: number; event
                   return (
                     <Tip key={e.id} title={e.name} content={`${weekday(e.date)} ${dayMonth(e.date)} · ${time(e.date)} · ${SERIES_LABEL[e.series]}${past ? ' · encerrado' : ''}`}>
                       <Link to={`/eventos/${e.id}`}
-                        className={clsx('cut block rounded-lg px-2 py-1.5 shadow-[0_1px_0_rgb(0_0_0/0.12)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[var(--shadow-lift)] hover:brightness-110 active:scale-95', CHIP[e.series], (!inMonth || past) && 'opacity-70')}>
-                        <span className="flex items-center justify-between gap-1 text-[11.5px] font-semibold opacity-85"><span className="num">{time(e.date)}</span>{past ? <Check weight="bold" className="h-3 w-3" aria-label="encerrado" /> : null}</span>
+                        className={clsx('cut block rounded-md px-2 py-1.5 shadow-[0_1px_0_rgb(0_0_0/0.12)] transition-all duration-200 hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[var(--shadow-lift)] hover:brightness-110 active:scale-95', CHIP[e.series], (!inMonth || past) && 'opacity-70')}>
+                        <span className="flex items-center justify-between gap-1 text-[12px] font-semibold"><span className="num">{time(e.date)}</span>{past ? <Check weight="bold" className="h-3 w-3" aria-label="encerrado" /> : null}</span>
                         <span className="mt-0.5 block truncate text-[14px] font-bold leading-tight">{title || series}</span>
                       </Link>
                     </Tip>
@@ -218,7 +221,7 @@ function MonthGrid({ year, month, events }: { year: number; month: number; event
         <div className="label mb-3">{selDate ? selDate.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }) : ''}</div>
         <AnimatePresence mode="wait" initial={false}>
           <motion.div key={sel} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
-            {selEvents.length === 0 ? <p className="text-[15px] text-fg-3">Nenhum evento neste dia.</p> : (
+            {selEvents.length === 0 ? <p className="text-[16px] text-fg-3">Nenhum evento neste dia.</p> : (
               <ul className="space-y-2.5">
                 {selEvents.map(e => {
                   const { series, title } = splitEventName(e.name);
@@ -227,7 +230,7 @@ function MonthGrid({ year, month, events }: { year: number; month: number; event
                       <Link to={`/eventos/${e.id}`} className="cut flex items-center gap-3 rounded-xl bg-surface-2/60 px-3.5 py-3 transition-transform active:scale-[0.98]">
                         <span className={clsx('h-10 w-1.5 shrink-0 rounded-full', CHIP[e.series].split(' ')[0])} />
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-[16.5px] font-bold text-fg">{title || series}</span>
+                          <span className="block truncate text-[16px] font-bold text-fg">{title || series}</span>
                           <span className="block text-[14px] text-fg-3">{series} · {time(e.date)}</span>
                         </span>
                         <ArrowRight weight="bold" className="h-4 w-4 text-fg-3" />
@@ -242,7 +245,7 @@ function MonthGrid({ year, month, events }: { year: number; month: number; event
       </div>
       <div className="flex flex-wrap gap-5 border-t border-line bg-surface-2/40 px-5 py-3.5 text-[14px] font-medium text-fg-2">
         {(['ppv', 'fight-night', 'dwcs'] as const).map(k => (
-          <span key={k} className="flex items-center gap-2"><span className={clsx('h-3 w-3 rounded', CHIP[k])} />{SERIES_LABEL[k]}</span>
+          <span key={k} className="flex items-center gap-2"><span className={clsx('h-3 w-3 rounded-md', CHIP[k])} />{SERIES_LABEL[k]}</span>
         ))}
         <span className="flex items-center gap-2"><span className="h-3 w-3 rounded-full bg-blue ring-2 ring-blue/30" />Hoje</span>
       </div>
@@ -259,7 +262,7 @@ function MonthList({ year, month, events }: { year: number; month: number; event
 
 function EventTable({ title, events }: { title: string; events: EventListItem[] }) {
   return (
-    <Panel title={<h2 className="panel-title">{title} <span className="ml-1 font-mono text-[12.5px] font-normal text-fg-3">{events.length}</span></h2>}>
+    <Panel title={<h2 className="panel-title">{title} <span className="ml-1 font-mono text-[13px] font-normal text-fg-3">{events.length}</span></h2>}>
       <div className="overflow-x-auto">
         <table className="table table-fixed">
           <thead><tr><th className="w-28">Data</th><th>Evento</th><th className="hidden w-44 sm:table-cell">Tipo</th><th className="hidden w-20 text-right md:table-cell">Horário</th></tr></thead>

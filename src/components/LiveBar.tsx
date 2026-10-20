@@ -59,7 +59,7 @@ export function LiveBar({ e, notices }: { e: EventDetail; notices: Notice[] }) {
   // próxima luta a começar: a de menor ordem entre as que faltam (a ordem 1 é a principal, a última a acontecer)
   const next = e.fights.filter(f => f.status === 'pre').sort((a, b) => b.order - a.order)[0];
   return (
-    <section aria-live="polite" className="cut rounded-2xl bg-fg p-5 text-bg">
+    <section aria-live="polite" className="cut rounded-xl bg-fg p-5 text-bg">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3"><LiveTag /><span className="font-display text-[13px] font-semibold uppercase tracking-[0.1em] text-bg/70">{done} de {total} lutas encerradas</span></div>
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg/15 sm:w-56"><div className="h-full rounded-full bg-gold transition-[width] duration-700" style={{ width: `${(done / total) * 100}%` }} /></div>
@@ -70,14 +70,14 @@ export function LiveBar({ e, notices }: { e: EventDetail; notices: Notice[] }) {
             <Link key={f.id} to={fightHref(e.id, f.id)} className="group block">
               <div className="label text-bg/70">Em andamento</div>
               <div className="mt-1 flex flex-wrap items-baseline gap-x-4">
-                <span className="display text-[34px] group-hover:text-gold">{names(f)}</span>
-                <span className="num font-display text-[26px] font-bold text-gold">{f.live?.round ? `R${f.live.round}` : ''} {f.live?.clock ?? ''}</span>
+                <span className="display text-[32px] group-hover:text-gold">{names(f)}</span>
+                <span className="num font-display text-[24px] font-bold text-gold">{f.live?.round ? `R${f.live.round}` : ''} {f.live?.clock ?? ''}</span>
               </div>
             </Link>
           )) : next ? (
             <Link to={fightHref(e.id, next.id)} className="group block">
               <div className="label text-bg/70">A seguir</div>
-              <div className="display mt-1 text-[30px] group-hover:text-gold">{names(next)}</div>
+              <div className="display mt-1 text-[32px] group-hover:text-gold">{names(next)}</div>
             </Link>
           ) : <div className="label text-bg/70">Card encerrado</div>}
         </div>
@@ -91,13 +91,13 @@ export function LiveBar({ e, notices }: { e: EventDetail; notices: Notice[] }) {
                   <b className="font-semibold">{n.kind === 'start' ? 'Começou' : 'Terminou'}: {names(n.fight)}</b>
                   {n.kind === 'end' && <span className="text-bg/70"> · {how(n.fight)}</span>}
                 </Link>
-                <span className="num ml-auto shrink-0 text-[12.5px] text-bg/65">{new Date(n.at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+                <span className="num ml-auto shrink-0 text-[13px] text-bg/65">{new Date(n.at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
               </motion.li>
             ))}
           </AnimatePresence>
         </ul>
       </div>
-      <p className="mt-4 flex items-center gap-1.5 text-[12.5px] text-bg/65"><Lightning weight="fill" className="h-3.5 w-3.5" />Atualiza sozinho a cada 20 s. Os dados da ESPN podem ter alguns segundos de atraso.</p>
+      <p className="mt-4 flex items-center gap-1.5 text-[13px] text-bg/65"><Lightning weight="fill" className="h-3.5 w-3.5" />Atualiza sozinho a cada 20 s. Os dados da ESPN podem ter alguns segundos de atraso.</p>
     </section>
   );
 }

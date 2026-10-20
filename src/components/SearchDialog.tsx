@@ -16,7 +16,7 @@ function useDebounced<T>(value: T, ms: number) {
 // títulos de grupo no padrão do site (.label) e linhas sem o ícone de "check" do shadcn,
 // que dividia o espaço com o texto da direita e o empurrava para o meio
 const GROUP = '**:[[cmdk-group-heading]]:px-3 **:[[cmdk-group-heading]]:pb-2 **:[[cmdk-group-heading]]:pt-3 **:[[cmdk-group-heading]]:text-[12px] **:[[cmdk-group-heading]]:font-semibold **:[[cmdk-group-heading]]:uppercase **:[[cmdk-group-heading]]:tracking-[0.1em] **:[[cmdk-group-heading]]:text-fg-3';
-const ITEM = 'group gap-3 rounded-2xl! px-3 py-2.5 data-selected:bg-surface-2 [&>svg:last-child]:hidden [&_.hint]:opacity-0 data-selected:[&_.hint]:opacity-100';
+const ITEM = 'group gap-3 rounded-xl! px-3 py-2.5 data-selected:bg-surface-2 [&>svg:last-child]:hidden [&_.hint]:opacity-0 data-selected:[&_.hint]:opacity-100';
 
 export default function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const [q, setQ] = useState('');
@@ -32,13 +32,13 @@ export default function SearchDialog({ open, onOpenChange }: { open: boolean; on
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange} title="Buscar lutador" description="Digite o nome de um lutador do UFC"
-      className="max-w-xl! rounded-3xl! border-0 shadow-[var(--shadow-pop)]">
-      <Command shouldFilter={false} className="rounded-3xl! bg-surface p-0">
+      className="max-w-xl! rounded-xl! border-0 shadow-[var(--shadow-pop)]">
+      <Command shouldFilter={false} className="rounded-xl! bg-surface p-0">
         {/* campo próprio (o do shadcn é baixo demais para a busca principal do site) */}
         <div className="flex h-16 items-center gap-3 border-b border-line px-5">
           <MagnifyingGlass className="h-5 w-5 shrink-0 text-fg-3" />
           <CommandPrimitive.Input value={q} onValueChange={setQ} placeholder="Buscar lutador pelo nome…"
-            className="h-full flex-1 bg-transparent text-[17px] font-medium text-fg outline-none placeholder:text-fg-3" />
+            className="h-full flex-1 bg-transparent text-[18px] font-medium text-fg outline-none placeholder:text-fg-3" />
           {search.isFetching && <CircleNotch className="h-4 w-4 animate-spin text-fg-3" />}
         </div>
         <CommandList className={clsx('max-h-[52vh] p-2', GROUP)}>
@@ -48,7 +48,7 @@ export default function SearchDialog({ open, onOpenChange }: { open: boolean; on
               {(search.data ?? []).map(h => (
                 <CommandItem key={h.espnId} value={h.espnId} onSelect={() => go(fighterHref(h))} className={ITEM}>
                   <Avatar src={h.headshot} name={h.name} size={36} />
-                  <span className="flex-1 truncate text-[15px] font-semibold text-fg">{h.name}</span>
+                  <span className="flex-1 truncate text-[16px] font-semibold text-fg">{h.name}</span>
                   <span className="hint text-[13px] font-semibold text-fg-3">Abrir perfil ↵</span>
                 </CommandItem>
               ))}
@@ -58,8 +58,8 @@ export default function SearchDialog({ open, onOpenChange }: { open: boolean; on
               {champions.map(d => (
                 <CommandItem key={d.id} value={d.id} onSelect={() => go(fighterHref({ slug: d.champion!.slug }))} className={ITEM}>
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gold-soft"><Crown weight="fill" className="h-4 w-4 text-gold-ink" /></span>
-                  <span className="flex-1 truncate text-[15px] font-semibold text-fg">{d.champion!.name}</span>
-                  <span className="shrink-0 rounded-md bg-surface-2 px-2 py-0.5 text-[12.5px] font-semibold text-fg-2">{d.name}</span>
+                  <span className="flex-1 truncate text-[16px] font-semibold text-fg">{d.champion!.name}</span>
+                  <span className="shrink-0 rounded-md bg-surface-2 px-2 py-0.5 text-[13px] font-semibold text-fg-2">{d.name}</span>
                 </CommandItem>
               ))}
             </CommandGroup>

@@ -1,25 +1,28 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { clsx } from 'clsx';
-import { useQueries } from '@tanstack/react-query';
-import { ArrowCounterClockwise, Check, Crown, FloppyDisk, HandGrabbing, Lightning, LockSimple, Scales, Trophy, X } from '@phosphor-icons/react';
-import type { CardSegment, EventDetail, Fight, FighterRef } from '@shared/types';
-import { eventQuery, fightHref, useEvent, useUpcoming } from '@/lib/api';
+import { ArrowCounterClockwise, Check, Crown, FloppyDisk, HandGrabbing, Lightning, LockSimple, Scales, SignIn, Trophy, X } from '@phosphor-icons/react';
+import type { CardSegment, Fight, FighterRef } from '@shared/types';
+import { fightHref, useEvent, useSchedule, useUpcoming } from '@/lib/api';
 import { dayMonth, lastName, SEGMENT_LABEL, splitEventName, time } from '@/lib/format';
 import { isLocked, MAX_POINTS, METHODS, POINTS, isDirty, scoreFight, summarize, usePicks, type MethodKey, type Pick, type Summary } from '@/lib/picks';
-import { CORNER, OddsChip, oddsView } from '@/components/Duel';
-import { PicksAccount } from '@/components/PicksAccount';
-import { Avatar, Empty, ErrorState, Flag, PageHeader, Panel, Skeleton, Tag, usePageTitle } from '@/components/kit';
+import { CORNER, CORNER_FILL, OddsChip, oddsView } from '@/components/Duel';
+import { PicksAccount, loginHref } from '@/components/PicksAccount';
+import { PicksHistory } from '@/components/PicksHistory';
+import { PicksRanking } from '@/components/PicksRanking';
+import { supabaseEnabled, useAuth } from '@/lib/supabase';
+import { Avatar, Empty, ErrorState, Flag, PageHeader, Panel, Segmented, Skeleton, Tag, usePageTitle } from '@/components/kit';
 
 /* Palpites: o usuário escolhe vencedor, método e round de cada luta do card; quando os resultados saem, a página
-   calcula os acertos e os pontos (regras em src/lib/picks.ts). Os palpites ficam no navegador (localStorage). */
+   calcula os acertos e os pontos (regras em src/lib/picks.ts). O rascunho fica no navegador; o que é salvo vai para a
+   conta (Supabase), e salvar exige entrar. Sem Supabase configurado, tudo fica no navegador. */
 
 const ORDER: CardSegment[] = ['main', 'prelims', 'early'];
 const METHOD_ICON = { ko: Lightning, sub: HandGrabbing, dec: Scales } as const;
-/** Uma cor por método (fora do vermelho/azul dos cantos): KO laranja, finalização verde, decisão dourado. */
+/** Uma cor por método (fora do vermelho/azul dos cantos e do dourado do cinturão): KO laranja, finalização verde, decisão ardósia. */
 const METHOD_COLOR: Record<MethodKey, { c: string; ink: string }> = {
-  ko: { c: 'var(--color-orange)', ink: '#fff' }, sub: { c: 'var(--color-aqua)', ink: '#fff' }, dec: { c: 'var(--color-gold)', ink: '#14183e' },
+  ko: { c: 'var(--color-orange-fill)', ink: '#fff' }, sub: { c: 'var(--color-aqua-fill)', ink: '#fff' }, dec: { c: 'var(--color-slate-fill)', ink: '#fff' },
 };
 /** Cada ícone tem o seu movimento ao ser escolhido: raio chacoalha, mão aperta, balança pende. */
 const ICON_MOVE: Record<MethodKey, { animate: Record<string, number[]>; transition: { duration: number } }> = {
@@ -52,7 +55,7 @@ function Float({ text, color }: { text: string; color: string }) {
   const reduce = useReducedMotion();
   if (reduce) return null;
   return (
-    <motion.span aria-hidden className="pointer-events-none absolute left-1/2 top-0 z-30 -translate-x-1/2 font-display text-[22px] font-extrabold drop-shadow"
+    <motion.span aria-hidden className="pointer-events-none absolute left-1/2 top-0 z-30 -translate-x-1/2 font-display text-[20px] font-extrabold drop-shadow"
       style={{ color }} initial={{ y: 0, opacity: 0, scale: 0.5 }} animate={{ y: -46, opacity: [0, 1, 1, 0], scale: [0.5, 1.25, 1] }} transition={{ duration: 0.95, ease: 'easeOut' }}>{text}</motion.span>
   );
 }
@@ -88,10 +91,10 @@ function FighterButton({ f, side, picked, locked, result, onPick, odds }: {
     <motion.button type="button" disabled={locked} aria-pressed={picked} aria-label={`Vencedor: ${f.name}`}
       onClick={() => { if (!picked) hit(); onPick(); }}
       whileHover={locked ? undefined : { y: -4 }} whileTap={locked ? undefined : { scale: 0.96 }} transition={{ type: 'spring', stiffness: 420, damping: 22 }}
-      className={clsx('cut group relative flex min-w-0 flex-col items-center justify-center gap-2 rounded-2xl px-3 py-5 text-center transition-[flex-grow,background-color] duration-300',
+      className={clsx('cut group relative flex min-w-0 flex-col items-center justify-center gap-2 rounded-xl px-3 py-5 text-center transition-[flex-grow,background-color] duration-300',
         picked ? 'flex-[1.55] text-white shadow-[var(--shadow-lift)]' : 'flex-1 bg-surface-2/60 text-fg enabled:hover:bg-surface-2', locked && 'cursor-default',
         result === 'lost' && !picked && 'opacity-55')}
-      style={picked ? { background: `linear-gradient(${side === 'a' ? '135deg' : '225deg'}, ${color}, color-mix(in oklab, ${color} 55%, #0d0f22))` } : undefined}>
+      style={picked ? { background: `linear-gradient(${side === 'a' ? '135deg' : '225deg'}, ${CORNER_FILL[side]}, color-mix(in oklab, ${CORNER_FILL[side]} 55%, #0d0f22))` } : undefined}>
       {fx > 0 && <><Burst key={`b${fx}`} color={color} n={14} reach={70} /><Float key={`f${fx}`} text={`+${POINTS.winner}`} color={color} /></>}
       {!picked && <span aria-hidden className="absolute inset-x-0 top-0 h-1" style={{ background: color }} />}
       {picked && <span aria-hidden className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10" />}
@@ -100,7 +103,7 @@ function FighterButton({ f, side, picked, locked, result, onPick, odds }: {
         {result === 'won' && <span className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full bg-gold text-[#14183e] ring-2 ring-surface"><Trophy weight="fill" className="h-4 w-4" /></span>}
       </motion.span>
       <span className="relative min-w-0 max-w-full">
-        <span className="line-clamp-2 block break-words font-display text-[16px] font-bold uppercase leading-tight tracking-[0.02em] sm:text-[17px]">{f.name}</span>
+        <span className="line-clamp-2 block break-words font-display text-[16px] font-bold uppercase leading-tight tracking-[0.02em] sm:text-[18px]">{f.name}</span>
         <span className={clsx('mt-0.5 flex items-center justify-center gap-1.5 text-[13px]', picked ? 'text-white/85' : 'text-fg-2')}><Flag code={f.countryCode} src={f.flag} title={f.country} size={16} /><span className="num font-semibold">{f.record ?? '—'}</span></span>
       </span>
       <span className="relative flex flex-col items-center gap-1.5">
@@ -108,7 +111,7 @@ function FighterButton({ f, side, picked, locked, result, onPick, odds }: {
         <AnimatePresence mode="wait" initial={false}>
           {picked
             ? <motion.span key="on" initial={{ scale: 0, rotate: -12 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 18 }}
-                className="inline-flex h-6 items-center gap-1 rounded-md bg-white px-2 font-display text-[11.5px] font-bold uppercase tracking-[0.08em] text-[#14183e]"><Check weight="bold" className="h-3.5 w-3.5" /> Seu palpite</motion.span>
+                className="inline-flex h-6 items-center gap-1 rounded-md bg-white px-2 font-display text-[12px] font-bold uppercase tracking-[0.08em] text-[#14183e]"><Check weight="bold" className="h-3.5 w-3.5" /> Seu palpite</motion.span>
             : <span key="off" className="inline-flex h-6" />}
         </AnimatePresence>
       </span>
@@ -123,7 +126,7 @@ function MethodTile({ m, on, disabled, onClick }: { m: { key: MethodKey; label: 
   return (
     <motion.button type="button" disabled={disabled} aria-pressed={on} onClick={() => { if (!on) hit(); onClick(); }}
       whileHover={disabled ? undefined : { y: -4, scale: 1.04 }} whileTap={disabled ? undefined : { scale: 0.9, rotate: -2 }} transition={{ type: 'spring', stiffness: 460, damping: 20 }}
-      className={clsx('cut relative flex flex-col items-center gap-1 rounded-xl px-2 py-3 font-display text-[12.5px] font-bold uppercase tracking-[0.05em] transition-[background-color,box-shadow,color] duration-200', !on && 'bg-surface-2/60')}
+      className={clsx('cut relative flex flex-col items-center gap-1 rounded-xl px-2 py-3 font-display text-[13px] font-bold uppercase tracking-[0.05em] transition-[background-color,box-shadow,color] duration-200', !on && 'bg-surface-2/60')}
       style={on ? { background: `linear-gradient(160deg, ${c}, color-mix(in oklab, ${c} 70%, #0d0f22))`, color: ink, boxShadow: `0 10px 22px -10px ${c}, 0 0 0 3px color-mix(in oklab, ${c} 28%, transparent)` } : { color: 'var(--color-fg-2)' }}>
       {fx > 0 && <><Burst key={`b${fx}`} color={c} /><Float key={`f${fx}`} text={`+${POINTS.method}`} color={c} /></>}
       {/* a cor do método aparece mesmo sem escolher: ícone colorido e uma barra embaixo */}
@@ -171,7 +174,7 @@ function ComboBar({ pick, accent }: { pick?: Pick; accent: string }) {
             <div className="h-2.5 overflow-hidden rounded-full bg-surface-2">
               <motion.div className="h-full rounded-full" style={{ background: x.color }} initial={false} animate={{ width: x.ok ? '100%' : '0%' }} transition={{ type: 'spring', stiffness: 220, damping: 22, delay: x.ok ? i * 0.08 : 0 }} />
             </div>
-            <div className={clsx('mt-1 text-center font-display text-[10.5px] font-bold uppercase tracking-[0.08em] transition-colors', x.ok ? 'text-fg' : 'text-fg-3')}>{x.label}</div>
+            <div className={clsx('mt-1 text-center font-display text-[12px] font-bold uppercase tracking-[0.06em] transition-colors', x.ok ? 'text-fg' : 'text-fg-2')}>{x.label}</div>
           </div>
         ))}
       </div>
@@ -180,9 +183,9 @@ function ComboBar({ pick, accent }: { pick?: Pick; accent: string }) {
           {perfect
             ? <motion.span key="perfect" initial={{ scale: 0.4, rotate: -8, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }} exit={{ scale: 0.6, opacity: 0 }} transition={{ type: 'spring', stiffness: 420, damping: 14 }}
                 className="rounded-md bg-gold px-2.5 py-1 font-display text-[12px] font-extrabold uppercase tracking-[0.08em] text-[#14183e]">★ Combo perfeito</motion.span>
-            : <motion.span key="n" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-[12.5px] text-fg-3">{pick ? `${done}/${steps.length} do combo` : 'sem palpite'}</motion.span>}
+            : <motion.span key="n" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-[13px] text-fg-3">{pick ? `${done}/${steps.length} do combo` : 'sem palpite'}</motion.span>}
         </AnimatePresence>
-        <motion.span key={pts} initial={{ scale: 1.5, y: -3 }} animate={{ scale: 1, y: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 14 }} className="num font-display text-[26px] font-extrabold leading-none text-fg">{pts}<span className="ml-1 text-[12px] font-bold text-fg-3">PTS EM JOGO</span></motion.span>
+        <motion.span key={pts} initial={{ scale: 1.5, y: -3 }} animate={{ scale: 1, y: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 14 }} className="num font-display text-[24px] font-extrabold leading-none text-fg">{pts}<span className="ml-1 text-[12px] font-bold text-fg-3">PTS EM JOGO</span></motion.span>
       </div>
     </div>
   );
@@ -227,7 +230,7 @@ function FightPick({ eventId, f, draft, saved, onChange }: { eventId: string; f:
       </div>
 
       {/* método e round: só depois de escolher o vencedor. Cada método tem a sua cor e o round usa a cor do método */}
-      <div className={clsx('mt-4 grid gap-4 transition-opacity', !pick && 'opacity-50', finish ? 'sm:grid-cols-[1.1fr_1fr]' : '')}>
+      <div className={clsx('mt-4 grid gap-4', finish ? 'sm:grid-cols-[1.1fr_1fr]' : '')}>
         <div role="group" aria-label="Método da vitória">
           <div className="label mb-2">Como vence</div>
           <div className="grid grid-cols-3 gap-2">
@@ -267,7 +270,7 @@ function FightPick({ eventId, f, draft, saved, onChange }: { eventId: string; f:
 
       {sc.state === 'done' && <Result f={f} pick={pick!} sc={sc} />}
       {sc.state === 'void' && <p className="mt-3 text-[14px] text-fg-3">Luta sem vencedor (empate ou sem resultado): não conta pontos.</p>}
-      {locked && r && !saved && <p className="mt-3 text-[13.5px] text-fg-3">{draft ? 'Você montou este palpite mas não salvou a tempo: ele não conta pontos.' : 'Você não palpitou nesta luta.'}</p>}
+      {locked && r && !saved && <p className="mt-3 text-[13px] text-fg-3">{draft ? 'Você montou este palpite mas não salvou a tempo: ele não conta pontos.' : 'Você não palpitou nesta luta.'}</p>}
     </div>
   );
 }
@@ -279,15 +282,15 @@ function Result({ f, pick, sc }: { f: Fight; pick: Pick; sc: ReturnType<typeof s
   return (
     <div className={clsx('mt-4 rounded-xl p-3.5', sc.winner ? 'bg-win-soft' : 'bg-loss-soft')}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 font-display text-[15px] font-bold uppercase tracking-[0.03em] text-fg">
+        <div className="flex items-center gap-2 font-display text-[16px] font-bold uppercase tracking-[0.03em] text-fg">
           {sc.winner ? <Check weight="bold" className="h-4 w-4 text-win" /> : <X weight="bold" className="h-4 w-4 text-loss" />}
           {sc.winner ? 'Você acertou' : 'Você errou'} · {lastName(real.name)} venceu por {r.method}{r.round ? `, R${r.round}` : ''}
         </div>
-        <div className="num font-display text-[22px] font-bold text-fg">+{sc.points} pts</div>
+        <div className="num font-display text-[20px] font-bold text-fg">+{sc.points} pts</div>
       </div>
       {sc.parts.length > 0 && (
         <ul className="mt-2 flex flex-wrap gap-1.5">
-          {sc.parts.map(p => <li key={p.label} className="rounded-md bg-surface px-2 py-0.5 text-[12.5px] font-semibold text-fg-2">{p.label} <span className="num text-fg">+{p.pts}</span></li>)}
+          {sc.parts.map(p => <li key={p.label} className="rounded-md bg-surface px-2 py-0.5 text-[13px] font-semibold text-fg-2">{p.label} <span className="num text-fg">+{p.pts}</span></li>)}
         </ul>
       )}
       {sc.winner && <p className="mt-2 text-[13px] text-fg-3">Seu palpite: {METHODS.find(m => m.key === pick.method)?.label ?? 'sem método'}{pick.round ? `, round ${pick.round}` : ''}.</p>}
@@ -299,8 +302,10 @@ function Result({ f, pick, sc }: { f: Fight; pick: Pick; sc: ReturnType<typeof s
 
 /** Fim do card: resume o rascunho e salva. Ao salvar, mostra o que foi computado. Fica grudado no pé da tela
     enquanto houver alterações não salvas. */
-function SavePanel({ eventId, fights, draft, savedAt, dirty, justSaved, onSave, onDiscard }: {
+function SavePanel({ eventId, fights, draft, savedAt, dirty, justSaved, onSave, onDiscard, login }: {
   eventId: string; fights: Fight[]; draft: Record<string, Pick>; savedAt?: number; dirty: boolean; justSaved: number | null; onSave: () => void; onDiscard: () => void;
+  /** sem sessão: o botão leva para a tela de entrar (o rascunho continua guardado) */
+  login?: string;
 }) {
   const open = fights.filter(f => !isLocked(f));
   const made = open.filter(f => draft[f.id]).length;
@@ -318,7 +323,7 @@ function SavePanel({ eventId, fights, draft, savedAt, dirty, justSaved, onSave, 
   }, [justSaved]);
   return (
     <div className={clsx('z-30 -mx-2 px-2 sm:mx-0 sm:px-0', (dirty || fresh) && 'sticky bottom-3')} data-event={eventId}>
-      <div className={clsx('cut rounded-2xl p-5 shadow-[var(--shadow-lift)] ring-1 transition-colors', done ? 'ring-win/40' : 'bg-fg text-bg ring-fg')}
+      <div className={clsx('cut rounded-xl p-5 shadow-[var(--shadow-lift)] ring-1 transition-colors', done ? 'ring-win/40' : 'bg-fg text-bg ring-fg')}
         // fundo opaco: o painel fica por cima do conteúdo quando está grudado no pé da tela
         style={done ? { background: 'color-mix(in oklab, var(--color-win) 16%, var(--color-surface))' } : undefined}>
         <div className="flex flex-wrap items-center justify-between gap-4">
@@ -335,19 +340,25 @@ function SavePanel({ eventId, fights, draft, savedAt, dirty, justSaved, onSave, 
               ) : (
                 <motion.div key="todo" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                   <div className="font-display text-[20px] font-bold uppercase leading-tight tracking-[0.02em]">{savedAt ? 'Alterações não salvas' : 'Salve para valer'}</div>
-                  <p className="mt-1 text-[14px] text-bg/70"><b className="num text-bg">{made}</b> de {open.length} lutas palpitadas · <b className="num text-bg">{perfect}</b> {perfect === 1 ? 'combo perfeito' : 'combos perfeitos'} · <b className="num text-bg">{pts}</b> pts em jogo. Só o que for salvo conta pontos.</p>
+                  <p className="mt-1 text-[14px] text-bg/70"><b className="num text-bg">{made}</b> de {open.length} lutas palpitadas · <b className="num text-bg">{perfect}</b> {perfect === 1 ? 'combo perfeito' : 'combos perfeitos'} · <b className="num text-bg">{pts}</b> pts em jogo. {login ? 'Entre na sua conta para salvar e pontuar.' : 'Só o que for salvo conta pontos.'}</p>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {dirty && savedAt && <button type="button" onClick={onDiscard} className="btn-ghost text-bg/80 hover:bg-bg/10 hover:text-bg">Descartar</button>}
+            {login ? (
+              <Link to={login} className="inline-flex h-12 items-center gap-2 rounded-full bg-gold px-7 font-display text-[14px] font-bold uppercase tracking-[0.06em] text-[#14183e] shadow-[var(--shadow-cta)] transition-transform duration-150 hover:-translate-y-0.5 active:scale-[0.96]">
+                <SignIn weight="bold" className="h-5 w-5" /> Entrar para salvar
+              </Link>
+            ) : (
             <motion.button type="button" onClick={onSave} disabled={!dirty || (made === 0 && !savedAt)} whileHover={dirty ? { y: -2, scale: 1.03 } : undefined} whileTap={dirty ? { scale: 0.94 } : undefined}
               transition={{ type: 'spring', stiffness: 460, damping: 20 }}
               className={clsx('inline-flex h-12 items-center gap-2 rounded-full px-7 font-display text-[14px] font-bold uppercase tracking-[0.06em] disabled:cursor-default',
                 dirty ? 'bg-gold text-[#14183e] shadow-[var(--shadow-cta)]' : 'bg-win/15 text-win')}>
               {dirty ? <><FloppyDisk weight="bold" className="h-5 w-5" /> Salvar palpites</> : <><Check weight="bold" className="h-5 w-5" /> Salvo</>}
             </motion.button>
+            )}
           </div>
         </div>
       </div>
@@ -367,8 +378,8 @@ function Strip({ s, total, made, dirty }: { s: Summary; total: number; made: num
       {items.map(([l, v, sub], i) => (
         <div key={l} className={i ? 'lg:pl-6' : 'lg:pr-6'}>
           <div className="label">{l}</div>
-          <div className="display mt-1 text-[44px] text-fg">{v}</div>
-          <div className="mt-1 text-[13.5px] text-fg-3">{sub}</div>
+          <div className={clsx('display mt-1 text-fg', i ? 'text-[32px]' : 'text-[64px] leading-[0.9]')}>{v}</div>
+          <div className="mt-1 text-[13px] text-fg-3">{sub}</div>
         </div>
       ))}
     </div>
@@ -393,39 +404,7 @@ function Rules() {
           </div>
         ))}
       </dl>
-      <p className="mt-3 text-[13px] leading-relaxed text-fg-3">Os palpites fecham luta a luta, quando o horário dela chega. Empate e luta sem resultado não contam. Seus palpites ficam salvos neste navegador.</p>
-    </Panel>
-  );
-}
-
-/** Desempenho somando todos os eventos em que o usuário palpitou. */
-function History({ currentId }: { currentId?: string }) {
-  const { saved } = usePicks();
-  const ids = Object.keys(saved).filter(i => Object.keys(saved[i].picks).length);
-  const queries = useQueries({ queries: ids.map(id => eventQuery(id)) });
-  const rows = ids.map((id, i) => ({ id, ev: queries[i].data as EventDetail | undefined, s: queries[i].data ? summarize(saved[id].picks, queries[i].data!.fights) : undefined }));
-  const total = rows.reduce((n, r) => ({ pts: n.pts + (r.s?.points ?? 0), hits: n.hits + (r.s?.hits ?? 0), scored: n.scored + (r.s?.scored ?? 0), perf: n.perf + (r.s?.perfects ?? 0) }), { pts: 0, hits: 0, scored: 0, perf: 0 });
-  if (!ids.length) return null;
-  return (
-    <Panel plain title="Seu desempenho" action={<span className="num text-[13px] text-fg-3">{ids.length} {ids.length === 1 ? 'evento' : 'eventos'}</span>}>
-      <div className="grid grid-cols-3 gap-4 pb-4">
-        {[['Pontos', total.pts], ['Acertos', total.scored ? `${total.hits}/${total.scored}` : '—'], ['Perfeitos', total.perf]].map(([l, v]) => (
-          <div key={l as string}><div className="label">{l}</div><div className="display text-[34px] text-fg">{v}</div></div>
-        ))}
-      </div>
-      <ul className="divide-y divide-line/70">
-        {rows.map(r => (
-          <li key={r.id}>
-            <Link to={`/palpites/${r.id}`} className={clsx('flex items-center justify-between gap-3 py-3 hover:text-brand', r.id === currentId && 'font-semibold')}>
-              <span className="min-w-0">
-                <span className="block truncate text-[15px] text-fg">{r.ev ? r.ev.name : 'Carregando…'}</span>
-                <span className="text-[13px] text-fg-3">{r.ev && dayMonth(r.ev.date)} · {r.s ? `${r.s.made} palpites` : ''}</span>
-              </span>
-              <span className="num shrink-0 text-right text-[14px] text-fg-2">{r.s && r.s.scored > 0 ? <><b className="font-display text-[18px] text-fg">{r.s.points} pts</b><br />{r.s.hits}/{r.s.scored} certos</> : <span className="text-fg-3">aguardando</span>}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <p className="mt-3 text-[13px] leading-relaxed text-fg-3">Os palpites fecham luta a luta, quando o horário dela chega. Empate e luta sem resultado não contam. {supabaseEnabled ? 'Os palpites salvos ficam na sua conta.' : 'Seus palpites ficam salvos neste navegador.'}</p>
     </Panel>
   );
 }
@@ -437,14 +416,24 @@ export default function Picks() {
   const navigate = useNavigate();
   const upcoming = useUpcoming(8);
   const choices = useMemo(() => (upcoming.data ?? []).filter(e => e.series !== 'dwcs'), [upcoming.data]);
-  const id = routeId ?? choices.find(e => e.status !== 'post')?.id ?? choices[0]?.id;
+  const [params] = useSearchParams();
+  const tab: 'meus' | 'ranking' = supabaseEnabled && params.get('aba') === 'ranking' ? 'ranking' : 'meus';
+  // no ranking entram também os últimos eventos encerrados (é neles que há pontos)
+  const schedule = useSchedule(new Date().getFullYear());
+  const past = useMemo(() => (schedule.data ?? []).filter(e => e.series !== 'dwcs' && Date.parse(e.date) < Date.now() - 8 * 3600_000).slice(-3).reverse(), [schedule.data]);
+  const list = tab === 'ranking' ? [...choices.filter(c => Date.parse(c.date) <= Date.now()), ...past, ...choices.filter(c => Date.parse(c.date) > Date.now())] : choices;
+  const id = routeId ?? (tab === 'ranking' ? list[0]?.id : choices.find(e => e.status !== 'post')?.id ?? choices[0]?.id);
+  const qs = tab === 'ranking' ? '?aba=ranking' : '';
   const { data: e, isPending, isError, error, refetch } = useEvent(id);
   const { saved, draftOf, setPick, save, discard, clearEvent } = usePicks();
+  const auth = useAuth();
+  const here = id ? `/palpites/${id}` : '/palpites';
+  const login = auth.enabled && auth.ready && !auth.user ? loginHref(here) : undefined;
   const mine = id ? draftOf(id) : {};                 // rascunho (o que está na tela)
   const savedPicks = (id && saved[id]?.picks) || {};  // o que foi salvo e conta pontos
   const [confirm, setConfirm] = useState(false);
   const [justSaved, setJustSaved] = useState<number | null>(null);
-  usePageTitle(e ? `Palpites · ${e.name}` : 'Palpites');
+  usePageTitle(e ? `${tab === 'ranking' ? 'Ranking' : 'Palpites'} · ${e.name}` : 'Palpites');
 
   const fights = e?.fights ?? [];
   const summary = useMemo(() => summarize(savedPicks, fights), [savedPicks, fights]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -461,22 +450,27 @@ export default function Picks() {
 
   return (
     <div className="space-y-8">
-      <PageHeader eyebrow="Palpites" title="Quem leva o card?"
+      <PageHeader title="Quem leva o card?"
         meta="Escolha o vencedor, o método e o round de cada luta. Quando os resultados saem, calculamos seus acertos e seus pontos." />
 
-      <PicksAccount />
+      {supabaseEnabled && (
+        <Segmented value={tab} onChange={v => navigate(`/palpites${routeId ? `/${routeId}` : ''}${v === 'ranking' ? '?aba=ranking' : ''}`)}
+          options={[{ value: 'meus', label: 'Meus palpites' }, { value: 'ranking', label: 'Ranking' }]} />
+      )}
+
+      {tab === 'meus' && <PicksAccount next={here} />}
 
       {/* eventos */}
       <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 sm:mx-0 sm:flex-wrap sm:px-0" role="tablist" aria-label="Escolher o evento">
         {/* evento aberto pelo link que não está na lista dos próximos (ex.: já encerrado): ganha a sua aba, selecionada */}
-        {[...(e && !choices.some(c => c.id === e.id) ? [{ id: e.id, name: e.name, date: e.date }] : []), ...choices].map(c => {
+        {[...(e && !list.some(c => c.id === e.id) ? [{ id: e.id, name: e.name, date: e.date }] : []), ...list].map(c => {
           const { series, title } = splitEventName(c.name);
           const on = c.id === id;
           return (
-            <button key={c.id} role="tab" aria-selected={on} onClick={() => navigate(`/palpites/${c.id}`)}
-              className={clsx('lift flex shrink-0 flex-col items-start rounded-2xl px-4 py-2.5 text-left ring-1', on ? 'bg-fg text-bg ring-fg' : 'bg-surface text-fg ring-fg/[0.08]')}>
+            <button key={c.id} role="tab" aria-selected={on} onClick={() => navigate(`/palpites/${c.id}${qs}`)}
+              className={clsx('lift flex shrink-0 flex-col items-start rounded-xl px-4 py-2.5 text-left ring-1', on ? 'bg-fg text-bg ring-fg' : 'bg-surface text-fg ring-fg/[0.08]')}>
               <span className="font-display text-[13px] font-bold uppercase tracking-[0.06em]">{title || series}</span>
-              <span className={clsx('num text-[12.5px]', on ? 'text-bg/70' : 'text-fg-3')}>{series} · {dayMonth(c.date)}{Object.keys(saved[c.id]?.picks ?? {}).length ? ` · ${Object.keys(saved[c.id].picks).length} salvos` : ''}</span>
+              <span className={clsx('num text-[13px]', on ? 'text-bg/70' : 'text-fg-3')}>{series} · {dayMonth(c.date)}{Object.keys(saved[c.id]?.picks ?? {}).length ? ` · ${Object.keys(saved[c.id].picks).length} salvos` : ''}</span>
             </button>
           );
         })}
@@ -486,17 +480,19 @@ export default function Picks() {
       {isError && <Panel><ErrorState message={error?.message} onRetry={() => refetch()} /></Panel>}
       {!upcoming.isPending && !id && <Panel><Empty>Nenhum evento disponível para palpites por enquanto.</Empty></Panel>}
 
-      {e && (
+      {e && tab === 'ranking' && <PicksRanking event={e} />}
+
+      {e && tab === 'meus' && (
         <>
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <h2 className="display text-[34px] text-fg">{splitEventName(e.name).title || splitEventName(e.name).series}</h2>
+              <h2 className="display text-[32px] text-fg">{splitEventName(e.name).title || splitEventName(e.name).series}</h2>
               <p className="mt-1 text-[14px] text-fg-3">{splitEventName(e.name).series} · {dayMonth(e.date)}, card principal às {time(e.date)} (Brasília)</p>
             </div>
             {(Object.keys(mine).length > 0 || summary.made > 0) && open > 0 && (
               confirm
-                ? <span className="flex items-center gap-2 text-[13.5px]">Apagar todos os palpites deste evento?
-                    <button className="btn-ghost text-loss" onClick={() => { clearEvent(e.id); setConfirm(false); }}>Apagar</button>
+                ? <span className="flex items-center gap-2 text-[13px]">Apagar os palpites das lutas que ainda não começaram?
+                    <button className="btn-ghost text-loss" onClick={() => { clearEvent(e.id, fights); setConfirm(false); }}>Apagar</button>
                     <button className="btn-ghost" onClick={() => setConfirm(false)}>Cancelar</button></span>
                 : <button className="btn-ghost" onClick={() => setConfirm(true)}><ArrowCounterClockwise className="h-4 w-4" /> Recomeçar</button>
             )}
@@ -519,13 +515,13 @@ export default function Picks() {
                 );
               })}
               {open > 0 && (
-                <SavePanel eventId={e.id} fights={fights} draft={mine} savedAt={saved[e.id]?.savedAt} dirty={dirty} justSaved={justSaved}
+                <SavePanel eventId={e.id} fights={fights} draft={mine} savedAt={saved[e.id]?.savedAt} dirty={dirty} justSaved={justSaved} login={login}
                   onSave={() => { const r = save(e.id, fights); setJustSaved(r.savedAt); }} onDiscard={() => { discard(e.id); setJustSaved(null); }} />
               )}
             </div>
             <aside className="min-w-0 space-y-8 lg:sticky lg:top-24 lg:self-start">
               <Rules />
-              <History currentId={e.id} />
+              <PicksHistory currentId={e.id} />
             </aside>
           </div>
         </>

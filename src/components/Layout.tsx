@@ -7,7 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { prefetchFromHref, useUpcoming, type UpcomingEvent } from '@/lib/api';
 import { countdown, dayMonth, splitEventName, time, weekday } from '@/lib/format';
 import { LiveTag, OctagonMark } from './kit';
-import { CloudSync } from './PicksAccount';
+import { AccountButton, CloudSync } from './PicksAccount';
 import { supabaseEnabled } from '@/lib/supabase';
 import { useTheme } from '@/lib/theme';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -27,7 +27,7 @@ export function Logo({ light }: { light?: boolean }) {
     <Link to="/" className="flex items-center gap-2" aria-label="OctagonIQ, início">
       {/* assinatura: "Octagon" no texto e "IQ" num bloco vermelho com cantos chanfrados (os mesmos 45° do octógono) */}
       <OctagonMark className="h-7 w-7" />
-      <span className={clsx('flex items-center font-display text-[23px] font-extrabold uppercase leading-none tracking-[0.01em]', light ? 'text-white' : 'text-fg')}>
+      <span className={clsx('flex items-center font-display text-[24px] font-extrabold uppercase leading-none tracking-[0.01em]', light ? 'text-white' : 'text-fg')}>
         Octagon
         <span className="ml-1 bg-brand px-1.5 pb-[3px] pt-[5px] text-white [clip-path:polygon(5px_0,100%_0,100%_calc(100%-5px),calc(100%-5px)_100%,0_100%,0_5px)]">IQ</span>
       </span>
@@ -43,7 +43,7 @@ function TickerItem({ e, now, hidden }: { e: UpcomingEvent; now: number; hidden?
   const main = e.main ? `${e.main.red.name} × ${e.main.blue.name}` : title || 'Card a definir';
   return (
     <Link to={`/eventos/${e.id}`} tabIndex={hidden ? -1 : undefined}
-      className="group/item flex h-8 shrink-0 items-center gap-2.5 rounded-full px-4 text-[13.5px] transition-colors hover:bg-white/10">
+      className="group/item flex h-8 shrink-0 items-center gap-2.5 rounded-full px-4 text-[13px] transition-colors hover:bg-white/10">
       <span className={clsx('font-bold', e.numbered ? 'text-gold' : 'text-white/60')}>{label}</span>
       {e.main?.title && <Crown className="h-3.5 w-3.5 text-gold" aria-label="Disputa de cinturão" />}
       <span className="font-semibold text-white group-hover/item:underline group-hover/item:underline-offset-4">{main}</span>
@@ -66,7 +66,7 @@ function EventTicker() {
   return (
     <div className="bg-band text-white">
       <div className="mx-auto flex h-11 max-w-[1440px] items-center gap-4 pl-5 sm:pl-8">
-        <span className="hidden shrink-0 text-[12.5px] font-bold uppercase tracking-[0.14em] text-gold sm:block">Próximos eventos</span>
+        <span className="hidden shrink-0 text-[13px] font-bold uppercase tracking-[0.14em] text-gold sm:block">Próximos eventos</span>
         {/* Faixa contínua: a lista aparece duas vezes e desliza -50%, então o laço não tem emenda.
             Pausa no hover/foco; com "reduzir movimento" vira uma faixa rolável comum. */}
         <div className="ticker relative min-w-0 flex-1 overflow-hidden [mask-image:linear-gradient(90deg,transparent,black_3%,black_97%,transparent)]">
@@ -98,7 +98,7 @@ function ThemeToggle() {
       <TooltipTrigger asChild>
         <button onClick={toggle} aria-label={dark ? 'Ativar modo claro' : 'Ativar modo noturno'}
           className="lift relative grid h-10 w-10 place-items-center overflow-hidden rounded-full bg-surface text-fg-2 shadow-[var(--shadow-soft)] ring-1 ring-fg/[0.06] hover:bg-surface-2 hover:text-fg">
-          <motion.span key={theme} initial={{ rotate: -90, scale: 0.4, opacity: 0 }} animate={{ rotate: 0, scale: 1, opacity: 1 }} transition={{ type: 'spring', bounce: 0.4, duration: 0.5 }}>
+          <motion.span key={theme} initial={{ rotate: -90, scale: 0.4, opacity: 0 }} animate={{ rotate: 0, scale: 1, opacity: 1 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}>
             {dark ? <Sun className="h-[18px] w-[18px] text-gold" /> : <Moon className="h-[18px] w-[18px]" />}
           </motion.span>
         </button>
@@ -157,32 +157,32 @@ export function Layout() {
     <div className="flex min-h-dvh flex-col">
       <EventTicker />
       <header className={clsx('sticky top-0 z-40 transition-all duration-300', scrolled ? 'bg-bg/85 shadow-[0_1px_0_var(--color-line)] backdrop-blur-xl' : 'bg-bg')}>
-        <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-6 px-5 sm:h-[76px] sm:flex-nowrap sm:px-8">
-          <div className="flex h-16 items-center sm:h-auto"><Logo /></div>
-          <nav className="no-scrollbar order-last -mx-2 flex h-12 w-[calc(100%+1rem)] items-center gap-1 overflow-x-auto sm:order-none sm:mx-auto sm:h-auto sm:w-auto">
+        <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-6 px-5 sm:px-8 xl:h-[76px] xl:flex-nowrap">
+          <div className="flex h-16 items-center xl:h-auto"><Logo /></div>
+          <nav className="no-scrollbar order-last -mx-2 flex h-12 w-[calc(100%+1rem)] items-center gap-1 overflow-x-auto xl:order-none xl:mx-auto xl:h-auto xl:w-auto">
             {NAV.map(n => (
               <NavLink key={n.to} to={n.to} end={n.end}
-                className={({ isActive }) => clsx('relative whitespace-nowrap rounded-full px-4 py-2 font-display text-[13.5px] font-semibold uppercase tracking-[0.06em] transition-colors', isActive ? 'text-fg' : 'text-fg-2 hover:text-fg')}>
+                className={({ isActive }) => clsx('relative whitespace-nowrap rounded-full px-4 py-2 font-display text-[13px] font-semibold uppercase tracking-[0.06em] transition-colors', isActive ? 'text-fg' : 'text-fg-2 hover:text-fg')}>
                 {({ isActive }) => (
                   <>
-                    {isActive && <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-full bg-surface shadow-[var(--shadow-soft)] ring-1 ring-fg/[0.05]" transition={{ type: 'spring', bounce: 0.2, duration: 0.5 }} />}
+                    {isActive && <motion.span layoutId="nav-pill" className="absolute inset-0 rounded-full bg-surface shadow-[var(--shadow-soft)] ring-1 ring-fg/[0.05]" transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }} />}
                     <span className="relative">{n.label}</span>
                   </>
                 )}
               </NavLink>
             ))}
           </nav>
-          <div className="ml-auto flex items-center gap-2 sm:ml-0">
-            <button onClick={() => setSearchOpen(true)} aria-label="Buscar lutador"
-              className="lift flex h-10 items-center gap-2.5 rounded-full bg-surface px-4 text-[13.5px] text-fg-3 shadow-[var(--shadow-soft)] ring-1 ring-fg/[0.06] hover:text-fg-2 hover:ring-fg/15 lg:w-64">
+          <div className="ml-auto flex items-center gap-2 xl:ml-0">
+            {/* só o ícone: com o botão de conta, o campo inteiro não cabe na largura do cabeçalho (o atalho Ctrl K continua) */}
+            <button onClick={() => setSearchOpen(true)} aria-label="Buscar lutador" title="Buscar lutador (Ctrl K)"
+              className="lift grid h-10 w-10 place-items-center rounded-full bg-surface text-fg-2 shadow-[var(--shadow-soft)] ring-1 ring-fg/[0.06] hover:text-fg hover:ring-fg/15">
               <MagnifyingGlass className="h-4 w-4" />
-              <span className="hidden flex-1 text-left lg:block">Buscar lutador…</span>
-              <kbd className="kbd hidden lg:inline-flex">Ctrl K</kbd>
             </button>
             <ThemeToggle />
-            <Link to="/comparar" className="lift hidden h-10 items-center gap-2 rounded-full border-[1.5px] border-fg px-4 font-display text-[12.5px] font-bold uppercase tracking-[0.06em] text-fg hover:bg-fg hover:text-bg sm:inline-flex">
+            <Link to="/comparar" className="lift hidden h-10 items-center gap-2 rounded-full border-[1.5px] border-fg px-4 font-display text-[13px] font-bold uppercase tracking-[0.06em] text-fg hover:bg-fg hover:text-bg sm:inline-flex">
               <ArrowsLeftRight className="h-4 w-4" /> Comparar
             </Link>
+            <AccountButton />
           </div>
         </div>
       </header>
@@ -214,7 +214,7 @@ export function Layout() {
           </div>
         </div>
         <div className="border-t border-white/10">
-          <p className="mx-auto flex max-w-[1280px] flex-wrap justify-between gap-2 px-5 py-5 text-[13.5px] text-white/65 sm:px-8">
+          <p className="mx-auto flex max-w-[1280px] flex-wrap justify-between gap-2 px-5 py-5 text-[13px] text-white/65 sm:px-8">
             <span>OctagonIQ · projeto de portfólio, sem vínculo com o UFC ou a ESPN.</span>
             <span>Feito por <Link to="/sobre" className="font-semibold text-white/70 hover:text-white">Lucas Pacheco</Link> · <a href="https://github.com/Lucas-Romano-Pacheco/octagoniq" target="_blank" rel="noreferrer" className="font-semibold text-white/70 hover:text-white">GitHub</a></span>
           </p>

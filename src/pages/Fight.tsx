@@ -5,8 +5,8 @@ import { ArrowDown, ArrowLeft, ArrowUp, ArrowsLeftRight, Crown, Lightning, Troph
 import type { FightDetail, FightSideStats, FighterRef, MethodOdds } from '@shared/types';
 import { fmtMoneyline, impliedProb } from '@shared/format';
 import { fighterHref, useFight } from '@/lib/api';
-import { fullDate, mmss, splitEventName } from '@/lib/format';
-import { CORNER, DuelRow, OddsChip, oddsView } from '@/components/Duel';
+import { fullDate, lastName, mmss, splitEventName } from '@/lib/format';
+import { CORNER, CORNER_FILL, DuelHead, DuelRow, OddsChip, oddsView } from '@/components/Duel';
 import { Avatar, Empty, ErrorState, Flag, LiveTag, Panel, Reveal, Segmented, Tag, Tip, trackSpotlight, usePageTitle } from '@/components/kit';
 import silhueta from '@/assets/silhueta.png';
 import { FightPreview } from '@/components/FightPreview';
@@ -28,7 +28,7 @@ function Corner({ f, side, won, odds }: { f: FighterRef; side: 'a' | 'b'; won: b
       className={`flex min-w-0 flex-col ${right ? 'items-end text-right' : 'items-start'}`}>
       <Link to={fighterHref(f)} className="group min-w-0">
         <div className="h-1 w-10 rounded-full" style={{ background: CORNER[side], marginLeft: right ? 'auto' : 0 }} />
-        <div className="display mt-3 break-words text-[24px] text-fg group-hover:text-brand sm:text-[40px]">{f.name}</div>
+        <div className="display mt-3 break-words text-[24px] text-fg group-hover:text-brand sm:text-[44px]">{f.name}</div>
       </Link>
       {/* no celular o nome do país sai: bandeira + cartel cabem em meia tela */}
       <div className={`mt-2 flex items-center gap-2 text-[14px] text-fg-2 ${right ? 'flex-row-reverse' : ''}`}>
@@ -60,7 +60,7 @@ function ResultBox({ d }: { d: FightDetail }) {
         <Tag>{f.weightClass}</Tag>
         {f.status === 'in' && <LiveTag />}
       </div>
-      <div className="grid w-full max-w-[380px] grid-cols-[0.8fr_0.9fr_1.5fr] cut overflow-hidden rounded-2xl bg-surface shadow-[var(--shadow-soft)] ring-1 ring-fg/[0.05]">
+      <div className="grid w-full max-w-[380px] grid-cols-[0.8fr_0.9fr_1.5fr] cut overflow-hidden rounded-xl bg-surface shadow-[var(--shadow-soft)] ring-1 ring-fg/[0.05]">
         {cells.map((c, i) => (
           <div key={c.k} className={`px-3 py-4 ${i ? 'border-l border-line' : ''}`}>
             <div className="label">{c.k}</div>
@@ -89,9 +89,9 @@ function KeyNumbers({ a, b }: { a: FightSideStats; b: FightSideStats }) {
         return (
           <div key={label}>
             <div className="grid grid-cols-[1fr_auto_1fr] items-baseline gap-3">
-              <span className={`display text-right text-[30px] leading-none ${x > y ? 'text-fg' : 'text-fg-3'}`}>{x}</span>
+              <span className={`display text-right text-[32px] leading-none ${x > y ? 'text-fg' : 'text-fg-3'}`}>{x}</span>
               <span className="label text-center">{label}</span>
-              <span className={`display text-[30px] leading-none ${y > x ? 'text-fg' : 'text-fg-3'}`}>{y}</span>
+              <span className={`display text-[32px] leading-none ${y > x ? 'text-fg' : 'text-fg-3'}`}>{y}</span>
             </div>
             <div className="mt-1.5 grid grid-cols-2 gap-[2px]">
               <div className="flex h-1.5 justify-end rounded-l-full bg-surface-2"><div className="h-full rounded-l-full" style={{ width: `${(x / max) * 100}%`, background: CORNER.a }} /></div>
@@ -176,17 +176,18 @@ function Silhouette({ s, side }: { s: FightSideStats; side: 'a' | 'b' }) {
           </div>
         ))}
       </div>
-      {use3d && <p className="mt-2 text-center text-[12.5px] text-fg-3">Arraste para girar</p>}
+      {use3d && <p className="mt-2 text-center text-[13px] text-fg-3">Arraste para girar</p>}
     </div>
   );
 }
 
 /* ---------- Posição ---------- */
 
-function PositionBars({ a, b }: { a: FightSideStats; b: FightSideStats }) {
+function PositionBars({ a, b, names }: { a: FightSideStats; b: FightSideStats; names: [string, string] }) {
   const rows: [string, keyof Pick<FightSideStats, 'distance' | 'clinch' | 'ground'>][] = [['Distância', 'distance'], ['Clinche', 'clinch'], ['Solo', 'ground']];
   return (
     <div className="divide-y divide-line/70">
+      <DuelHead a={names[0]} b={names[1]} />
       {rows.map(([label, k]) => (
         <DuelRow key={k} label={label} a={a[k][0]} b={b[k][0]} sub={[of(a[k][0], a[k][1]), of(b[k][0], b[k][1])]} />
       ))}
@@ -218,7 +219,7 @@ function LineMove({ open, close, right }: { open?: number; close?: number; right
   const Icon = delta > 0 ? ArrowUp : ArrowDown;
   return (
     <div className={`mt-2 text-[13px] ${right ? 'text-right' : ''}`}>
-      <div className="text-[11.5px] uppercase tracking-[0.06em] text-fg-3">Abertura → fechamento</div>
+      <div className="text-[12px] uppercase tracking-[0.06em] text-fg-3">Abertura → fechamento</div>
       <div className="num whitespace-nowrap font-semibold text-fg-2">{fmtMoneyline(open)} → {fmtMoneyline(close)}</div>
       {delta !== 0 && (
         <Tip content={`Chance implícita foi de ${Math.round(p0 * 100)}% para ${Math.round(p1 * 100)}% entre a abertura e o fechamento (com a margem da casa).`}>
@@ -241,8 +242,8 @@ function ScorecardsPanel({ d }: { d: FightDetail }) {
   return (
     <Panel eyebrow={sc.source} title="Cartões dos juízes" bodyClass="px-6 pb-6">
       <div className="mt-2 flex items-center gap-4 text-[13px] text-fg-2">
-        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: CORNER.a }} />{last(d.red.name)}</span>
-        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ background: CORNER.b }} />{last(d.blue.name)}</span>
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-md" style={{ background: CORNER.a }} />{last(d.red.name)}</span>
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-md" style={{ background: CORNER.b }} />{last(d.blue.name)}</span>
       </div>
       <div className="mt-4 space-y-4">
         {sc.judges.map(j => (
@@ -260,8 +261,8 @@ function ScorecardsPanel({ d }: { d: FightDetail }) {
                 const w = r.red > r.blue ? 'a' : r.blue > r.red ? 'b' : null;
                 return (
                   <Tip key={r.n} content={`Round ${r.n}: ${last(d.red.name)} ${r.red} × ${r.blue} ${last(d.blue.name)}`}>
-                    <div tabIndex={0} className={`rounded-md px-1 py-1.5 text-center ${w ? 'text-white' : 'text-fg'}`} style={{ background: w ? CORNER[w] : 'var(--color-surface-3)' }}>
-                      <div className="text-[10.5px] font-semibold uppercase opacity-80">R{r.n}</div>
+                    <div tabIndex={0} className={`rounded-md px-1 py-1.5 text-center ${w ? 'text-white' : 'text-fg'}`} style={{ background: w ? CORNER_FILL[w] : 'var(--color-surface-3)' }}>
+                      <div className="text-[12px] font-semibold uppercase">R{r.n}</div>
                       <div className="num text-[13px] font-bold">{r.red}-{r.blue}</div>
                     </div>
                   </Tip>
@@ -288,17 +289,17 @@ function OddsPanel({ d }: { d: FightDetail }) {
   const last = (n: string) => n.split(' ').slice(-1)[0];
   return (
     <Panel eyebrow={o.provider} title="Odds e probabilidades"
-      action={verdict && <Tag tone={verdict.startsWith('Zebra') ? 'gold' : 'neutral'}>{verdict.startsWith('Zebra') && <Lightning weight="fill" className="h-3.5 w-3.5" />}{verdict}</Tag>}
+      action={verdict && <Tag tone={verdict.startsWith('Zebra') ? 'orange' : 'neutral'}>{verdict.startsWith('Zebra') && <Lightning weight="fill" className="h-3.5 w-3.5" />}{verdict}</Tag>}
       bodyClass="px-6 pb-6">
       <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-end gap-4">
         <div>
-          <div className="num font-display text-[34px] font-semibold text-fg">{Math.round(v.red.p * 100)}%</div>
+          <div className="num font-display text-[32px] font-semibold text-fg">{Math.round(v.red.p * 100)}%</div>
           <OddsChip {...v.red} />
           <LineMove open={o.redOpen} close={o.red} />
         </div>
         <div className="pb-2 text-[13px] text-fg-3">chance implícita</div>
         <div className="text-right">
-          <div className="num font-display text-[34px] font-semibold text-fg">{Math.round(v.blue.p * 100)}%</div>
+          <div className="num font-display text-[32px] font-semibold text-fg">{Math.round(v.blue.p * 100)}%</div>
           <OddsChip {...v.blue} />
           <LineMove open={o.blueOpen} close={o.blue} right />
         </div>
@@ -335,14 +336,26 @@ export default function Fight() {
     <div className="space-y-8">
       <div>
         <Link to={`/eventos/${d.eventId}`} className="btn-ghost -ml-3.5"><ArrowLeft className="h-4 w-4" /> {d.eventName}</Link>
-        <div className="eyebrow mt-4">{series} · {fullDate(f.date ?? '')}</div>
+        <div className="mt-3 text-[14px] text-fg-3">{series} · {fullDate(f.date ?? '')}</div>
       </div>
 
       {/* a caixa (degradê + brilho) cresce para fora com margem interna: o conteúdo fica alinhado à página
           e a borda não encosta mais nos nomes */}
       <section data-duel onPointerMove={trackSpotlight}
-        className="spotlight relative -mx-3 grid grid-cols-2 items-start gap-x-3 gap-y-6 rounded-[40px] px-3 pt-6 sm:-mx-8 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:gap-8 sm:px-8 sm:pt-8">
-        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 rounded-[40px] bg-gradient-to-t from-cream/70 to-transparent" />
+        className="spotlight relative -mx-3 grid grid-cols-2 items-start gap-x-3 gap-y-6 rounded-xl px-3 pt-6 sm:-mx-8 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:gap-8 sm:px-8 sm:pt-8">
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 rounded-xl bg-gradient-to-t from-cream/70 to-transparent" />
+        {/* assinatura: a grade do octógono, em linhas finas, atrás do placar */}
+        <svg aria-hidden viewBox="0 0 100 100" className="pointer-events-none absolute left-1/2 top-1/2 hidden h-[118%] -translate-x-1/2 -translate-y-1/2 text-fg/[0.07] sm:block" preserveAspectRatio="xMidYMid meet">
+          {[46, 36, 26].map(r => {
+            const k = r * 0.4142; // meio lado do octógono regular
+            const pts = [[-k, -r], [k, -r], [r, -k], [r, k], [k, r], [-k, r], [-r, k], [-r, -k]].map(([x, y]) => `${50 + x},${50 + y}`).join(' ');
+            return <polygon key={r} points={pts} fill="none" stroke="currentColor" strokeWidth={r === 46 ? 0.5 : 0.3} strokeDasharray={r === 26 ? '1 1.4' : undefined} vectorEffect="non-scaling-stroke" />;
+          })}
+          {[0, 1, 2, 3, 4, 5, 6, 7].map(n => {
+            const a = (n * Math.PI) / 4 + Math.PI / 8, r = 46 / Math.cos(Math.PI / 8);
+            return <line key={n} x1="50" y1="50" x2={50 + Math.cos(a) * r} y2={50 + Math.sin(a) * r} stroke="currentColor" strokeWidth="0.25" vectorEffect="non-scaling-stroke" />;
+          })}
+        </svg>
         <Corner f={d.red} side="a" won={f.result?.winnerId === d.red.espnId} odds={v && <OddsChip {...v.red} />} />
         {/* centro: no celular vai para baixo das fotos, em largura total */}
         <div className="relative order-last col-span-2 sm:order-none sm:col-span-1 sm:w-[380px] sm:pt-24">
@@ -361,6 +374,7 @@ export default function Fight() {
                 <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }}>
                 {tab === 'geral' && (
                   <div className="divide-y divide-line/70 pb-2">
+                    <DuelHead a={lastName(d.red.name)} b={lastName(d.blue.name)} />
                     <DuelRow label="Golpes significativos" a={a.sigLanded} b={b.sigLanded} sub={[of(a.sigLanded, a.sigAttempted), of(b.sigLanded, b.sigAttempted)]} />
                     <DuelRow label="Precisão" a={pctOf(a.sigLanded, a.sigAttempted)} b={pctOf(b.sigLanded, b.sigAttempted)} fmt={x => `${x}%`} />
                     <DuelRow label="Golpes totais" a={a.totalLanded} b={b.totalLanded} sub={[of(a.totalLanded, a.totalAttempted), of(b.totalLanded, b.totalAttempted)]} />
@@ -377,7 +391,7 @@ export default function Fight() {
                     <Silhouette s={b} side="b" />
                   </div>
                 )}
-                {tab === 'posicao' && <PositionBars a={a} b={b} />}
+                {tab === 'posicao' && <PositionBars a={a} b={b} names={[lastName(d.red.name), lastName(d.blue.name)]} />}
                 </motion.div>
               </AnimatePresence>
             </Panel>
@@ -390,7 +404,7 @@ export default function Fight() {
         <Reveal delay={0.08} className="space-y-6">
           <OddsPanel d={d} />
           <ScorecardsPanel d={d} />
-          <Link to={`/comparar?a=${d.red.slug}&ae=${d.red.espnId}&b=${d.blue.slug}&be=${d.blue.espnId}`} className="btn w-full justify-center"><ArrowsLeftRight className="h-4 w-4" /> Comparar a carreira dos dois</Link>
+          <Link to={`/comparar?a=${d.red.slug}&ae=${d.red.espnId}&b=${d.blue.slug}&be=${d.blue.espnId}`} className="btn w-full justify-center"><ArrowsLeftRight className="h-4 w-4" /> Comparar a carreira de {d.red.name.split(' ').slice(-1)[0]} e {d.blue.name.split(' ').slice(-1)[0]}</Link>
         </Reveal>
       </div>
     </div>

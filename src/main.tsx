@@ -6,7 +6,7 @@ import { PersistQueryClientProvider, removeOldestQuery } from '@tanstack/react-q
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 
 import '@fontsource-variable/saira/wdth.css'; // títulos, rótulos e botões: sans esportiva de cantos quadrados (eixos de peso e largura)
-import '@fontsource-variable/inter';            // texto e números
+import '@fontsource-variable/ibm-plex-sans';     // texto e tabelas (Inter era a fonte padrão mais usada por interfaces geradas)
 import './styles.css';
 
 import { Layout } from '@/components/Layout';
@@ -25,6 +25,8 @@ const Compare = lazy(() => import('@/pages/Compare'));
 const FightPage = lazy(() => import('@/pages/Fight'));
 const About = lazy(() => import('@/pages/About'));
 const Picks = lazy(() => import('@/pages/Picks'));
+const Login = lazy(() => import('@/pages/Login'));
+const Account = lazy(() => import('@/pages/Account'));
 
 const page = (el: React.ReactNode) => <Suspense fallback={<Skeleton className="h-[1200px]" />}>{el}</Suspense>;
 
@@ -32,7 +34,7 @@ const page = (el: React.ReactNode) => <Suspense fallback={<Skeleton className="h
 const NotFound = () => (
   <div className="mx-auto max-w-2xl py-16 text-center">
     <OctagonMark className="mx-auto h-16 w-16" />
-    <div className="display mt-6 text-[96px] leading-none text-fg sm:text-[140px]">404</div>
+    <div className="display mt-6 text-[96px] leading-none text-fg sm:text-[96px]">404</div>
     <h1 className="display mt-2 text-[32px] text-fg sm:text-[44px]">Nocaute no 1º round</h1>
     <p className="mt-4 text-[16px] text-fg-2">Essa página não resistiu à primeira troca: o endereço não existe ou mudou de lugar.</p>
     <div className="mt-8 flex flex-wrap justify-center gap-3">
@@ -70,6 +72,8 @@ const router = createBrowserRouter([
       { path: 'comparar', element: page(<Compare />) },
       { path: 'palpites/:id?', element: page(<Picks />) },
       { path: 'sobre', element: page(<About />) },
+      { path: 'entrar', element: page(<Login />) },
+      { path: 'conta', element: page(<Account />) },
       { path: '*', element: <NotFound /> },
       ] },
     ],

@@ -6,9 +6,9 @@
 
 /* =========================================================
    OctagonIQ · identidade editorial
-   Papel quente, tinta azul-marinho, serifada expressiva nos títulos
-   (Fraunces) e sans geométrica no texto (Plus Jakarta Sans).
-   Vermelho UFC como acento e dourado nos CTAs e no cinturão.
+   Papel branco levemente azulado (do mesmo matiz da tinta), creme só nos destaques, tinta azul-marinho, Saira nos títulos e IBM Plex Sans no texto.
+   Vermelho UFC como acento; dourado só no cinturão. Papéis de cada cor em design.md.
+   Tokens em OKLCH (luminosidade %, croma, matiz): para clarear ou escurecer, mexa só no primeiro número.
    Cores de dados validadas na superfície branca:
    canto vermelho #e34948 × canto azul #2a78d6.
    ========================================================= */
@@ -16,35 +16,45 @@
 /* Paleta em variáveis: valores claros em :root, escuros em .dark.
    O Tailwind lê tudo via @theme inline, então as classes trocam sozinhas. */
 :root {
-  --bg: #faf8f4;
-  --surface: #ffffff;
-  --surface-2: #f5f2ec;
-  --surface-3: #ece7de;
-  --cream: #fff1da;
-  --cream-2: #ffe7c0;
-  --cream-3: #ffd998;
-  --glow: rgb(255 241 218 / 0.9);
-  --band: #14183e;
-  --line: #ebe6dc;
-  --line-2: #ddd6c9;
-  --fg: #14183e;
-  --fg-2: #4b5072;
-  --fg-3: #646882;
-  --brand: #d62839;
-  --brand-soft: #fdecee;
-  --gold: #f1a501;
-  --gold-ink: #8a5d00;
-  --gold-soft: #fff4d6;
-  --red: #e34948;
-  --blue: #2a78d6;
-  --orange: #eb6834;
-  --aqua: #1baf7a;
-  --win: #13834a;
-  --win-soft: #e3f4ea;
-  --loss: #c8323a;
-  --loss-soft: #fbe6e7;
-  --draw: #9a6700;
-  --draw-soft: #fff2cc;
+  --bg: oklch(98.2% 0.004 275);
+  --surface: oklch(100.0% 0.000 0);
+  --surface-2: oklch(96.4% 0.007 275);
+  --surface-3: oklch(93.2% 0.010 275);
+  --cream: oklch(96.3% 0.034 80.3);
+  --cream-2: oklch(93.8% 0.057 79.9);
+  --cream-3: oklch(90.3% 0.092 80.5);
+  --glow: oklch(96.3% 0.034 80.3 / 0.9);
+  --band: oklch(23.0% 0.072 274.7);
+  --line: oklch(92.6% 0.010 275);
+  --line-2: oklch(88.0% 0.014 275);
+  --fg: oklch(23.0% 0.072 274.7);
+  --fg-2: oklch(44.1% 0.056 277.4);
+  --fg-3: oklch(52.4% 0.041 278.0);
+  --brand: oklch(57.0% 0.207 22.6);
+  --brand-soft: oklch(95.7% 0.019 9.3);
+  --gold: oklch(77.6% 0.163 75.7);
+  --gold-ink: oklch(51.4% 0.108 76.1);
+  --gold-soft: oklch(96.8% 0.041 90.2);
+  --red: oklch(62.3% 0.191 24.9);
+  --blue: oklch(57.5% 0.163 255.5);
+  --orange: oklch(67.1% 0.175 40.6);
+  --aqua: oklch(66.9% 0.141 162.1);
+  /* preenchimentos com texto branco por cima (contraste >= 4.5:1); as cores acima ficam para barras, gráficos e textos grandes */
+  --red-fill: oklch(58.5% 0.192 25.4);
+  --blue-fill: oklch(52.3% 0.154 256.7);
+  --orange-fill: oklch(57.7% 0.161 41.2);
+  --aqua-fill: oklch(55.0% 0.116 161.8);
+  --slate-fill: oklch(49.6% 0.038 273.5);
+  /* azul para texto sobre fundo azul-claro (chips) */
+  --blue-ink: oklch(48.9% 0.141 256.0);
+  /* laranja para texto sobre fundo laranja-claro (zebras) */
+  --orange-ink: oklch(48.2% 0.134 40.7);
+  --win: oklch(53.8% 0.129 154.2);
+  --win-soft: oklch(95.2% 0.022 160.2);
+  --loss: oklch(55.2% 0.186 23.2);
+  --loss-soft: oklch(94.2% 0.023 14.3);
+  --draw: oklch(55.4% 0.117 75.0);
+  --draw-soft: oklch(96.2% 0.051 91.4);
   --shadow-soft: 0 1px 2px rgb(20 24 62 / 0.04), 0 18px 48px -22px rgb(20 24 62 / 0.18);
   --shadow-lift: 0 2px 4px rgb(20 24 62 / 0.05), 0 30px 70px -28px rgb(20 24 62 / 0.30);
   --shadow-pop: 0 24px 64px -16px rgb(20 24 62 / 0.28), 0 0 0 1px rgb(20 24 62 / 0.06);
@@ -55,35 +65,42 @@
 /* Noite: azul-marinho profundo da própria marca, não cinza genérico.
    Cores de dados validadas na superfície #171a33 (vermelho #e66767 × azul #3987e5). */
 .dark {
-  --bg: #0d0f22;
-  --surface: #171a33;
-  --surface-2: #1f2340;
-  --surface-3: #2a2f52;
-  --cream: #2a2546;
-  --cream-2: #332a48;
-  --cream-3: #4a3a3e;
-  --glow: rgb(241 165 1 / 0.10);
-  --band: #070816;
-  --line: #262a49;
-  --line-2: #343a60;
-  --fg: #f2f0ea;
-  --fg-2: #b9bbd2;
-  --fg-3: #9296b4;
-  --brand: #ff4d5e;
-  --brand-soft: rgb(255 77 94 / 0.14);
-  --gold: #f5b020;
-  --gold-ink: #f5c55a;
-  --gold-soft: rgb(245 176 32 / 0.14);
-  --red: #e66767;
-  --blue: #3987e5;
-  --orange: #d95926;
-  --aqua: #199e70;
-  --win: #45d08a;
-  --win-soft: rgb(69 208 138 / 0.14);
-  --loss: #ff6b72;
-  --loss-soft: rgb(255 107 114 / 0.14);
-  --draw: #f5c542;
-  --draw-soft: rgb(245 197 66 / 0.15);
+  --bg: oklch(17.8% 0.039 277.1);
+  --surface: oklch(22.9% 0.048 276.7);
+  --surface-2: oklch(26.8% 0.054 276.2);
+  --surface-3: oklch(31.9% 0.063 276.1);
+  --cream: oklch(28.7% 0.059 289.1);
+  --cream-2: oklch(30.9% 0.054 296.9);
+  --cream-3: oklch(36.7% 0.023 1.6);
+  --glow: oklch(77.6% 0.163 75.7 / 0.10);
+  --band: oklch(14.2% 0.031 278.1);
+  --line: oklch(29.7% 0.056 276.8);
+  --line-2: oklch(36.2% 0.066 275.8);
+  --fg: oklch(95.5% 0.008 91.5);
+  --fg-2: oklch(79.8% 0.032 281.7);
+  --fg-3: oklch(68.0% 0.044 279.2);
+  --brand: oklch(67.6% 0.213 19.8);
+  --brand-soft: oklch(67.6% 0.213 19.8 / 0.14);
+  --gold: oklch(80.2% 0.160 78.9);
+  --gold-ink: oklch(84.6% 0.135 84.8);
+  --gold-soft: oklch(80.2% 0.160 78.9 / 0.14);
+  --red: oklch(66.9% 0.159 22.3);
+  --blue: oklch(62.2% 0.161 255.1);
+  --orange: oklch(62.2% 0.173 40.1);
+  --aqua: oklch(62.1% 0.128 163.1);
+  --red-fill: oklch(55.9% 0.182 25.3);
+  --blue-fill: oklch(52.3% 0.154 256.7);
+  --orange-fill: oklch(57.7% 0.161 41.2);
+  --aqua-fill: oklch(55.0% 0.116 161.8);
+  --slate-fill: oklch(43.9% 0.053 275.8);
+  --blue-ink: oklch(74.8% 0.107 255.4);
+  --orange-ink: oklch(76.7% 0.122 46.7);
+  --win: oklch(76.6% 0.157 157.1);
+  --win-soft: oklch(76.6% 0.157 157.1 / 0.14);
+  --loss: oklch(71.3% 0.181 20.1);
+  --loss-soft: oklch(71.3% 0.181 20.1 / 0.14);
+  --draw: oklch(84.4% 0.151 87.9);
+  --draw-soft: oklch(84.4% 0.151 87.9 / 0.15);
   --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.25), 0 18px 48px -22px rgb(0 0 0 / 0.6);
   --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.3), 0 30px 70px -28px rgb(0 0 0 / 0.75);
   --shadow-pop: 0 24px 64px -16px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(255 255 255 / 0.06);
@@ -114,6 +131,13 @@
   --color-blue: var(--blue);
   --color-orange: var(--orange);
   --color-aqua: var(--aqua);
+  --color-red-fill: var(--red-fill);
+  --color-blue-fill: var(--blue-fill);
+  --color-orange-fill: var(--orange-fill);
+  --color-aqua-fill: var(--aqua-fill);
+  --color-slate-fill: var(--slate-fill);
+  --color-blue-ink: var(--blue-ink);
+  --color-orange-ink: var(--orange-ink);
   --color-win: var(--win);
   --color-win-soft: var(--win-soft);
   --color-loss: var(--loss);
@@ -123,10 +147,10 @@
 }
 
 @theme {
-  --font-sans: "Inter Variable", "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans Variable", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Saira Variable", "Arial Narrow", ui-sans-serif, sans-serif;
-  --font-mono: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
-  --radius-card: 24px;
+  --font-mono: "IBM Plex Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --radius-card: 12px;
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -194,6 +218,7 @@
   html { color-scheme: light; -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
   html.dark { color-scheme: dark; }
   body { overflow-x: clip; transition: background-color 0.3s var(--ease-out-soft), color 0.3s var(--ease-out-soft); }
+  p { text-wrap: pretty; }
   body {
     @apply bg-bg font-sans text-fg antialiased;
     font-size: 15px;
@@ -211,12 +236,13 @@
 
 @layer components {
   /* Cartão padrão: branco, arredondado, sombra difusa */
-  .panel { @apply rounded-[var(--radius-card)] bg-surface shadow-[var(--shadow-soft)] ring-1 ring-fg/[0.04]; }
+  /* Painel: superfície sólida com borda firme e sem sombra (sombra só no que flutua: tooltips, menus, painel de salvar) */
+  .panel { @apply rounded-[var(--radius-card)] bg-surface ring-1 ring-line; }
   /* G2: cantos chanfrados a 45° (cantos de octógono). corner-shape mantém sombra e anel, que um clip-path cortaria;
      onde não há suporte (Firefox, Safari), o canto continua arredondado. `.cut` aplica o mesmo a outros cartões. */
   @supports (corner-shape: bevel) {
     .panel, .cut { corner-shape: bevel; }
-    .panel { border-radius: 18px; }
+    .panel { border-radius: 12px; }
   }
   /* Seção editorial, sem card: régua grossa no topo e conteúdo direto no fundo (como página de jornal esportivo).
      Card fica reservado para o que é clicável ou para os duelos. */
@@ -239,11 +265,12 @@
     mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
   }
   @media (hover: hover) { .spotlight:hover::before, .spotlight:hover::after { opacity: 1; } }
-  /* brilho do destaque da página inicial: largura da janela, sem bordas (esmaece em cima e embaixo) */
+  /* brilho do destaque da página inicial, só quando a luta principal vale cinturão (dourado = título):
+     largura da janela, sem bordas (esmaece em cima e embaixo) */
   .hero-glow {
     position: absolute; z-index: -1; pointer-events: none; top: -160px; bottom: -120px; left: 50%; width: 100vw; transform: translateX(-50%);
     opacity: 0; transition: opacity .6s ease;
-    background: radial-gradient(700px circle at var(--mx, 50%) var(--my, 50%), color-mix(in oklab, var(--color-gold) 15%, transparent), transparent 70%);
+    background: radial-gradient(700px circle at var(--mx, 50%) var(--my, 50%), color-mix(in oklab, var(--color-gold) 10%, transparent), transparent 70%);
     mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 78%, transparent);
   }
 
@@ -258,31 +285,24 @@
   .num { font-variant-numeric: tabular-nums; }
 
   /* Botões: ao passar o mouse sobem 1px, ganham sombra (relevo) e a cor muda de leve; ao clicar, "afundam". */
-  .btn { @apply inline-flex h-10 items-center gap-2 rounded-full border border-line-2 bg-surface px-5 font-display text-[12.5px] font-bold uppercase tracking-[0.06em] text-fg shadow-[0_1px_0_var(--color-line-2)] transition-all duration-200 hover:-translate-y-px hover:border-fg/25 hover:bg-surface-2 hover:shadow-[var(--shadow-soft)] active:translate-y-0 active:shadow-none disabled:pointer-events-none disabled:opacity-50; }
-  .btn-primary { @apply inline-flex h-12 items-center gap-2 rounded-full bg-gold px-7 font-display text-[13.5px] font-bold uppercase tracking-[0.06em] text-[#14183e] shadow-[var(--shadow-cta)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[color-mix(in_oklab,var(--color-gold)_88%,white)] hover:shadow-[0_18px_34px_-12px_color-mix(in_oklab,var(--color-gold)_75%,transparent)] active:translate-y-0 active:shadow-[var(--shadow-soft)]; }
-  .btn-dark { @apply inline-flex h-11 items-center gap-2 rounded-full bg-fg px-6 font-display text-[12.5px] font-bold uppercase tracking-[0.06em] text-bg transition-all duration-200 hover:-translate-y-px hover:bg-fg/90 hover:shadow-[var(--shadow-lift)] active:translate-y-0 active:shadow-none; }
-  .btn-ghost { @apply inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 font-display text-[12.5px] font-bold uppercase tracking-[0.06em] text-fg-2 transition-all duration-200 hover:-translate-y-px hover:bg-surface-2 hover:text-fg hover:shadow-[0_1px_0_var(--color-line-2),var(--shadow-soft)] active:translate-y-0 active:shadow-none disabled:pointer-events-none disabled:opacity-40; }
+  .btn { @apply inline-flex h-10 items-center gap-2 rounded-full border border-line-2 bg-surface px-5 font-display text-[13px] font-bold uppercase tracking-[0.06em] text-fg shadow-[0_1px_0_var(--color-line-2)] transition-all duration-150 hover:-translate-y-px hover:border-fg/25 hover:bg-surface-2 hover:shadow-[var(--shadow-soft)] active:translate-y-0 active:scale-[0.96] active:shadow-none disabled:pointer-events-none disabled:opacity-50; }
+  .btn-primary { @apply inline-flex h-12 items-center gap-2 rounded-full bg-fg px-7 font-display text-[13px] font-bold uppercase tracking-[0.06em] text-bg transition-all duration-150 hover:-translate-y-px hover:bg-fg/90 active:translate-y-0 active:scale-[0.96] ; }
+  .btn-dark { @apply inline-flex h-11 items-center gap-2 rounded-full bg-fg px-6 font-display text-[13px] font-bold uppercase tracking-[0.06em] text-bg transition-all duration-150 hover:-translate-y-px hover:bg-fg/90 hover:shadow-[var(--shadow-lift)] active:translate-y-0 active:scale-[0.96] active:shadow-none; }
+  .btn-ghost { @apply inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 font-display text-[13px] font-bold uppercase tracking-[0.06em] text-fg-2 transition-all duration-150 hover:-translate-y-px hover:bg-surface-2 hover:text-fg hover:shadow-[0_1px_0_var(--color-line-2),var(--shadow-soft)] active:translate-y-0 active:scale-[0.96] active:shadow-none disabled:pointer-events-none disabled:opacity-40; }
   /* relevo para botões avulsos (ícones redondos, setas de carrossel) */
-  .lift { @apply transition-all duration-200 hover:-translate-y-px hover:shadow-[var(--shadow-lift)] hover:brightness-[1.06] active:translate-y-0 active:shadow-none active:brightness-100; }
-  /* Item de lista interativo (rankings, lutadores, eventos): linha fina entre os itens, barra de destaque na lateral que
-     cresce ao passar o mouse, deslize e tom de cor (--item-accent) e "afundar" ao clicar. `.is-active` = item atual. */
-  .item-fx { --item-accent: var(--color-gold); position: relative; transition: transform .22s var(--ease-out-soft, ease), background-color .22s, color .22s; }
+  .lift { @apply transition-all duration-150 hover:-translate-y-px hover:brightness-[1.06] active:translate-y-0 active:scale-[0.96] active:brightness-100; }
+  /* Item de lista interativo (rankings, lutadores, eventos): linha fina entre os itens, tom de cor (--item-accent) e um leve
+     deslize ao passar o mouse, e "afundar" ao clicar (sem barra lateral: é um sinal típico de interface gerada). `.is-active` = item atual. */
+  .item-fx { --item-accent: var(--color-gold); position: relative; transition: transform .15s var(--ease-out-soft, ease), background-color .15s, color .15s; }
   .item-fx::after { content: ''; position: absolute; inset: auto 12px 0 12px; height: 1px; background: color-mix(in oklab, var(--color-line-2) 70%, transparent); pointer-events: none; }
   .item-fx:last-child::after { display: none; }
-  .item-fx::before {
-    content: ''; position: absolute; left: 0; top: 18%; bottom: 18%; width: 4px; border-radius: 0 4px 4px 0; pointer-events: none;
-    background: var(--item-accent); transform: scaleY(0); transition: transform .26s cubic-bezier(.22, 1, .36, 1);
-  }
-  .item-fx:hover, .item-fx:focus-visible { transform: translateX(4px); background-image: linear-gradient(90deg, color-mix(in oklab, var(--item-accent) 16%, transparent), transparent 88%); }
-  .item-fx:hover::before, .item-fx:focus-visible::before, .item-fx.is-active::before { transform: scaleY(1); }
-  .item-fx:active { transform: translateX(2px) scale(.985); }
+  .item-fx:hover, .item-fx:focus-visible { transform: translateX(2px); background-image: linear-gradient(90deg, color-mix(in oklab, var(--item-accent) 16%, transparent), transparent 88%); }
+  .item-fx:active { transform: scale(.985); }
   .item-fx.is-active { background-image: linear-gradient(90deg, color-mix(in oklab, var(--item-accent) 24%, transparent), color-mix(in oklab, var(--item-accent) 4%, transparent) 92%); }
   .item-fx.is-active::after { opacity: 0; }
-  /* mesmo efeito para linhas de tabela (o deslize não funciona em <tr>: a barra vem de uma sombra interna) */
+  /* mesmo efeito para linhas de tabela (só o tom de fundo) */
   .row-fx td { transition: background-color .22s, box-shadow .26s; }
-  .row-fx td:first-child { box-shadow: inset 0 0 0 var(--item-accent, var(--color-gold)); }
   .row-fx:hover td { background-image: linear-gradient(90deg, color-mix(in oklab, var(--item-accent, var(--color-gold)) 12%, transparent), transparent); }
-  .row-fx:hover td:first-child { box-shadow: inset 4px 0 0 var(--item-accent, var(--color-gold)); }
   .row-fx:active td { background-image: linear-gradient(90deg, color-mix(in oklab, var(--item-accent, var(--color-gold)) 22%, transparent), transparent); }
   @media (prefers-reduced-motion: reduce) { .item-fx, .item-fx::before { transition: none; } .item-fx:hover { transform: none; } }
   /* tecla de atalho com relevo (borda inferior mais grossa, como uma tecla física) */
@@ -291,8 +311,8 @@
   .link { @apply text-fg underline decoration-fg/20 underline-offset-4 hover:decoration-brand; }
 
   /* Tabela editorial */
-  .table { @apply w-full border-collapse text-[15px]; }
-  .table th { @apply h-11 border-b border-line px-4 text-left text-[12.5px] font-semibold uppercase tracking-[0.08em] text-fg-3 whitespace-nowrap; }
+  .table { @apply w-full border-collapse text-[16px]; }
+  .table th { @apply h-11 border-b border-line px-4 text-left text-[13px] font-semibold uppercase tracking-[0.08em] text-fg-3 whitespace-nowrap; }
   .table td { @apply h-14 border-b border-line/70 px-4 align-middle; }
   .table tbody tr { @apply transition-colors hover:bg-surface-2/70; }
   .table tbody tr:last-child td { @apply border-b-0; }
@@ -336,9 +356,7 @@
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }
 
-/* Calendário: células entram em cascata e o dia de hoje pulsa */
+/* Calendário: células entram em cascata */
 @keyframes cell-in { from { opacity: 0; transform: translateY(10px) scale(0.97); } to { opacity: 1; transform: none; } }
 .cell-in { animation: cell-in 0.5s var(--ease-out-soft) both; }
-@keyframes today-ring { 0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-blue) 55%, transparent); } 70%, 100% { box-shadow: 0 0 0 12px transparent; } }
-.today-pulse { animation: today-ring 2.2s ease-out infinite; }
-@media (prefers-reduced-motion: reduce) { .cell-in, .today-pulse { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .cell-in { animation: none; } }

@@ -21,7 +21,7 @@ export function EChart({ option, height = 240, ariaLabel }: { option: EChartsCor
 
   useEffect(() => {
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    chart.current?.setOption({ animation: !reduce, animationDuration: 500, textStyle: { fontFamily: 'Inter Variable, system-ui' }, ...option }, true);
+    chart.current?.setOption({ animation: !reduce, animationDuration: 500, textStyle: { fontFamily: 'IBM Plex Sans Variable, system-ui' }, ...option }, true);
   }, [option]);
 
   return <div ref={el} role="img" aria-label={ariaLabel} style={{ height }} className="w-full" />;
