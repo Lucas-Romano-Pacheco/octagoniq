@@ -1,5 +1,5 @@
 import type { Fight } from '@shared/types';
-import { scoreFight, type MethodKey, type Pick, type Scored } from './picks';
+import { FOTN, scoreFight, scoreFotn, type MethodKey, type Pick, type Scored } from './picks';
 
 /* Ranking entre usuários: funções puras (testadas em picks-ranking.test.ts) sobre as linhas da tabela `picks`
    e as lutas da ESPN. Um palpite gravado depois do horário da luta não conta (a hora gravada é a do servidor). */
@@ -26,17 +26,28 @@ export function scoreRow(r: PickRow, f: Fight): Scored | null {
   return isLate(r, f) ? null : scoreFight(toPick(r), f);
 }
 
-/** Classificação: soma por usuário em todas as lutas conhecidas. Desempate: pontos, acertos, perfeitos. */
-export function leaderboard(rows: PickRow[], fights: Map<string, Fight>): RankRow[] {
+/** Por evento: quando o card começa (fecha o voto de luta da noite) e as lutas premiadas (undefined = não saiu). */
+export interface EventInfo { start?: string; awarded?: string[] }
+
+/** Pontuação do voto de luta da noite de alguém (null = feito depois de o card começar). */
+export function scoreFotnRow(r: PickRow, ev: EventInfo): Scored | null {
+  return ev.start && Date.parse(r.updated_at) > Date.parse(ev.start) ? null : scoreFotn(toPick(r), ev.awarded);
+}
+
+/** Classificação: soma por usuário em todas as lutas conhecidas (e nos votos de luta da noite).
+    Desempate: pontos, acertos, perfeitos. */
+export function leaderboard(rows: PickRow[], fights: Map<string, Fight>, events: Map<string, EventInfo> = new Map()): RankRow[] {
   const by = new Map<string, Omit<RankRow, 'pos'>>();
   for (const r of rows) {
-    const f = fights.get(r.fight_id);
-    if (!f) continue;
-    const sc = scoreRow(r, f);
+    const isFotn = r.fight_id === FOTN;
+    const f = fights.get(r.fight_id), ev = events.get(r.event_id);
+    if (isFotn ? !ev : !f) continue;
+    const sc = isFotn ? scoreFotnRow(r, ev!) : scoreRow(r, f!);
     if (!sc) continue;
     const u = by.get(r.user_id) ?? { userId: r.user_id, points: 0, hits: 0, scored: 0, perfects: 0, made: 0 };
     u.made++;
-    if (sc.state === 'done') { u.scored++; u.points += sc.points; if (sc.winner) u.hits++; if (sc.perfect) u.perfects++; }
+    // o voto de luta da noite soma pontos, mas não entra na conta de acertos de lutas
+    if (sc.state === 'done') { u.points += sc.points; if (!isFotn) { u.scored++; if (sc.winner) u.hits++; if (sc.perfect) u.perfects++; } }
     by.set(r.user_id, u);
   }
   const list = [...by.values()].sort((a, b) => b.points - a.points || b.hits - a.hits || b.perfects - a.perfects);

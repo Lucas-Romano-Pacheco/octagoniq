@@ -17,7 +17,26 @@ export const METHODS: { key: MethodKey; label: string }[] = [
 ];
 
 /** Pontos de cada acerto (ver "Como funciona" na página). */
-export const POINTS = { winner: 10, method: 5, round: 5, perfect: 5, zebra: 5, bigZebra: 10 } as const;
+export const POINTS = { winner: 10, method: 5, round: 5, perfect: 5, zebra: 5, bigZebra: 10, fotn: 15 } as const;
+
+/* Luta da noite: um voto por evento, guardado como um palpite da "luta" FOTN (winner = id da luta escolhida).
+   Fecha quando a primeira luta do card começa e vale POINTS.fotn se a luta escolhida levar o bônus do UFC. */
+export const FOTN = 'fotn';
+/** Quantos palpites de luta há no caderno (sem contar o voto de luta da noite). */
+export const fightCount = (book: Record<string, Pick> = {}) => Object.keys(book).filter(k => k !== FOTN).length;
+/** O voto de luta da noite fecha quando qualquer luta do card já começou. */
+export const fotnLocked = (fights: Fight[], now = Date.now()) => fights.some(f => isLocked(f, now));
+/** Horário em que o card começa (a luta mais cedo): é quando o voto de luta da noite fecha. */
+export const cardStart = (fights: Fight[]) => fights.map(f => f.date).filter((d): d is string => !!d).sort()[0];
+
+/** Voto de luta da noite contra o bônus oficial. `awarded`: ids das lutas premiadas; undefined = ainda não saiu. */
+export function scoreFotn(pick: Pick | undefined, awarded: string[] | undefined): Scored {
+  const none: Scored = { state: 'pending', winner: false, method: false, round: false, perfect: false, points: 0, parts: [] };
+  if (!pick || !awarded) return none;
+  if (!awarded.length) return { ...none, state: 'void' };     // evento sem bônus de luta da noite
+  const hit = awarded.includes(pick.winner);
+  return { ...none, state: 'done', winner: hit, points: hit ? POINTS.fotn : 0, parts: hit ? [{ label: 'Luta da noite', pts: POINTS.fotn }] : [] };
+}
 
 export const methodKey = (m?: string): MethodKey | undefined => (/KO/i.test(m ?? '') ? 'ko' : /Finaliza/i.test(m ?? '') ? 'sub' : /Decis/i.test(m ?? '') ? 'dec' : undefined);
 
@@ -61,11 +80,13 @@ export function scoreFight(pick: Pick | undefined, f: Fight): Scored {
   return { state: 'done', winner, method, round, perfect, parts, points: parts.reduce((n, x) => n + x.pts, 0) };
 }
 
-export interface Summary { made: number; scored: number; pending: number; hits: number; points: number; methods: number; perfects: number }
+export interface Summary { made: number; scored: number; pending: number; hits: number; points: number; methods: number; perfects: number; fotn: Scored['state'] | 'none'; fotnHit: boolean }
 
-/** Resumo de um evento (ou de vários, somando) a partir dos palpites e das lutas. */
-export function summarize(book: Record<string, Pick>, fights: Fight[]): Summary {
-  const s: Summary = { made: 0, scored: 0, pending: 0, hits: 0, points: 0, methods: 0, perfects: 0 };
+/** Resumo de um evento a partir dos palpites e das lutas (`awarded`: lutas com o bônus de luta da noite). */
+export function summarize(book: Record<string, Pick>, fights: Fight[], awarded?: string[]): Summary {
+  const s: Summary = { made: 0, scored: 0, pending: 0, hits: 0, points: 0, methods: 0, perfects: 0, fotn: 'none', fotnHit: false };
+  const fo = scoreFotn(book[FOTN], awarded);
+  if (book[FOTN]) { s.fotn = fo.state; s.fotnHit = fo.winner; s.points += fo.points; }
   for (const f of fights) {
     const pick = book[f.id];
     if (!pick) continue;
@@ -99,6 +120,8 @@ export function buildSaved(draft: Record<string, Pick>, prev: Record<string, Pic
     const p = isLocked(f, now) ? prev[f.id] : draft[f.id];
     if (p) picks[f.id] = p;
   }
+  const fo = fotnLocked(fights, now) ? prev[FOTN] : draft[FOTN];
+  if (fo) picks[FOTN] = fo;
   return { savedAt: now, picks };
 }
 
@@ -124,7 +147,10 @@ export interface RemoteSink {
   saveEvent(eventId: string, next: SavedEvent, prev: SavedEvent | undefined, locks: Record<string, string>): void;
 }
 
-const locksOf = (fights: Fight[]) => Object.fromEntries(fights.filter(f => f.date).map(f => [f.id, f.date!]));
+const locksOf = (fights: Fight[]) => {
+  const start = cardStart(fights);
+  return { ...Object.fromEntries(fights.filter(f => f.date).map(f => [f.id, f.date!])), ...(start ? { [FOTN]: start } : {}) };
+};
 let remote: RemoteSink | null = null;
 export const setRemoteSink = (r: RemoteSink | null) => { remote = r; };
 
@@ -197,6 +223,7 @@ export function usePicks() {
     const s = savedStore.read();
     const prev = s[eventId];
     const kept = Object.fromEntries(fights.filter(f => isLocked(f) && prev?.picks[f.id]).map(f => [f.id, prev!.picks[f.id]]));
+    if (fotnLocked(fights) && prev?.picks[FOTN]) kept[FOTN] = prev.picks[FOTN];
     const next: SavedEvent = { savedAt: Date.now(), picks: kept };
     draftStore.write(d);
     if (Object.keys(kept).length) savedStore.write({ ...s, [eventId]: next });

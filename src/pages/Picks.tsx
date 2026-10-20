@@ -2,11 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { clsx } from 'clsx';
-import { ArrowCounterClockwise, Check, Crown, FloppyDisk, HandGrabbing, Lightning, LockSimple, Scales, SignIn, Trophy, X } from '@phosphor-icons/react';
+import { ArrowCounterClockwise, CaretLeft, CaretRight, Check, Crown, FloppyDisk, HandGrabbing, Lightning, LockSimple, Scales, SignIn, Star, Trophy, X } from '@phosphor-icons/react';
 import type { CardSegment, Fight, FighterRef } from '@shared/types';
-import { fightHref, useEvent, useSchedule, useUpcoming } from '@/lib/api';
+import { fightHref, useBonuses, useEvent, useSchedule, useUpcoming } from '@/lib/api';
+import { fotnAwarded } from '@/lib/fights';
 import { dayMonth, lastName, SEGMENT_LABEL, splitEventName, time } from '@/lib/format';
-import { isLocked, MAX_POINTS, METHODS, POINTS, isDirty, scoreFight, summarize, usePicks, type MethodKey, type Pick, type Summary } from '@/lib/picks';
+import { cardStart, FOTN, fightCount, fotnLocked, isLocked, MAX_POINTS, METHODS, POINTS, isDirty, scoreFight, summarize, usePicks, type MethodKey, type Pick, type Summary } from '@/lib/picks';
 import { CORNER, CORNER_FILL, OddsChip, oddsView } from '@/components/Duel';
 import { PicksAccount, loginHref } from '@/components/PicksAccount';
 import { PicksHistory } from '@/components/PicksHistory';
@@ -191,7 +192,103 @@ function ComboBar({ pick, accent }: { pick?: Pick; accent: string }) {
   );
 }
 
-function FightPick({ eventId, f, draft, saved, onChange }: { eventId: string; f: Fight; draft?: Pick; saved?: Pick; onChange: (p: Pick | null) => void }) {
+/* ---------- Luta da noite ---------- */
+
+type FotnProps = { on: boolean; locked: boolean; awarded?: boolean; onToggle: () => void };
+
+/** Estrela no topo de cada luta: atalho para o voto de luta da noite (o bloco grande fica acima do card). */
+function FotnToggle({ on, locked, awarded, onToggle }: FotnProps) {
+  const [fx, hit] = useFx();
+  if (awarded) return (
+    <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-gold px-3 font-display text-[12px] font-extrabold uppercase tracking-[0.08em] text-[#14183e]">
+      <Trophy weight="fill" className="h-3.5 w-3.5" /> Luta da noite
+    </span>
+  );
+  if (locked && !on) return null;
+  return (
+    <motion.button type="button" disabled={locked} aria-pressed={on} onClick={() => { if (!on) hit(); onToggle(); }}
+      title={on ? 'Tirar o voto de luta da noite' : `Votar como luta da noite (+${POINTS.fotn} se levar o bônus)`}
+      whileHover={locked ? undefined : { scale: 1.06 }} whileTap={locked ? undefined : { scale: 0.92 }} transition={{ type: 'spring', stiffness: 460, damping: 18 }}
+      className={clsx('relative inline-flex h-8 items-center gap-1.5 rounded-full px-3 font-display text-[12px] font-bold uppercase tracking-[0.08em] transition-colors',
+        on ? 'bg-gold text-[#14183e]' : 'text-fg-2 ring-1 ring-line enabled:hover:text-fg enabled:hover:ring-gold/60')}>
+      {fx > 0 && <><Burst key={`b${fx}`} color="var(--color-gold)" n={12} reach={40} /><Float key={`f${fx}`} text={`+${POINTS.fotn}`} color="var(--color-gold)" /></>}
+      <Star weight={on ? 'fill' : 'bold'} className="h-3.5 w-3.5" />{on ? 'Sua luta da noite' : 'Luta da noite?'}
+    </motion.button>
+  );
+}
+
+/** Bloco em destaque acima das lutas: a pergunta da luta da noite, com todas as lutas do card para escolher. */
+function FotnPicker({ fights, vote, locked, awarded, onVote }: { fights: Fight[]; vote?: string; locked: boolean; awarded?: string[]; onVote: (id: string | null) => void }) {
+  const reduce = useReducedMotion();
+  const [fx, setFx] = useState<{ id: string; n: number } | null>(null);
+  const row = useRef<HTMLDivElement>(null);
+  const slide = (dir: 1 | -1) => row.current?.scrollBy({ left: dir * 260, behavior: reduce ? 'auto' : 'smooth' });
+  const start = cardStart(fights);
+  const chosen = fights.find(f => f.id === vote);
+  const result = awarded && vote ? (awarded.length ? (awarded.includes(vote) ? 'hit' : 'miss') : 'void') : undefined;
+  const ordered = [...fights].sort((a, b) => a.order - b.order);
+  return (
+    <section aria-labelledby="fotn-title" className="relative isolate overflow-hidden rounded-xl p-5 ring-1 ring-gold/40 sm:p-6"
+      style={{ background: 'linear-gradient(115deg, color-mix(in oklab, var(--color-gold) 26%, var(--color-surface)), color-mix(in oklab, var(--color-gold) 6%, var(--color-surface)) 60%)' }}>
+      <Trophy aria-hidden weight="fill" className="absolute -right-6 -top-6 -z-10 h-40 w-40 text-gold opacity-[0.14]" />
+      <div className="flex flex-wrap items-start gap-4">
+        <motion.span className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-gold text-[#14183e] shadow-[var(--shadow-cta)]"
+          animate={!vote && !locked && !reduce ? { rotate: [0, -14, 12, -6, 0], scale: [1, 1.12, 1] } : undefined} transition={{ duration: 0.9, delay: 0.6 }}>
+          <Star weight="fill" className="h-6 w-6" />
+        </motion.span>
+        <div className="min-w-0 flex-1 basis-[220px]">
+          <h2 id="fotn-title" className="display text-[24px] text-fg sm:text-[32px]">Qual vai ser a luta da noite?</h2>
+          <p className="mt-1 text-[14px] text-fg-2">
+            Vale <b className="font-display text-[16px] text-fg">+{POINTS.fotn} pontos</b> se a luta escolhida levar o bônus do UFC.
+            {' '}{locked ? 'A votação fechou quando o card começou.' : `Um voto por evento; fecha quando o card começar${start ? `, às ${time(start)}` : ''}.`}
+          </p>
+        </div>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div key={(vote ?? '') + (result ?? '')} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
+            className={clsx('w-full rounded-xl px-4 py-2.5 text-[14px] ring-1 sm:w-auto', result === 'hit' ? 'bg-win-soft text-win ring-win/30' : result === 'miss' ? 'bg-loss-soft text-loss ring-loss/20' : 'bg-surface text-fg-2 ring-line')}>
+            {result === 'hit' ? <b>Acertou! +{POINTS.fotn} pts</b>
+              : result === 'miss' ? <b>Não foi dessa vez</b>
+              : result === 'void' ? 'Evento sem bônus de luta da noite'
+              : chosen ? <>Seu voto: <b className="text-fg">{lastName(chosen.red.name)} × {lastName(chosen.blue.name)}</b></>
+              : locked ? 'Você não votou' : <b className="text-fg">Escolha abaixo ↓</b>}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* no computador, todas as lutas à vista (quebram em linhas); no celular, desliza para o lado, com setas */}
+      <div className="relative mt-5">
+      <div className="mb-2 flex justify-end gap-1.5 sm:hidden">
+        <button type="button" onClick={() => slide(-1)} aria-label="Lutas anteriores" className="grid h-8 w-8 place-items-center rounded-full bg-surface text-fg-2 ring-1 ring-line"><CaretLeft weight="bold" className="h-3.5 w-3.5" /></button>
+        <button type="button" onClick={() => slide(1)} aria-label="Próximas lutas" className="grid h-8 w-8 place-items-center rounded-full bg-fg text-bg"><CaretRight weight="bold" className="h-3.5 w-3.5" /></button>
+      </div>
+      <div ref={row} role="radiogroup" aria-label="Luta da noite"
+        className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 pb-1 [mask-image:linear-gradient(90deg,#000_85%,transparent)] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:[mask-image:none]">
+        {ordered.map(f => {
+          const on = vote === f.id, won = awarded?.includes(f.id);
+          return (
+            <motion.button key={f.id} type="button" role="radio" aria-checked={on} disabled={locked}
+              onClick={() => { if (!on) setFx({ id: f.id, n: (fx?.n ?? 0) + 1 }); onVote(on ? null : f.id); }}
+              whileHover={locked ? undefined : { y: -3 }} whileTap={locked ? undefined : { scale: 0.95 }} transition={{ type: 'spring', stiffness: 460, damping: 20 }}
+              className={clsx('relative flex shrink-0 items-center gap-2.5 rounded-full py-1.5 pl-1.5 pr-4 text-left ring-1 transition-colors',
+                on ? 'bg-gold text-[#14183e] ring-gold shadow-[var(--shadow-cta)]' : won ? 'bg-surface text-fg ring-2 ring-gold' : 'bg-surface text-fg ring-line enabled:hover:ring-gold/60',
+                locked && !on && !won && 'opacity-60')}>
+              {fx?.id === f.id && <><Burst key={`b${fx.n}`} color="var(--color-gold)" n={12} reach={50} /><Float key={`f${fx.n}`} text={`+${POINTS.fotn}`} color="var(--color-gold)" /></>}
+              <span className="flex -space-x-2.5">
+                <Avatar src={f.red.headshot} name={f.red.name} size={30} />
+                <Avatar src={f.blue.headshot} name={f.blue.name} size={30} />
+              </span>
+              <span className="font-display text-[13px] font-bold uppercase tracking-[0.03em]">{lastName(f.red.name)} × {lastName(f.blue.name)}</span>
+              {(on || won) && <span>{won ? <Trophy weight="fill" className="h-4 w-4 text-gold" /> : <Star weight="fill" className="h-4 w-4" />}</span>}
+            </motion.button>
+          );
+        })}
+      </div>
+      </div>
+    </section>
+  );
+}
+
+function FightPick({ eventId, f, draft, saved, onChange, fotn }: { eventId: string; f: Fight; draft?: Pick; saved?: Pick; onChange: (p: Pick | null) => void; fotn: FotnProps }) {
   const locked = isLocked(f);
   // luta aberta: edita o rascunho; luta travada: mostra só o que foi salvo (é o que conta pontos)
   const pick = locked ? saved : draft;
@@ -220,7 +317,10 @@ function FightPick({ eventId, f, draft, saved, onChange }: { eventId: string; f:
         <span className="font-display text-[13px] font-semibold uppercase tracking-[0.1em] text-fg-3">{f.weightClass} · {f.rounds} rounds</span>
         {f.title && <Tag tone="gold"><Crown weight="fill" className="h-3 w-3" /> Título</Tag>}
         {locked && !r && <Tag><LockSimple weight="bold" className="h-3 w-3" /> {f.status === 'in' ? 'Ao vivo' : 'Palpites encerrados'}</Tag>}
-        <Link to={fightHref(eventId, f.id)} className="ml-auto text-[13px] font-semibold text-fg-2 underline-offset-4 hover:text-brand hover:underline">Ver luta</Link>
+        <span className="ml-auto flex items-center gap-3">
+          <FotnToggle {...fotn} />
+          <Link to={fightHref(eventId, f.id)} className="text-[13px] font-semibold text-fg-2 underline-offset-4 hover:text-brand hover:underline">Ver luta</Link>
+        </span>
       </div>
 
       <div className="flex items-stretch">
@@ -309,6 +409,7 @@ function SavePanel({ eventId, fights, draft, savedAt, dirty, justSaved, onSave, 
 }) {
   const open = fights.filter(f => !isLocked(f));
   const made = open.filter(f => draft[f.id]).length;
+  const fotnMissing = !draft[FOTN] && !fotnLocked(fights);
   const perfect = open.filter(f => { const p = draft[f.id]; return !!p?.method && (p.method === 'dec' || !!p.round); }).length;
   const pts = open.reduce((n, f) => { const p = draft[f.id]; if (!p) return n; const fin = p.method === 'ko' || p.method === 'sub'; return n + POINTS.winner + (p.method ? POINTS.method : 0) + (fin && p.round ? POINTS.round : 0) + (!!p.method && (p.method === 'dec' || !!p.round) ? POINTS.perfect : 0); }, 0);
   const hhmm = (t: number) => new Date(t).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -340,7 +441,7 @@ function SavePanel({ eventId, fights, draft, savedAt, dirty, justSaved, onSave, 
               ) : (
                 <motion.div key="todo" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
                   <div className="font-display text-[20px] font-bold uppercase leading-tight tracking-[0.02em]">{savedAt ? 'Alterações não salvas' : 'Salve para valer'}</div>
-                  <p className="mt-1 text-[14px] text-bg/70"><b className="num text-bg">{made}</b> de {open.length} lutas palpitadas · <b className="num text-bg">{perfect}</b> {perfect === 1 ? 'combo perfeito' : 'combos perfeitos'} · <b className="num text-bg">{pts}</b> pts em jogo. {login ? 'Entre na sua conta para salvar e pontuar.' : 'Só o que for salvo conta pontos.'}</p>
+                  <p className="mt-1 text-[14px] text-bg/70"><b className="num text-bg">{made}</b> de {open.length} lutas palpitadas · <b className="num text-bg">{perfect}</b> {perfect === 1 ? 'combo perfeito' : 'combos perfeitos'} · <b className="num text-bg">{pts}</b> pts em jogo. {fotnMissing && <>Falta a <b className="inline-flex items-center gap-1 text-bg"><Star weight="fill" className="h-3.5 w-3.5 text-gold" />luta da noite</b>. </>}{login ? 'Entre na sua conta para salvar e pontuar.' : 'Só o que for salvo conta pontos.'}</p>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -369,10 +470,10 @@ function SavePanel({ eventId, fights, draft, savedAt, dirty, justSaved, onSave, 
 /* ---------- Resumos ---------- */
 
 function Strip({ s, total, made, dirty }: { s: Summary; total: number; made: number; dirty: boolean }) {
-  const done = s.scored > 0;
+  const done = s.scored > 0 || s.fotn === 'done';
   const items = done
-    ? [['Pontos', String(s.points), `de até ${total * MAX_POINTS}`], ['Vencedores certos', `${s.hits}/${s.scored}`, s.scored ? `${Math.round((s.hits / s.scored) * 100)}% de acerto` : ''], ['Métodos certos', String(s.methods), 'entre os vencedores certos'], ['Palpites perfeitos', String(s.perfects), 'vencedor + método (+ round)']]
-    : [['Palpites feitos', `${made}/${total}`, dirty ? 'ainda não salvos' : made === total ? 'card completo e salvo!' : made ? 'salvos' : 'faltam ' + (total - made)], ['Pontos possíveis', String(total * MAX_POINTS), `até ${MAX_POINTS} por luta`], ['Aguardando', String(s.pending), 'lutas ainda sem resultado'], ['Vencedor vale', `${POINTS.winner} pts`, 'método e round somam mais']];
+    ? [['Pontos', String(s.points), `de até ${total * MAX_POINTS + POINTS.fotn}`], ['Vencedores certos', `${s.hits}/${s.scored}`, s.scored ? `${Math.round((s.hits / s.scored) * 100)}% de acerto` : ''], ['Métodos certos', String(s.methods), 'entre os vencedores certos'], ['Palpites perfeitos', String(s.perfects), 'vencedor + método (+ round)']]
+    : [['Palpites feitos', `${made}/${total}`, dirty ? 'ainda não salvos' : made === total ? 'card completo e salvo!' : made ? 'salvos' : 'faltam ' + (total - made)], ['Pontos possíveis', String(total * MAX_POINTS + POINTS.fotn), `até ${MAX_POINTS} por luta + ${POINTS.fotn} da luta da noite`], ['Aguardando', String(s.pending), 'lutas ainda sem resultado'], ['Vencedor vale', `${POINTS.winner} pts`, 'método e round somam mais']];
   return (
     <div className="rule grid grid-cols-2 gap-y-6 lg:grid-cols-4 lg:divide-x lg:divide-line">
       {items.map(([l, v, sub], i) => (
@@ -394,6 +495,7 @@ function Rules() {
     ['Palpite perfeito', `+${POINTS.perfect}`, 'vencedor + método (+ round, quando não for decisão)'],
     ['Zebra', `+${POINTS.zebra}`, 'vencedor com menos de 35% de chance pelas odds'],
     ['Grande zebra', `+${POINTS.bigZebra}`, 'vencedor com menos de 20% de chance pelas odds'],
+    ['Luta da noite', `+${POINTS.fotn}`, 'um voto por evento: a luta que você acha que leva o bônus do UFC'],
   ];
   return (
     <Panel plain title="Como funciona a pontuação" action={<span className="text-[13px] text-fg-3">até {MAX_POINTS} pontos por luta</span>}>
@@ -404,7 +506,7 @@ function Rules() {
           </div>
         ))}
       </dl>
-      <p className="mt-3 text-[13px] leading-relaxed text-fg-3">Os palpites fecham luta a luta, quando o horário dela chega. Empate e luta sem resultado não contam. {supabaseEnabled ? 'Os palpites salvos ficam na sua conta.' : 'Seus palpites ficam salvos neste navegador.'}</p>
+      <p className="mt-3 text-[13px] leading-relaxed text-fg-3">Os palpites fecham luta a luta, quando o horário dela chega; a luta da noite fecha quando o card começa. Empate e luta sem resultado não contam. {supabaseEnabled ? 'Os palpites salvos ficam na sua conta.' : 'Seus palpites ficam salvos neste navegador.'}</p>
     </Panel>
   );
 }
@@ -436,7 +538,12 @@ export default function Picks() {
   usePageTitle(e ? `${tab === 'ranking' ? 'Ranking' : 'Palpites'} · ${e.name}` : 'Palpites');
 
   const fights = e?.fights ?? [];
-  const summary = useMemo(() => summarize(savedPicks, fights), [savedPicks, fights]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { data: bonus } = useBonuses(e?.status === 'post' ? e.id : undefined);
+  const awarded = fotnAwarded(e, bonus);
+  const summary = useMemo(() => summarize(savedPicks, fights, awarded), [savedPicks, fights, awarded?.join()]); // eslint-disable-line react-hooks/exhaustive-deps
+  const fotnClosed = fotnLocked(fights);
+  const fotnVote = (fotnClosed ? savedPicks : mine)[FOTN]?.winner;
+  const voteFotn = (fightId: string | null) => id && setPick(id, FOTN, fightId ? { winner: fightId, at: Date.now() } : null);
   const dirty = isDirty(mine, savedPicks);
   // avisa antes de sair da página com alterações não salvas
   useEffect(() => {
@@ -470,7 +577,7 @@ export default function Picks() {
             <button key={c.id} role="tab" aria-selected={on} onClick={() => navigate(`/palpites/${c.id}${qs}`)}
               className={clsx('lift flex shrink-0 flex-col items-start rounded-xl px-4 py-2.5 text-left ring-1', on ? 'bg-fg text-bg ring-fg' : 'bg-surface text-fg ring-fg/[0.08]')}>
               <span className="font-display text-[13px] font-bold uppercase tracking-[0.06em]">{title || series}</span>
-              <span className={clsx('num text-[13px]', on ? 'text-bg/70' : 'text-fg-3')}>{series} · {dayMonth(c.date)}{Object.keys(saved[c.id]?.picks ?? {}).length ? ` · ${Object.keys(saved[c.id].picks).length} salvos` : ''}</span>
+              <span className={clsx('num text-[13px]', on ? 'text-bg/70' : 'text-fg-3')}>{series} · {dayMonth(c.date)}{fightCount(saved[c.id]?.picks) ? ` · ${fightCount(saved[c.id]?.picks)} salvos` : ''}</span>
             </button>
           );
         })}
@@ -489,7 +596,7 @@ export default function Picks() {
               <h2 className="display text-[32px] text-fg">{splitEventName(e.name).title || splitEventName(e.name).series}</h2>
               <p className="mt-1 text-[14px] text-fg-3">{splitEventName(e.name).series} · {dayMonth(e.date)}, card principal às {time(e.date)} (Brasília)</p>
             </div>
-            {(Object.keys(mine).length > 0 || summary.made > 0) && open > 0 && (
+            {(fightCount(mine) > 0 || summary.made > 0) && open > 0 && (
               confirm
                 ? <span className="flex items-center gap-2 text-[13px]">Apagar os palpites das lutas que ainda não começaram?
                     <button className="btn-ghost text-loss" onClick={() => { clearEvent(e.id, fights); setConfirm(false); }}>Apagar</button>
@@ -498,7 +605,9 @@ export default function Picks() {
             )}
           </div>
 
-          <Strip s={summary} total={fights.length} made={Object.keys(mine).length} dirty={dirty} />
+          <Strip s={summary} total={fights.length} made={fightCount(mine)} dirty={dirty} />
+
+          <FotnPicker fights={fights} vote={fotnVote} locked={fotnClosed} awarded={awarded} onVote={voteFotn} />
 
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
             <div className="min-w-0 space-y-8">
@@ -510,7 +619,10 @@ export default function Picks() {
                     title={<h2 className="panel-title">{SEGMENT_LABEL[seg]} <span className="ml-1.5 align-middle font-sans text-[14px] font-semibold text-fg-3">{list.length} lutas</span></h2>}
                     action={e.segmentStart[seg] && <span className="num text-[13px] text-fg-3">{time(e.segmentStart[seg]!)}</span>}
                     bodyClass="divide-y divide-line/70">
-                    {list.map(f => <FightPick key={f.id} eventId={e.id} f={f} draft={mine[f.id]} saved={savedPicks[f.id]} onChange={p => setPick(e.id, f.id, p)} />)}
+                    {list.map(f => (
+                      <FightPick key={f.id} eventId={e.id} f={f} draft={mine[f.id]} saved={savedPicks[f.id]} onChange={p => setPick(e.id, f.id, p)}
+                        fotn={{ on: fotnVote === f.id, locked: fotnClosed, awarded: awarded?.includes(f.id), onToggle: () => voteFotn(fotnVote === f.id ? null : f.id) }} />
+                    ))}
                   </Panel>
                 );
               })}

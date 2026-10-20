@@ -36,3 +36,16 @@ export function cardSummary(fights: Fight[]) {
     biggestUpset: done.filter(isUpset).sort((a, b) => (winnerChance(a) ?? 1) - (winnerChance(b) ?? 1))[0],
   };
 }
+
+const surname = (n: string) => n.trim().split(/\s+/).pop()!.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+/** Lutas do card que levaram o bônus de luta da noite (os bônus vêm como pares de nomes do UFC Fight Tracker). */
+export function bonusFightIds(fights: Fight[], pairs: string[][]): string[] {
+  return pairs.map(pair => fights.find(f => pair.every(n => [f.red.name, f.blue.name].some(x => surname(x) === surname(n))))?.id)
+    .filter((id): id is string => !!id);
+}
+
+/** Resultado da luta da noite para a pontuação: undefined enquanto o evento não acabou ou os bônus não chegaram. */
+export const fotnAwarded = (ev: { status: string; fights: Fight[] } | undefined, bonus: { fight: string[][] } | undefined) =>
+  ev && ev.status === 'post' && bonus ? bonusFightIds(ev.fights, bonus.fight) : undefined;
+

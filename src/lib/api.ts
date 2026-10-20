@@ -61,8 +61,13 @@ export const useDivisionAvg = (division?: string) =>
   useQuery({ queryKey: ['divavg', division], queryFn: () => get<DivisionAverages>(`/api/divisions/average?name=${encodeURIComponent(division!)}`), enabled: !!division, staleTime: 6 * 60 * MIN, retry: false });
 
 /** Bônus da noite do UFC (nomes dos lutadores). */
-export const useBonuses = (eventId?: string) =>
-  useQuery({ queryKey: ['bonuses', eventId], queryFn: () => get<{ fight: string[][]; performance: string[] }>(`/api/events/${eventId}/bonuses`), enabled: !!eventId, staleTime: 60 * MIN });
+export const bonusQuery = (eventId?: string) => queryOptions({
+  queryKey: ['bonuses', eventId],
+  queryFn: () => get<{ fight: string[][]; performance: string[] }>(`/api/events/${eventId}/bonuses`),
+  enabled: !!eventId,
+  staleTime: 60 * MIN,
+});
+export const useBonuses = (eventId?: string) => useQuery(bonusQuery(eventId));
 
 /** Quem tem luta marcada (id ESPN → próxima luta), para a etiqueta "luta marcada" nas listas. */
 export const useBooked = () =>

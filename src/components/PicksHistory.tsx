@@ -2,7 +2,8 @@ import { Link } from 'react-router-dom';
 import { clsx } from 'clsx';
 import { useQueries } from '@tanstack/react-query';
 import type { EventDetail } from '@shared/types';
-import { eventQuery } from '@/lib/api';
+import { bonusQuery, eventQuery } from '@/lib/api';
+import { fotnAwarded } from '@/lib/fights';
 import { dayMonth } from '@/lib/format';
 import { summarize, usePicks } from '@/lib/picks';
 import { Panel } from './kit';
@@ -12,7 +13,12 @@ export function PicksHistory({ currentId }: { currentId?: string }) {
   const { saved } = usePicks();
   const ids = Object.keys(saved).filter(i => Object.keys(saved[i].picks).length);
   const queries = useQueries({ queries: ids.map(id => eventQuery(id)) });
-  const rows = ids.map((id, i) => ({ id, ev: queries[i].data as EventDetail | undefined, s: queries[i].data ? summarize(saved[id].picks, queries[i].data!.fights) : undefined }));
+  // bônus só dos eventos encerrados (definem a luta da noite)
+  const bonuses = useQueries({ queries: ids.map((id, i) => bonusQuery((queries[i].data as EventDetail | undefined)?.status === 'post' ? id : undefined)) });
+  const rows = ids.map((id, i) => {
+    const ev = queries[i].data as EventDetail | undefined;
+    return { id, ev, s: ev ? summarize(saved[id].picks, ev.fights, fotnAwarded(ev, bonuses[i].data)) : undefined };
+  });
   const total = rows.reduce((n, r) => ({ pts: n.pts + (r.s?.points ?? 0), hits: n.hits + (r.s?.hits ?? 0), scored: n.scored + (r.s?.scored ?? 0), perf: n.perf + (r.s?.perfects ?? 0) }), { pts: 0, hits: 0, scored: 0, perf: 0 });
   if (!ids.length) return null;
   return (

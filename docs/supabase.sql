@@ -89,6 +89,14 @@ create policy "apagar os proprios palpites" on public.picks for delete using (au
 -- ranking: o palpite dos outros só aparece depois do horário da luta (antes disso, ninguém copia ninguém)
 create policy "palpites revelados quando a luta comeca" on public.picks for select using (locks_at is not null and locks_at <= now());
 
+-- quem já palpitou em cada luta de um evento, sem dizer em quem (a aba Ranking mostra os participantes antes
+-- de a luta começar; o palpite em si continua escondido pela regra acima)
+create or replace function public.event_participation(eid text) returns table (user_id uuid, fight_id text)
+language sql stable security definer set search_path = '' as $$
+  select p.user_id, p.fight_id from public.picks p where p.event_id = eid;
+$$;
+grant execute on function public.event_participation(text) to anon, authenticated;
+
 -- Observação: o ranking soma os pontos com o horário real de cada luta (ESPN) e ignora palpites com updated_at
 -- posterior a ele, então mesmo um locks_at falso enviado à mão não dá vantagem.
 
