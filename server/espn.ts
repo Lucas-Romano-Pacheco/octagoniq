@@ -207,7 +207,11 @@ export async function fightDetail(eventId: string, fightId: string): Promise<Fig
   const fight = ev?.fights.find(f => f.id === fightId);
   if (!ev || !fight) return null;
   const live = fight.status !== 'post';
-  const stat = (id: string) => getJson<J>(`${CORE}/leagues/ufc/events/${eventId}/competitions/${fightId}/competitors/${id}/statistics`, live ? 30_000 : 24 * HOUR).catch(() => null);
+  // a ESPN publica as estatísticas de uma luta encerrada horas depois (antes disso vêm vazias): nos 3 dias
+  // seguintes ao evento a resposta vale só 10 min, para uma resposta vazia não ficar guardada por 24 h
+  const recent = Date.now() - Date.parse(ev.date) < 72 * HOUR;
+  const ttl = live ? 30_000 : recent ? 10 * MIN : 24 * HOUR;
+  const stat = (id: string) => getJson<J>(`${CORE}/leagues/ufc/events/${eventId}/competitions/${fightId}/competitors/${id}/statistics`, ttl).catch(() => null);
   const [rs, bs] = fight.status === 'pre' ? [null, null] : await Promise.all([stat(fight.red.espnId), stat(fight.blue.espnId)]);
   return {
     eventId, eventName: ev.name, fight,
