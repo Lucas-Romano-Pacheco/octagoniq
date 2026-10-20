@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties, type HTMLAttributes, t
 import { clsx } from 'clsx';
 import { Link } from 'react-router-dom';
 import { animate, motion, useInView, useReducedMotion } from 'motion/react';
-import { ArrowClockwise, ArrowDown, ArrowUp, CalendarCheck, CaretDown, CaretUp, CaretUpDown, Check, Equals, Minus, WarningCircle, X } from '@phosphor-icons/react';
+import { ArrowClockwise, ArrowDown, ArrowUp, CalendarCheck, CaretDown, CaretUp, CaretUpDown, WarningCircle } from '@phosphor-icons/react';
 import { circleFlag, rectFlag } from '@/lib/flags';
 import type { BookedFight, HistoryFight } from '@shared/types';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -332,11 +332,11 @@ export function SortTh<K extends string>({ k, sort, toggle, children, className,
 
 /* Selo de resultado em forma de octógono (o mesmo símbolo da marca), com a letra na serifada dos títulos. */
 const OUTCOME = {
-  W: { Icon: Check, color: 'var(--color-win)', fill: 'var(--color-win-soft)', title: 'Vitória' },
-  L: { Icon: X, color: 'var(--color-loss)', fill: 'var(--color-loss-soft)', title: 'Derrota' },
-  D: { Icon: Equals, color: 'var(--color-draw)', fill: 'var(--color-draw-soft)', title: 'Empate' },
-  NC: { Icon: Minus, color: 'var(--color-fg-2)', fill: 'var(--color-surface-3)', title: 'Sem resultado' },
-  pending: { Icon: Minus, color: 'var(--color-fg-3)', fill: 'var(--color-surface-2)', title: 'Agendada' },
+  W: { glyph: 'M10 16.9 14.3 21.2 22.4 11', color: 'var(--color-win)', fill: 'var(--color-win-soft)', title: 'Vitória' },
+  L: { glyph: 'M11.5 11.5 20.5 20.5M20.5 11.5 11.5 20.5', color: 'var(--color-loss)', fill: 'var(--color-loss-soft)', title: 'Derrota' },
+  D: { glyph: 'M10.5 13.4H21.5M10.5 18.6H21.5', color: 'var(--color-draw)', fill: 'var(--color-draw-soft)', title: 'Empate' },
+  NC: { glyph: 'M10.5 16H21.5', color: 'var(--color-fg-2)', fill: 'var(--color-surface-3)', title: 'Sem resultado' },
+  pending: { glyph: 'M10.5 16H21.5', color: 'var(--color-fg-3)', fill: 'var(--color-surface-2)', title: 'Agendada' },
 } as const;
 const OCTAGON = 'M10.6 1.5h10.8l9.1 9.1v10.8l-9.1 9.1H10.6l-9.1-9.1V10.6z';
 
@@ -351,9 +351,9 @@ export function OutcomeBadge({ outcome, className, size = 'md', tip, card, href 
       style={{ width: px, height: px, color: o.color }}>
       <svg viewBox="0 0 32 32" className="absolute inset-0 h-full w-full" aria-hidden>
         <path d={OCTAGON} fill={o.fill} stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.6" strokeLinejoin="round" />
+        {/* glifo desenhado na mesma grade do octógono (o ✓ do Phosphor é assimétrico e parecia torto): centrado em 16,16 */}
+        <path d={o.glyph} fill="none" stroke="currentColor" strokeWidth="2.9" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      {/* ícone em vez de letra: fica centrado em qualquer fonte */}
-      <o.Icon weight="bold" className="relative" style={{ width: px * 0.5, height: px * 0.5 }} />
     </Tag_>
   );
   if (!tip) return badge;

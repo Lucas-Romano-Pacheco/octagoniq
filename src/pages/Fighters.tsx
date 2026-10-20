@@ -18,7 +18,8 @@ function Row({ e, meta, booked }: { e: RankEntry; meta?: RankingsMeta; booked?: 
   const champ = e.rank === 0;
   return (
     // "stretched link": o nome cobre a linha inteira; a etiqueta de luta marcada fica por cima, clicável
-    <li className={clsx('group relative flex min-w-0 items-center gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-surface-2/70', champ && 'bg-gold-soft/50')}>
+    <li className={clsx('item-fx group flex min-w-0 items-center gap-3 rounded-xl px-3 py-2.5', champ && 'is-active')}
+      style={{ ['--item-accent' as string]: champ ? 'var(--color-gold)' : m?.countryCode === 'br' ? 'var(--color-win)' : 'var(--color-blue)' }}>
       <span className="num w-5 shrink-0 text-right text-[14px] font-semibold text-fg-3">
         {champ ? <Crown weight="fill" className="ml-auto h-4 w-4 text-gold" aria-label="Campeão" /> : e.rank}
       </span>
@@ -37,7 +38,7 @@ function Chip({ on, onClick, children, count }: { on: boolean; onClick: () => vo
   return (
     <button onClick={onClick} aria-pressed={on}
       className={clsx('lift inline-flex h-10 shrink-0 items-center gap-2 rounded-full px-4 text-[14px] font-semibold ring-1',
-        on ? 'bg-fg text-bg ring-fg' : 'bg-surface text-fg-2 ring-fg/[0.08] hover:text-fg')}>
+        on ? 'bg-fg text-bg ring-fg' : 'bg-surface text-fg-2 ring-fg/[0.08] hover:bg-surface-2 hover:text-fg hover:ring-fg/20')}>
       {children}
       {count !== undefined && <span className={clsx('num rounded px-1.5 text-[12px]', on ? 'bg-bg/15' : 'bg-surface-2 text-fg-3')}>{count}</span>}
     </button>
@@ -125,7 +126,7 @@ export default function Fighters() {
                   <Link to={`/rankings/${d.id}`} className="btn-ghost">Ranking completo <ArrowRight className="h-4 w-4" /></Link>
                 </div>
                 {/* duas colunas no desktop: metade da altura de uma lista única */}
-                <ol className="grid grid-cols-[minmax(0,1fr)] gap-x-8 gap-y-0.5 md:grid-cols-2 md:[grid-auto-flow:column]" style={{ gridTemplateRows: `repeat(${Math.ceil(rows.length / 2)}, auto)` }}>
+                <ol className="grid grid-cols-[minmax(0,1fr)] gap-x-8 md:grid-cols-2 md:[grid-auto-flow:column]" style={{ gridTemplateRows: `repeat(${Math.ceil(rows.length / 2)}, auto)` }}>
                   {rows.map(e => <Row key={e.slug} e={e} meta={meta} booked={booked} />)}
                 </ol>
               </section>

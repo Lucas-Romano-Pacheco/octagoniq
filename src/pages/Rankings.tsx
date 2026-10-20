@@ -22,6 +22,9 @@ function Change({ e }: { e: RankEntry }) {
   );
 }
 
+/** Cor de cada grupo do menu: peso por peso dourado, masculino azul, feminino vermelho. */
+const ACCENT: Record<string, string> = { 'Peso por peso': 'var(--color-gold)', Masculino: 'var(--color-blue)', Feminino: 'var(--color-brand)' };
+
 function DivisionNav({ divisions, active }: { divisions: RankingDivision[]; active: string }) {
   const groups = [
     { label: 'Peso por peso', items: divisions.filter(d => d.p4p) },
@@ -34,22 +37,25 @@ function DivisionNav({ divisions, active }: { divisions: RankingDivision[]; acti
       <div className="no-scrollbar -mx-4 mb-4 flex gap-1.5 overflow-x-auto px-4 lg:hidden">
         {divisions.map(d => (
           <Link key={d.id} to={`/rankings/${d.id}`}
-            className={clsx('h-9 shrink-0 rounded-full px-4 text-[14px] font-semibold leading-9', d.id === active ? 'bg-fg text-bg' : 'bg-surface text-fg-2 shadow-[var(--shadow-soft)]')}>{d.name}</Link>
+            className={clsx('lift h-9 shrink-0 rounded-full px-4 text-[14px] font-semibold leading-9 transition-colors', d.id === active ? 'bg-fg text-bg' : 'bg-surface text-fg-2 shadow-[var(--shadow-soft)] hover:bg-surface-2 hover:text-fg')}>{d.name}</Link>
         ))}
       </div>
       {/* desktop: lista lateral */}
-      <nav className="hidden space-y-5 lg:block">
+      <nav className="hidden space-y-6 lg:block">
         {groups.map(g => (
           <div key={g.label}>
-            <div className="label mb-2 px-3">{g.label}</div>
-            {g.items.map(d => (
-              <Link key={d.id} to={`/rankings/${d.id}`}
-                className={clsx('flex items-center justify-between rounded-xl px-3 py-2 text-[14px] transition-all',
-                  d.id === active ? 'bg-surface font-bold text-fg shadow-[var(--shadow-soft)]' : 'font-medium text-fg-2 hover:bg-surface/70 hover:text-fg')}>
-                <span>{d.name}</span>
-                {d.champion && <span className="max-w-[110px] truncate text-[13px] text-fg-3">{d.champion.name.split(' ').slice(-1)[0]}</span>}
-              </Link>
-            ))}
+            <div className="label mb-2 flex items-center gap-2 px-3"><span className="h-2 w-2 rounded-full" style={{ background: ACCENT[g.label] }} />{g.label}</div>
+            <ul className="overflow-hidden rounded-2xl bg-surface/50 ring-1 ring-fg/[0.05]">
+              {g.items.map(d => (
+                <li key={d.id} className="contents">
+                  <Link to={`/rankings/${d.id}`} aria-current={d.id === active ? 'page' : undefined} style={{ ['--item-accent' as string]: ACCENT[g.label] }}
+                    className={clsx('item-fx flex items-center justify-between gap-3 px-4 py-3 text-[14.5px]', d.id === active ? 'is-active font-bold text-fg' : 'font-medium text-fg-2 hover:text-fg')}>
+                    <span>{d.name}</span>
+                    {d.champion && <span className={clsx('max-w-[110px] truncate text-[13px]', d.id === active ? 'text-fg-2' : 'text-fg-3')}>{d.champion.name.split(' ').slice(-1)[0]}</span>}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
         ))}
       </nav>
@@ -79,7 +85,7 @@ function RankTable({ entries, meta, booked }: { entries: RankEntry[]; meta?: Ran
         {sorted.map(e => {
           const m = meta?.[e.slug];
           return (
-            <tr key={e.slug}>
+            <tr key={e.slug} className="row-fx" style={{ ['--item-accent' as string]: e.rank <= 5 ? 'var(--color-gold)' : 'var(--color-blue)' }}>
               <td className="num text-right font-display text-[18px] font-semibold text-fg-3">{e.rank}</td>
               <td>
                 <div className="flex items-center gap-3">

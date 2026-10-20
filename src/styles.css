@@ -264,6 +264,27 @@
   .btn-ghost { @apply inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 font-display text-[12.5px] font-bold uppercase tracking-[0.06em] text-fg-2 transition-all duration-200 hover:-translate-y-px hover:bg-surface-2 hover:text-fg hover:shadow-[0_1px_0_var(--color-line-2),var(--shadow-soft)] active:translate-y-0 active:shadow-none disabled:pointer-events-none disabled:opacity-40; }
   /* relevo para botões avulsos (ícones redondos, setas de carrossel) */
   .lift { @apply transition-all duration-200 hover:-translate-y-px hover:shadow-[var(--shadow-lift)] hover:brightness-[1.06] active:translate-y-0 active:shadow-none active:brightness-100; }
+  /* Item de lista interativo (rankings, lutadores, eventos): linha fina entre os itens, barra de destaque na lateral que
+     cresce ao passar o mouse, deslize e tom de cor (--item-accent) e "afundar" ao clicar. `.is-active` = item atual. */
+  .item-fx { --item-accent: var(--color-gold); position: relative; transition: transform .22s var(--ease-out-soft, ease), background-color .22s, color .22s; }
+  .item-fx::after { content: ''; position: absolute; inset: auto 12px 0 12px; height: 1px; background: color-mix(in oklab, var(--color-line-2) 70%, transparent); pointer-events: none; }
+  .item-fx:last-child::after { display: none; }
+  .item-fx::before {
+    content: ''; position: absolute; left: 0; top: 18%; bottom: 18%; width: 4px; border-radius: 0 4px 4px 0; pointer-events: none;
+    background: var(--item-accent); transform: scaleY(0); transition: transform .26s cubic-bezier(.22, 1, .36, 1);
+  }
+  .item-fx:hover, .item-fx:focus-visible { transform: translateX(4px); background-image: linear-gradient(90deg, color-mix(in oklab, var(--item-accent) 16%, transparent), transparent 88%); }
+  .item-fx:hover::before, .item-fx:focus-visible::before, .item-fx.is-active::before { transform: scaleY(1); }
+  .item-fx:active { transform: translateX(2px) scale(.985); }
+  .item-fx.is-active { background-image: linear-gradient(90deg, color-mix(in oklab, var(--item-accent) 24%, transparent), color-mix(in oklab, var(--item-accent) 4%, transparent) 92%); }
+  .item-fx.is-active::after { opacity: 0; }
+  /* mesmo efeito para linhas de tabela (o deslize não funciona em <tr>: a barra vem de uma sombra interna) */
+  .row-fx td { transition: background-color .22s, box-shadow .26s; }
+  .row-fx td:first-child { box-shadow: inset 0 0 0 var(--item-accent, var(--color-gold)); }
+  .row-fx:hover td { background-image: linear-gradient(90deg, color-mix(in oklab, var(--item-accent, var(--color-gold)) 12%, transparent), transparent); }
+  .row-fx:hover td:first-child { box-shadow: inset 4px 0 0 var(--item-accent, var(--color-gold)); }
+  .row-fx:active td { background-image: linear-gradient(90deg, color-mix(in oklab, var(--item-accent, var(--color-gold)) 22%, transparent), transparent); }
+  @media (prefers-reduced-motion: reduce) { .item-fx, .item-fx::before { transition: none; } .item-fx:hover { transform: none; } }
   /* tecla de atalho com relevo (borda inferior mais grossa, como uma tecla física) */
   .kbd { @apply inline-flex h-6 min-w-6 items-center justify-center rounded-md border border-line-2 border-b-[3px] bg-surface px-1.5 font-sans text-[12px] font-semibold leading-none text-fg-2 shadow-[0_1px_2px_rgb(0_0_0/0.08)]; }
 
@@ -314,3 +335,10 @@
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }
+
+/* Calendário: células entram em cascata e o dia de hoje pulsa */
+@keyframes cell-in { from { opacity: 0; transform: translateY(10px) scale(0.97); } to { opacity: 1; transform: none; } }
+.cell-in { animation: cell-in 0.5s var(--ease-out-soft) both; }
+@keyframes today-ring { 0% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-blue) 55%, transparent); } 70%, 100% { box-shadow: 0 0 0 12px transparent; } }
+.today-pulse { animation: today-ring 2.2s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) { .cell-in, .today-pulse { animation: none; } }
