@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Fight, FighterRef } from '@shared/types';
-import { cardSummary, fightSeconds, isUpset, winnerChance } from './fights.ts';
+import { cardSummary, fightSeconds, isUpset, roundEdge, winnerChance } from './fights.ts';
 
 const fighter = (id: string): FighterRef => ({ espnId: id, name: `Lutador ${id}`, slug: `l-${id}` });
 type Opts = { win?: 'red' | 'blue' | null; method?: string; round?: number; clock?: string; red?: number; blue?: number };
@@ -43,5 +43,13 @@ describe('resumo do card', () => {
     expect(s).toMatchObject({ done: 3, ko: 1, sub: 1, dec: 1, r1: 1, upsets: 1 });
     expect(s.avgSeconds).toBe((60 + 420 + 900) / 3);
     expect(s.biggestUpset?.result?.method).toBe('Finalização');
+  });
+});
+
+describe('domínio por round', () => {
+  const side = (o: Partial<import('@shared/types').RoundSide>) => ({ sig: 0, sigAtt: 0, kd: 0, td: 0, tdAtt: 0, ctrl: 0, subs: 0, ...o });
+  it('knockdown e queda pesam mais que golpes; positivo é o vermelho', () => {
+    expect(roundEdge({ n: 1, red: side({ sig: 9, kd: 1 }), blue: side({ sig: 12 }) })).toBe(5);
+    expect(roundEdge({ n: 2, red: side({ sig: 5 }), blue: side({ sig: 5, td: 2, ctrl: 150 }) })).toBe(-18);
   });
 });

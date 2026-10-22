@@ -7,7 +7,10 @@ import { fmtMoneyline, impliedProb } from '@shared/format';
 import { fighterHref, useFight } from '@/lib/api';
 import { fullDate, lastName, mmss, splitEventName } from '@/lib/format';
 import { CORNER, CORNER_FILL, DuelHead, DuelRow, OddsChip, oddsView } from '@/components/Duel';
-import { Avatar, Empty, ErrorState, Flag, LiveTag, Panel, Reveal, Segmented, Tag, Tip, trackSpotlight, usePageTitle } from '@/components/kit';
+import { RoundFlow } from '@/components/RoundFlow';
+import { ProbCompare } from '@/components/ProbCompare';
+import { FanJudge } from '@/components/FanJudge';
+import { Avatar, Empty, ErrorState, Flag, LiveTag, MethodTag, Panel, Term, Reveal, Segmented, Tag, Tip, trackSpotlight, usePageTitle } from '@/components/kit';
 import silhueta from '@/assets/silhueta.png';
 import { FightPreview } from '@/components/FightPreview';
 import { FightSkeleton } from '@/components/Skeletons';
@@ -35,7 +38,7 @@ function Corner({ f, side, won, odds }: { f: FighterRef; side: 'a' | 'b'; won: b
         <Flag code={f.countryCode} src={f.flag} title={f.country} size={20} /><span className="hidden sm:inline">{f.country}</span><span className="hidden text-fg-3 sm:inline">·</span><span className="num whitespace-nowrap font-semibold">{f.record}</span>
       </div>
       {odds && <div className="mt-2.5">{odds}</div>}
-      <div className="relative mt-4 h-[230px] w-full sm:h-[420px]">
+      <div className="relative mt-4 h-[230px] w-full sm:h-[420px]" style={{ viewTransitionName: `fight-${side}` }}>
         {won && <span className={`absolute top-2 z-10 ${right ? 'right-0' : 'left-0'}`}><Tag tone="dark" className="h-7 px-2.5 text-[13px] sm:h-8 sm:px-3.5 sm:text-[14px]"><Trophy weight="fill" className="h-4 w-4 text-gold" /> Vitória</Tag></span>}
         {f.bodyImage && !failed ? (
           <img src={proxy(f.bodyImage, 640)} alt={f.name} fetchPriority="high" decoding="async" onError={() => setFailed(true)}
@@ -64,7 +67,9 @@ function ResultBox({ d }: { d: FightDetail }) {
         {cells.map((c, i) => (
           <div key={c.k} className={`px-3 py-4 ${i ? 'border-l border-line' : ''}`}>
             <div className="label">{c.k}</div>
-            <div className={`num mt-1.5 font-display font-bold leading-tight text-fg ${String(c.v).length > 8 ? 'text-[16px] break-words' : 'text-[20px]'}`}>{c.v}</div>
+            {r && c.k === 'Método'
+              ? <div className="mt-1.5 flex justify-center"><MethodTag method={r.method} size="md" className="max-w-full" /></div>
+              : <div className={`num mt-1.5 font-display font-bold leading-tight text-fg ${String(c.v).length > 8 ? 'text-[16px] break-words' : 'text-[20px]'}`}>{c.v}</div>}
           </div>
         ))}
       </div>
@@ -201,11 +206,11 @@ function MethodTable({ red, blue, names }: { red?: MethodOdds; blue?: MethodOdds
   if (!red && !blue) return null;
   const rows: [string, keyof MethodOdds][] = [['Por KO/TKO', 'ko'], ['Por finalização', 'sub'], ['Por decisão', 'dec']];
   const cell = (v?: number) => (
-    <td className="text-center"><span className="num font-semibold text-fg">{fmtMoneyline(v)}</span>{v !== undefined && <span className="ml-1.5 text-[13px] text-fg-3">{Math.round((impliedProb(v) ?? 0) * 100)}%</span>}</td>
+    <td className="text-center"><span className="num font-semibold text-fg">{fmtMoneyline(v)}</span>{v !== undefined && <span className="block text-[13px] text-fg-3 sm:ml-1.5 sm:inline">{Math.round((impliedProb(v) ?? 0) * 100)}%</span>}</td>
   );
   return (
-    <table className="table mt-2">
-      <thead><tr><th>Vitória</th><th className="text-center">{names[0]}</th><th className="text-center">{names[1]}</th></tr></thead>
+    <table className="table mt-2 w-full table-fixed sm:table-auto">
+      <thead><tr><th className="w-[38%] sm:w-auto">Vitória</th><th className="break-words text-center">{names[0]}</th><th className="break-words text-center">{names[1]}</th></tr></thead>
       <tbody>{rows.map(([label, k]) => <tr key={k}><td className="text-fg-2">{label}</td>{cell(red?.[k])}{cell(blue?.[k])}</tr>)}</tbody>
     </table>
   );
@@ -234,13 +239,27 @@ function LineMove({ open, close, right }: { open?: number; close?: number; right
 
 /** Cartões dos juízes: uma linha por juiz, um quadrinho por round (cor de quem venceu o round) e o total. */
 function ScorecardsPanel({ d }: { d: FightDetail }) {
-  const sc = d.scorecards;
-  if (!sc?.judges.length) return null;
-  const n = Math.max(...sc.judges.map(j => j.rounds.length));
+  const sc = d.scorecards, r = d.fight.result;
   const last = (x: string) => x.split(' ').slice(-1)[0];
-  const winRed = d.fight.result?.winnerId === d.red.espnId;
+  const decision = /decis/i.test(r?.method ?? '');
+  if (!sc?.judges.length) {
+    // luta encerrada sem cartões: explica em vez de sumir com o quadro
+    if (d.fight.status !== 'post' || !r) return null;
+    return (
+      <Panel title="Cartões dos juízes" bodyClass="px-6 pb-6">
+        <p className="text-[14px] leading-relaxed text-fg-2">
+          {!decision && (r.round ?? 1) <= 1
+            ? <>Sem cartões: a luta acabou por <b className="text-fg">{r.method}</b> no 1º round, antes de os juízes pontuarem um round completo.</>
+            : 'Os cartões desta luta não foram divulgados pelo UFC.'}
+        </p>
+      </Panel>
+    );
+  }
+  const n = Math.max(...sc.judges.map(j => j.rounds.length));
+  const winRed = r?.winnerId === d.red.espnId;
+  const ahead = (side: 'red' | 'blue') => sc.judges.filter(j => (side === 'red' ? j.red > j.blue : j.blue > j.red)).length;
   return (
-    <Panel eyebrow={sc.source} title="Cartões dos juízes" bodyClass="px-6 pb-6">
+    <Panel eyebrow={decision ? sc.source : `Até a interrupção no ${r?.round}º round · ${sc.source}`} title="Cartões dos juízes" bodyClass="px-6 pb-6">
       <div className="mt-2 flex items-center gap-4 text-[13px] text-fg-2">
         <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-md" style={{ background: CORNER.a }} />{last(d.red.name)}</span>
         <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-md" style={{ background: CORNER.b }} />{last(d.blue.name)}</span>
@@ -273,7 +292,14 @@ function ScorecardsPanel({ d }: { d: FightDetail }) {
         ))}
       </div>
       <p className="mt-4 text-[13px] text-fg-3">
-        {sc.judges.every(j => (j.red > j.blue) === winRed) ? 'Os três juízes deram a vitória ao mesmo lutador.' : 'Os juízes divergiram nesta luta.'}
+        {decision
+          ? (sc.judges.every(j => (j.red > j.blue) === winRed) ? 'Os três juízes deram a vitória ao mesmo lutador.' : 'Os juízes divergiram nesta luta.')
+          : (() => {
+              // na interrupção os cartões não decidem nada: mostram quem estava na frente
+              const a = ahead('red'), b = ahead('blue');
+              const lead = a > b ? d.red : b > a ? d.blue : null;
+              return <>A luta acabou por {r?.method} antes da decisão. {lead ? <>Até ali, <b className="text-fg-2">{last(lead.name)}</b> vencia em {Math.max(a, b)} de {sc.judges.length} cartões{(lead === d.red) === winRed ? ' e confirmou com a vitória' : ', mas sofreu a virada'}.</> : 'Até ali, os cartões estavam empatados.'}</>;
+            })()}
       </p>
     </Panel>
   );
@@ -297,7 +323,7 @@ function OddsPanel({ d }: { d: FightDetail }) {
           <OddsChip {...v.red} />
           <LineMove open={o.redOpen} close={o.red} />
         </div>
-        <div className="pb-2 text-[13px] text-fg-3">chance implícita</div>
+        <div className="pb-2 text-[13px] text-fg-3"><Term label="chance implícita" /></div>
         <div className="text-right">
           <div className="num font-display text-[32px] font-semibold text-fg">{Math.round(v.blue.p * 100)}%</div>
           <OddsChip {...v.blue} />
@@ -400,10 +426,13 @@ export default function Fight() {
               ? <FightPreview red={d.red} blue={d.blue} />
               : <Panel title="Estatísticas da luta"><Empty>Sem estatísticas registradas para esta luta.</Empty></Panel>
           )}
+          {d.rounds && <div className="mt-6"><RoundFlow d={d} /></div>}
         </Reveal>
         <Reveal delay={0.08} className="space-y-6">
           <OddsPanel d={d} />
+          <ProbCompare f={d.fight} eventId={d.eventId} provider={d.fight.odds?.provider} />
           <ScorecardsPanel d={d} />
+          <FanJudge d={d} />
           <Link to={`/comparar?a=${d.red.slug}&ae=${d.red.espnId}&b=${d.blue.slug}&be=${d.blue.espnId}`} className="btn w-full justify-center"><ArrowsLeftRight className="h-4 w-4" /> Comparar a carreira de {d.red.name.split(' ').slice(-1)[0]} e {d.blue.name.split(' ').slice(-1)[0]}</Link>
         </Reveal>
       </div>

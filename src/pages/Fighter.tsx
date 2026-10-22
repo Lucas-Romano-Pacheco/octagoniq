@@ -8,7 +8,9 @@ import { fightHref, fighterHref, useDivisionAvg, useFighter } from '@/lib/api';
 import { fullDate, lastName, mmss, nf, pct, ratio, shortEvent } from '@/lib/format';
 import { EChart } from '@/components/LazyChart';
 import { SERIES, axisBase, tooltipBase, useInk } from '@/components/chart-theme';
-import { Avatar, Brush, Defer, OctagonFrame, CountUp, Empty, ErrorState, Flag, FlagBackdrop, HistoryBadge, Meter, Panel, RankBadge, SortTh, Tip, useSort, RecordCount, Segmented, Stat, Tag, VsAvg, usePageTitle } from '@/components/kit';
+import { Avatar, Brush, CountUp, Defer, Empty, ErrorState, Flag, FlagBackdrop, HistoryBadge, Meter, MethodTag, OctagonFrame, Panel, RankBadge, RecordCount, Segmented, SortTh, Stat, Tag, Tip, usePageTitle, useSort, VsAvg } from '@/components/kit';
+import { StrikingPanel, StyleTags } from '@/components/StyleTags';
+import { EloPanel } from '@/components/EloPanel';
 import { AttrRadar, hasRadar, RADAR_NOTE } from '@/components/Radar';
 import { FighterSkeleton } from '@/components/Skeletons';
 import { proxy } from '@/lib/img';
@@ -51,6 +53,7 @@ function Header({ p }: { p: FighterProfile }) {
           {b.hometown && <span className="text-fg-3">Natural de {b.hometown}</span>}
           {b.team && <span className="text-fg-3">{b.team}</span>}
         </motion.div>
+        <StyleTags stats={p.stats} className="mt-4" />
         <motion.div {...fade(0.18)} className="mt-9">
           <Link to={`/comparar?a=${b.slug}${b.espnId ? `&ae=${b.espnId}` : ''}`} className="btn-primary"><ArrowsLeftRight className="h-4 w-4" /> Comparar com outro lutador</Link>
           {/* perfis externos numa linha discreta. Tapology e Sherdog não têm API e os termos não permitem reaproveitar os dados:
@@ -250,9 +253,12 @@ function OfficialPanel({ s, division, slug }: { s: OfficialStats; division?: str
   );
   const mark = (k: AvgKey) => (avg[k] !== undefined ? { value: avg[k]!, label: `Média dos ranqueados do ${div}` } : undefined);
   return (
-    <Panel plain title={<div><h2 className="panel-title">{title}</h2>{d && <p className="mt-0.5 text-[13px] text-fg-3">Estatísticas oficiais · comparadas com a média dos {d.n} ranqueados do {div} (campeão + top 15)</p>}</div>}
-      action={<span className="text-[13px] text-fg-3">UFC.com · carreira no UFC</span>}>
-      {!has ? <Empty>Sem estatísticas oficiais no UFC.com para este atleta.</Empty> : (
+    <Panel plain title={<div><h2 className="panel-title">{title}</h2>
+      {s.source === 'espn'
+        ? <p className="mt-0.5 text-[13px] text-fg-3">O UFC.com não publicou os números deste atleta: calculados das {s.fights} lutas no UFC com estatística (ESPN){d ? ` e comparados com a média dos ${d.n} ranqueados do ${div}` : ''}</p>
+        : d && <p className="mt-0.5 text-[13px] text-fg-3">Estatísticas oficiais · comparadas com a média dos {d.n} ranqueados do {div} (campeão + top 15)</p>}</div>}
+      action={<span className="text-[13px] text-fg-3">{s.source === 'espn' ? 'ESPN · lutas no UFC' : 'UFC.com · carreira no UFC'}</span>}>
+      {!has ? <Empty>Sem estatísticas deste atleta no UFC.com nem nas lutas da ESPN.</Empty> : (
         <div className="grid gap-8 pt-2 md:grid-cols-[1fr_1.15fr]">
           <div className="grid grid-cols-2 gap-x-4 gap-y-5">
             {stat('Golpes sig. / min', 'slpm', 'conectados')}
@@ -320,9 +326,9 @@ function WinKpis({ s, history }: { s: OfficialStats; history: HistoryFight[] }) 
   const total = w.ko + w.sub + w.dec;
   if (!total) return null;
   const items = [
-    { label: 'Por nocaute', sub: 'KO/TKO', value: w.ko, Icon: Lightning, color: 'var(--color-blue)' },
-    { label: 'Por finalização', sub: 'Mata-leão, chaves…', value: w.sub, Icon: Hand, color: 'var(--color-orange)' },
-    { label: 'Por decisão', sub: 'Dos juízes', value: w.dec, Icon: Scales, color: 'var(--color-aqua)' },
+    { label: 'Por nocaute', sub: 'KO/TKO', value: w.ko, Icon: Lightning, color: 'var(--color-ko-fill)' },
+    { label: 'Por finalização', sub: 'Mata-leão, chaves…', value: w.sub, Icon: Hand, color: 'var(--color-sub-fill)' },
+    { label: 'Por decisão', sub: 'Dos juízes', value: w.dec, Icon: Scales, color: 'var(--color-dec-fill)' },
   ];
   const [top, ...rest] = [...items].sort((x, y) => y.value - x.value);
   const share = (v: number) => Math.round((v / total) * 100);
@@ -501,7 +507,7 @@ function History({ history, me }: { history: HistoryFight[]; me: FighterProfile[
                       {h.title && <Crown className="h-3.5 w-3.5 text-gold" aria-label="Disputa de título" />}
                     </Link>
                   </td>
-                  <td><Link to={fightHref(h.eventId, h.fightId)} className="group/m"><span className="text-fg group-hover/m:text-brand group-hover/m:underline group-hover/m:underline-offset-4">{h.method ?? '—'}</span>{h.detail && <span className="text-fg-3"> · {h.detail}</span>}</Link></td>
+                  <td><Link to={fightHref(h.eventId, h.fightId)} className="group/m inline-flex items-center gap-2">{h.method ? <MethodTag method={h.method} className="transition-transform group-hover/m:-translate-y-px" /> : <span className="text-fg-3">—</span>}{h.detail && <span className="text-[13px] text-fg-3 group-hover/m:text-brand">{h.detail}</span>}</Link></td>
                   <td className="num text-right font-mono text-fg-2">{h.round ?? '—'}</td>
                   <td className="num text-right font-mono text-fg-2">{h.clock ?? '—'}</td>
                   <td className="num text-right font-mono text-fg-2">{h.stats ? <>{h.stats.sigLanded}<span className="text-fg-3">/{h.stats.sigAttempted}</span></> : '—'}</td>
@@ -571,7 +577,7 @@ function NextFight({ h }: { h: HistoryFight }) {
 function RadarPanel({ p }: { p: FighterProfile }) {
   if (!hasRadar(p.stats)) return null;
   return (
-    <Panel plain title="Perfil de luta" action={<span className="text-[13px] text-fg-3">UFC.com</span>}>
+    <Panel plain title="Perfil de luta" action={<span className="text-[13px] text-fg-3">{p.stats.source === 'espn' ? 'ESPN' : 'UFC.com'}</span>}>
       <AttrRadar series={[{ name: p.bio.name, color: 'blue', stats: p.stats }]} height={280} />
       <p className="text-[13px] leading-relaxed text-fg-3">{RADAR_NOTE}</p>
     </Panel>
@@ -639,7 +645,7 @@ function Timeline({ history, me }: { history: HistoryFight[]; me: FighterProfile
                   {marks.get(h.fightId)?.map(m => <Tag key={m.label} tone={m.tone}>{m.tone === 'gold' ? <Crown className="h-3 w-3" /> : <FlagIcon className="h-3 w-3" />}{m.label}</Tag>)}
                 </div>
                 <div className="mt-1 text-[14px] text-fg-2">
-                  <Link to={fightHref(h.eventId, h.fightId)} className="hover:text-brand hover:underline hover:underline-offset-4">{h.method ?? '—'}{h.detail ? ` · ${h.detail}` : ''}</Link>
+                  <Link to={fightHref(h.eventId, h.fightId)} className="inline-flex items-center gap-1.5 align-middle hover:text-brand">{h.method ? <MethodTag method={h.method} /> : '—'}{h.detail ? <span>{h.detail}</span> : null}</Link>
                   {h.round && <span className="num text-fg-3"> · R{h.round} {h.clock}</span>}
                 </div>
                 <div className="mt-0.5 text-[13px] text-fg-3">{shortEvent(h.eventName)} · {fullDate(h.date)}</div>
@@ -714,6 +720,7 @@ export default function Fighter() {
             <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
               <div className="min-w-0 space-y-6">
                 <WinKpis s={p.stats} history={p.history} />
+                <StrikingPanel s={p.stats} />
                 <OfficialPanel s={p.stats} division={p.bio.division} slug={p.bio.slug} />
                 <PerFightChart history={p.history} />
                 <Breakdowns s={p.stats} />
@@ -722,6 +729,7 @@ export default function Fighter() {
                 {p.nextFight ? <NextFight h={p.nextFight} /> : (
                   <Panel plain title="Próxima luta"><p className="pb-1 text-[14px] text-fg-3">Sem luta marcada. Por enquanto, de folga.</p></Panel>
                 )}
+                <EloPanel espnId={p.bio.espnId} />
                 <RadarPanel p={p} />
                 <Bio p={p} />
                 <News items={p.news} />

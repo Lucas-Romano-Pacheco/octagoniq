@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type CSSProperties, type HTMLAttributes, type PointerEvent, type ReactNode } from 'react';
 import { clsx } from 'clsx';
+import { glossaryFor } from '@/lib/glossary';
 import { Link } from 'react-router-dom';
 import { animate, motion, useInView, useReducedMotion } from 'motion/react';
-import { ArrowClockwise, ArrowDown, ArrowUp, CalendarCheck, CaretDown, CaretUp, CaretUpDown, WarningCircle } from '@phosphor-icons/react';
+import { ArrowClockwise, ArrowDown, ArrowUp, CalendarCheck, CaretDown, CaretUp, CaretUpDown, HandGrabbing, Lightning, Scales, WarningCircle } from '@phosphor-icons/react';
 import { circleFlag, rectFlag } from '@/lib/flags';
 import type { BookedFight, HistoryFight } from '@shared/types';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -224,7 +225,7 @@ export function Avatar({ src, name, size = 40, className, flag, ring }: { src?: 
         <img src={proxy(src, Math.min(size * 5, 720))} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)}
           className="absolute left-1/2 top-[6%] h-[135%] w-auto max-w-none -translate-x-1/2 object-cover" />
       ) : (
-        <span className="grid h-full w-full place-items-center font-semibold text-fg-3" style={{ fontSize: size * 0.32 }}>{initials(name)}</span>
+        <span className="grid h-full w-full place-items-center font-semibold text-fg-3" style={{ fontSize: Math.max(11, size * 0.32) }}>{initials(name)}</span>
       )}
     </div>
   );
@@ -262,6 +263,18 @@ export function NationRecord({ code, country, record, className }: { code?: stri
 /* ---------- Tooltip ---------- */
 
 /** Tooltip do site (substitui o `title` nativo): cartão escuro com título opcional e texto. */
+/** Termo do glossário (modo iniciante): sublinhado pontilhado e a explicação ao passar o mouse ou focar. Rótulo que não
+    está no glossário volta como texto comum. */
+export function Term({ label, children }: { label: string; children?: ReactNode }) {
+  const g = glossaryFor(label);
+  if (!g) return <>{children ?? label}</>;
+  return (
+    <Tip title={g.term} content={g.text}>
+      <span tabIndex={0} className="cursor-help underline decoration-fg-3/50 decoration-dotted underline-offset-[3px] outline-none hover:decoration-fg-2 focus-visible:decoration-fg-2">{children ?? label}</span>
+    </Tip>
+  );
+}
+
 export function Tip({ content, title, children, side = 'top' }: { content: ReactNode; title?: ReactNode; children: ReactNode; side?: 'top' | 'bottom' | 'left' | 'right' }) {
   return (
     <Tooltip>
@@ -394,7 +407,7 @@ export function FightCard({ me, opp, outcome, method, detail, round, clock, date
       {method && (
         <dl className="mt-2 grid grid-cols-[1fr_1fr_2fr] gap-x-2 border-t border-line pt-2 text-center">
           {([['Round', round ?? '—'], ['Tempo', clock ?? '—'], ['Método', method]] as const).map(([k, v]) => (
-            <div key={k} className="min-w-0"><dt className="text-[12px] text-fg-3">{k}</dt><dd className="num text-[13px] font-bold text-fg">{v}</dd></div>
+            <div key={k} className="min-w-0"><dt className="text-[12px] text-fg-3">{k}</dt><dd className="num text-[13px] font-bold text-fg">{k === 'Método' ? <MethodTag method={method} className="mt-0.5 max-w-full" /> : v}</dd></div>
           ))}
         </dl>
       )}
@@ -464,6 +477,29 @@ export function RankBadge({ rankLabel, division, women, className }: { rankLabel
   );
 }
 
+/** Método da vitória: cor e ícone próprios, os mesmos em todo o site (palpites, resultados, histórico). */
+export const METHOD_META = {
+  ko: { label: 'KO/TKO', Icon: Lightning, color: 'var(--color-ko-fill)' },
+  sub: { label: 'Finalização', Icon: HandGrabbing, color: 'var(--color-sub-fill)' },
+  dec: { label: 'Decisão', Icon: Scales, color: 'var(--color-dec-fill)' },
+} as const;
+export const methodOf = (m?: string): keyof typeof METHOD_META | undefined =>
+  /KO/i.test(m ?? '') ? 'ko' : /Finaliza/i.test(m ?? '') ? 'sub' : /Decis/i.test(m ?? '') ? 'dec' : undefined;
+
+/** Etiqueta do método ("KO/TKO", "Decisão dividida"…) na cor dele; métodos raros (DQ, sem resultado) ficam neutros. */
+export function MethodTag({ method, size = 'sm', className }: { method?: string; size?: 'sm' | 'md'; className?: string }) {
+  if (!method) return null;
+  const k = methodOf(method);
+  const meta = k && METHOD_META[k];
+  return (
+    <span title={glossaryFor(method)?.text} className={clsx('inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md font-display font-bold uppercase tracking-[0.04em]',
+      size === 'md' ? 'h-7 px-2.5 text-[13px]' : 'h-6 px-2 text-[12px]', meta ? 'text-white' : 'bg-surface-2 text-fg-2', className)}
+      style={meta ? { background: meta.color } : undefined}>
+      {meta && <meta.Icon weight="fill" className={size === 'md' ? 'h-4 w-4' : 'h-3.5 w-3.5'} />}{method}
+    </span>
+  );
+}
+
 export function Tag({ children, tone = 'neutral', className }: { children: ReactNode; tone?: 'neutral' | 'gold' | 'orange' | 'brand' | 'blue' | 'dark'; className?: string }) {
   const tones = {
     neutral: 'bg-surface-2 text-fg-2',
@@ -489,7 +525,7 @@ export function LiveTag() {
 export function Stat({ label, value, sub, className, footer }: { label: ReactNode; value: ReactNode; sub?: ReactNode; className?: string; footer?: ReactNode }) {
   return (
     <div className={clsx('min-w-0', className)}>
-      <div className="label truncate">{label}</div>
+      <div className="label truncate">{typeof label === 'string' ? <Term label={label} /> : label}</div>
       <div className="display mt-2 text-[32px] text-fg">{value}</div>
       {sub && <div className="mt-1 text-[14px] text-fg-3">{sub}</div>}
       {footer && <div className="mt-1.5">{footer}</div>}
@@ -507,7 +543,7 @@ export function Meter({ label, value, display, color = 'var(--color-blue)', hint
   return (
     <MaybeTip content={hint}><div>
       <div className="mb-2 flex items-baseline justify-between gap-2 text-[14px]">
-        <span className="text-fg-2">{label}</span>
+        <span className="text-fg-2">{hint ? label : <Term label={label} />}</span>
         <span className="num font-semibold text-fg">{display}{mark && <span className="ml-2 text-[13px] font-medium text-fg-3">média {Math.round(mark.value)}%</span>}</span>
       </div>
       <div className="relative h-2 rounded-full bg-surface-2">

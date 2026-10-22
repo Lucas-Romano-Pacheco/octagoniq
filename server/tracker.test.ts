@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { buildScorecards, findFight, slugs } from './tracker.ts';
+import { buildRounds, buildScorecards, findFight, slugs } from './tracker.ts';
 
 const load = (n: string) => JSON.parse(readFileSync(new URL(`./__fixtures__/${n}`, import.meta.url), 'utf8'));
 const card = load('tracker-event-1317.json').LiveEventDetail.FightCard;
@@ -39,5 +39,22 @@ describe('endereço do evento no UFC.com', () => {
   });
   it('card que vira o dia em UTC continua no dia local', () => {
     expect(slugs('UFC Fight Night: X vs. Y', '2026-11-08T02:00Z')[0]).toBe('ufc-fight-night-november-7-2026');
+  });
+});
+
+describe('estatísticas por round', () => {
+  const fight = {
+    Fighters: [{ FighterId: 1, Name: { FirstName: 'Joaquin', LastName: 'Buckley' } }, { FighterId: 2, Name: { FirstName: 'Mike', LastName: 'Malott' } }],
+    RoundStats: [
+      { FighterId: 2, Rounds: [{ RoundNumber: 1, SigStrikesLanded: 12, SigStrikesAttempted: 30, Knockdowns: 0, TakedownsLanded: 1, TakedownsAttempted: 2, ControlTime: '1:30', SubmissionsAttempted: 0 }] },
+      { FighterId: 1, Rounds: [{ RoundNumber: 1, SigStrikesLanded: 9, SigStrikesAttempted: 37, Knockdowns: 1, TakedownsLanded: 0, TakedownsAttempted: 0, ControlTime: '0:00', SubmissionsAttempted: 0 }] },
+    ],
+  };
+  it('põe cada lutador no canto da ESPN e converte o controle em segundos', () => {
+    const r = buildRounds(fight, 'Joaquin Buckley')!;
+    expect(r[0]).toMatchObject({ n: 1, red: { sig: 9, kd: 1 }, blue: { sig: 12, td: 1, ctrl: 90 } });
+  });
+  it('sem números (luta sem estatística) devolve null', () => {
+    expect(buildRounds({ Fighters: fight.Fighters, RoundStats: [] }, 'Joaquin Buckley')).toBeNull();
   });
 });

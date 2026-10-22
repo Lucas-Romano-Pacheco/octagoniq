@@ -3,7 +3,7 @@ import { clsx } from 'clsx';
 import { ChartBarHorizontal, Table } from '@phosphor-icons/react';
 import type { FightOdds } from '@shared/types';
 import { fairProbs, fmtMoneyline, oddsTier, type OddsTier } from '@shared/format';
-import { Segmented, Tip } from './kit';
+import { Segmented, Term, Tip } from './kit';
 
 /* Componentes de confronto vermelho × azul, usados na comparação e na página da luta. */
 
@@ -11,6 +11,8 @@ export type Side = 'a' | 'b';
 export const CORNER = { a: 'var(--color-red)', b: 'var(--color-blue)' };
 /** Mesmas cores, em tom de preenchimento: para fundos com texto branco por cima (contraste >= 4.5:1). */
 export const CORNER_FILL = { a: 'var(--color-red-fill)', b: 'var(--color-blue-fill)' };
+/** Cor dos cantos para texto (números e nomes coloridos): contraste de leitura também no fundo claro. */
+export const CORNER_INK = { a: 'var(--color-red-fill)', b: 'var(--color-blue-ink)' };
 
 export const better = (a?: number, b?: number, lowerIsBetter = false): Side | null => {
   if (a === undefined || b === undefined || a === b) return null;
@@ -73,7 +75,7 @@ export function DuelRow({ label, a, b, fmt = v => (v === undefined ? '—' : Str
   const win = better(a, b, lowerIsBetter);
   if (view === 'tabela') return (
     <div className="grid grid-cols-[minmax(0,1fr)_5.5rem_5.5rem] items-baseline gap-3 px-5 py-2.5 sm:grid-cols-[minmax(0,1fr)_8rem_8rem]">
-      <span className="text-[14px] text-fg-2">{label}{lowerIsBetter && <span className="text-[13px] text-fg-3"> (menor é melhor)</span>}</span>
+      <span className="text-[14px] text-fg-2"><Term label={label} />{lowerIsBetter && <span className="text-[13px] text-fg-3"> (menor é melhor)</span>}</span>
       {([['a', a], ['b', b]] as const).map(([s, v], i) => (
         <span key={s} className={clsx('num text-right text-[16px]', win === s ? 'font-bold text-fg' : 'text-fg-2')}>
           {fmt(v)}{sub && <span className="block whitespace-nowrap text-[12px] font-normal text-fg-3">{sub[i]}</span>}
@@ -86,7 +88,7 @@ export function DuelRow({ label, a, b, fmt = v => (v === undefined ? '—' : Str
       <div className="mb-1.5 grid grid-cols-[1fr_auto_1fr] items-baseline gap-3">
         {/* o complemento ("de 44 · 50%") fica ao lado no desktop e numa linha própria no celular */}
         <span className={clsx('num text-right text-[16px]', win === 'a' ? 'font-bold text-fg' : 'text-fg-2')}>{fmt(a)}{sub && <span className="block whitespace-nowrap text-[13px] font-normal text-fg-3 sm:ml-1.5 sm:inline sm:text-[13px]">{sub[0]}</span>}</span>
-        <span className="text-center text-[13px] text-fg-3">{label}{lowerIsBetter && <span className="text-fg-3"> (menor é melhor)</span>}</span>
+        <span className="text-center text-[13px] text-fg-3"><Term label={label} />{lowerIsBetter && <span className="text-fg-3"> (menor é melhor)</span>}</span>
         <span className={clsx('num text-[16px]', win === 'b' ? 'font-bold text-fg' : 'text-fg-2')}>{fmt(b)}{sub && <span className="block whitespace-nowrap text-[13px] font-normal text-fg-3 sm:ml-1.5 sm:inline sm:text-[13px]">{sub[1]}</span>}</span>
       </div>
       <div className="grid grid-cols-2 gap-[2px]">

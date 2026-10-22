@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { clsx } from 'clsx';
 import { ArrowLeft, ArrowsClockwise, CaretDown, Crown, MapPin, Target } from '@phosphor-icons/react';
 import type { CardSegment, EventDetail, Fight, FighterRef } from '@shared/types';
@@ -7,6 +7,7 @@ import { fighterHref, useEvent } from '@/lib/api';
 import { longDate, mmss, SEGMENT_LABEL, splitEventName, time } from '@/lib/format';
 import { cardSummary } from '@/lib/fights';
 import { FightRow } from '@/components/FightRow';
+import { NightStories } from '@/components/NightStories';
 import { LiveBar, useFightNotices, useLiveTitle } from '@/components/LiveBar';
 import { EventSkeleton } from '@/components/Skeletons';
 import { Defer, ErrorState, FlagBackdrop, LiveTag, OctagonFrame, Panel, Tag, usePageTitle } from '@/components/kit';
@@ -130,6 +131,7 @@ export default function Event() {
   const { id } = useParams();
   const { data: e, isPending: isLoading, isError, error, refetch, isFetching, dataUpdatedAt } = useEvent(id);
   const notices = useFightNotices(e);
+  const [params] = useSearchParams();
   usePageTitle(e?.name);
   useLiveTitle(e); // depois do título da página: durante a luta, o título ao vivo vence
 
@@ -149,6 +151,7 @@ export default function Event() {
       {e.status !== 'post' && (
         <Link to={`/palpites/${e.id}`} className="btn-primary w-fit"><Target weight="bold" className="h-5 w-5" /> Fazer meus palpites</Link>
       )}
+      {e.status === 'post' && <NightStories ev={e} autoOpen={params.get('resumo') === '1'} />}
       <Summary fights={e.fights} />
       <SegmentNav e={e} />
       {ORDER.map((seg, i) => (

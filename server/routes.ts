@@ -7,6 +7,8 @@ import * as espn from './espn.ts';
 import * as ufc from './ufc.ts';
 import * as bfo from './bfo.ts';
 import * as tracker from './tracker.ts';
+import * as wiki from './wiki.ts';
+import * as elo from './elo.ts';
 import { UpstreamError, remember, settle, MIN, HOUR } from './http.ts';
 
 export interface ApiResponse { status: number; body: unknown; maxAge: number }
@@ -61,19 +63,26 @@ export async function upcoming(limit: number) {
   return lists.flat().filter(e => new Date(e.date).getTime() > now - 8 * 3600_000).slice(0, limit);
 }
 
+const retry = <T>(fn: () => Promise<T>) => fn().catch(() => new Promise(res => setTimeout(res, 700)).then(fn));
+
 /** Perfil completo: UFC.com (bio e estatísticas oficiais) + ESPN (histórico, notícias). Cacheado 30 min, com SWR e disco. */
 export function fighterProfile(slug: string, espnHint?: string | null): Promise<FighterProfile | null> {
   // a versão na chave invalida perfis salvos com um formato antigo
-  return remember(`fighter:v3:${slug}`, 30 * MIN, async () => {
+  return remember(`fighter:v5:${slug}`, 30 * MIN, async () => {
     const page = await ufc.athletePage(slug).catch(() => null);
     const guessName = page?.bio.name ?? slug.replace(/-/g, ' ');
-    const espnId = espnHint || await espn.resolveEspnId(guessName, page?.bio.record);
+    // o nome do UFC.com e o da ESPN às vezes diferem ("Muhammad Saidov" × "Muhammad Said"): sem achar pelo nome da
+    // página, tenta o nome do endereço (o slug), sempre com a checagem de cartel da busca
+    const slugName = slug.replace(/-/g, ' ');
+    const espnId = espnHint || await espn.resolveEspnId(guessName, page?.bio.record)
+      || (fold(slugName) !== fold(guessName) ? await espn.resolveEspnId(slugName, page?.bio.record) : null);
     if (!page && !espnId) return null;
 
     const [ea, hist, news] = espnId
       ? await Promise.all([
-          espn.athlete(espnId).catch(() => null),
-          espn.history(espnId).catch(() => []),
+          // uma falha passageira da ESPN deixaria o perfil 30 min sem país e sem bio: tenta de novo antes de desistir
+          retry(() => espn.athlete(espnId)).catch(() => null),
+          retry(() => espn.history(espnId)).catch(() => []),
           espn.news(espnId).catch(() => []),
         ])
       : [null, [], []];
@@ -114,9 +123,16 @@ export function fighterProfile(slug: string, espnHint?: string | null): Promise<
       const l = bfo.matchLine(lines, h.opponent.name, h.date);
       if (l && (l.close ?? l.open)) h.odds = { ml: l.close ?? l.open, oppMl: l.oppClose ?? l.oppOpen, provider: 'BestFightOdds' };
     }
+    // o UFC.com às vezes publica a página do atleta sem os números (ex.: Jack Della Maddalena em out/2026):
+    // nesse caso, as médias de carreira saem das lutas na ESPN, e as vitórias por método continuam as do UFC.com
+    let stats = page?.stats ?? {};
+    if (stats.slpm === undefined && espnId) {
+      const derived = await espn.careerFromFights(espnId, hist).catch(() => null);
+      if (derived) stats = { ...derived, winsBy: stats.winsBy ?? derived.winsBy };
+    } else if (page) stats = { ...stats, source: 'ufc' };
     const profile: FighterProfile = {
       bio,
-      stats: page?.stats ?? {},
+      stats,
       history: hist.filter(h => h.outcome !== 'pending'),
       nextFight: hist.filter(h => h.outcome === 'pending').sort((a, b) => a.date.localeCompare(b.date))[0],
       news,
@@ -226,17 +242,20 @@ const routes: [RegExp, Handler][] = [
 
   // luta específica: estatísticas de cada lado (alvo, posição, quedas) + odds; recortes de corpo inteiro do UFC.com
   [/^\/api\/events\/(?<id>\d+)\/fights\/(?<fight>\d+)$/, async ({ id, fight }) => {
-    const d = await remember(`fight:v4:${id}:${fight}`, 60_000, async () => {
+    const d = await remember(`fight:v6:${id}:${fight}`, 60_000, async () => {
       const f = await espn.fightDetail(id, fight);
       if (!f) return null;
       const [rb, bb] = await Promise.all([f.red, f.blue].map(x => ufc.athletePage(x.slug).then(p => p?.bio.bodyImage).catch(() => undefined)));
       const ev = await eventFull(id);
       const evFight = ev?.fights.find(x => x.id === fight);
       const title = evFight?.title ?? f.fight.title;
-      // decisão: cartões dos juízes do UFC Fight Tracker (null se não achar; a página segue sem eles)
-      const decision = /decis/i.test(f.fight.result?.method ?? '');
-      const scorecards = decision && ev ? await tracker.scorecards(ev.name, ev.date, f.red.name, f.blue.name) : null;
-      return { ...f, scorecards: scorecards ?? undefined, fight: { ...f.fight, title, odds: f.fight.odds ?? evFight?.odds }, red: { ...f.red, bodyImage: rb }, blue: { ...f.blue, bodyImage: bb } };
+      // cartões dos juízes (UFC Fight Tracker): na decisão, a luta inteira; num nocaute ou finalização, os rounds
+      // completos até a interrupção (null se não achar ou se acabou no 1º round; a página segue sem eles)
+      const ended = f.fight.status === 'post' && !!f.fight.result;
+      const [scorecards, rounds] = ended && ev
+        ? await Promise.all([tracker.scorecards(ev.name, ev.date, f.red.name, f.blue.name), tracker.roundStats(ev.name, ev.date, f.red.name, f.blue.name)])
+        : [null, null];
+      return { ...f, scorecards: scorecards ?? undefined, rounds: rounds ?? undefined, fight: { ...f.fight, title, odds: f.fight.odds ?? evFight?.odds }, red: { ...f.red, bodyImage: rb }, blue: { ...f.blue, bodyImage: bb } };
     });
     return d ? ok(d, d.fight.status === 'in' ? 15 : 300) : notFound('Luta não encontrada');
   }],
@@ -248,6 +267,22 @@ const routes: [RegExp, Handler][] = [
   [/^\/api\/rankings$/, async () => ok(await officialRankings(), 600)],
   [/^\/api\/rankings\/meta$/, async () => ok(await rankingsMeta(), 3600)],
   [/^\/api\/booked$/, async () => ok(await bookedFights(), 900)],
+  // nota Elo: ranking alternativo, um lutador e um par (chance de cada um)
+  [/^\/api\/elo\/ranking$/, async (_, q) => ok(await elo.eloRanking(q.get('division') ?? ''), 6 * 3600)],
+  [/^\/api\/elo\/fighter\/(?<id>\d+)$/, async ({ id }) => {
+    const f = await elo.eloFighter(id);
+    return f ? ok(f, 6 * 3600) : notFound('Sem nota Elo para este lutador');
+  }],
+  [/^\/api\/elo\/pair$/, async (_, q) => {
+    const t = await elo.eloTable();
+    const one = (id: string | null) => { const f = id ? t[id] : undefined; return f ? { rating: f.rating, fights: f.fights } : null; };
+    return ok({ a: one(q.get('a')), b: one(q.get('b')) }, 3600);
+  }],
+  // linha do tempo do cinturão (Wikipédia, CC BY-SA)
+  [/^\/api\/divisions\/belts$/, async (_, q) => {
+    const reigns = await wiki.beltHistory(q.get('name') ?? '');
+    return reigns ? ok(reigns, 6 * 3600) : notFound('Sem histórico para esta divisão');
+  }],
   [/^\/api\/divisions\/average$/, async (_, q) => {
     const d = await divisionAverages(q.get('name') ?? '');
     return d ? ok(d, 3600) : notFound('Divisão não encontrada');

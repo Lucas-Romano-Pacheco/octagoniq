@@ -9,8 +9,8 @@ import { fotnAwarded } from '@/lib/fights';
 import { lastName, splitEventName, time } from '@/lib/format';
 import { cardStart, FOTN, fotnLocked, isLocked, METHODS, POINTS } from '@/lib/picks';
 import { leaderboard, scoreRow, type EventInfo, type PickRow, type RankRow } from '@/lib/picks-ranking';
-import { getSupabase, useAuth } from '@/lib/supabase';
-import { CORNER } from './Duel';
+import { getSupabase, supabaseEnabled, useAuth } from '@/lib/supabase';
+import { CORNER, CORNER_INK } from './Duel';
 import { Avatar, CountUp, Empty, Panel, Segmented, Skeleton, Tag, Tip } from './kit';
 
 /* Aba "Ranking" dos palpites: pódio e classificação (do evento ou geral) e o quadro de quem está palpitando.
@@ -28,7 +28,7 @@ const MEDAL = ['var(--color-gold)', '#a9b2c6', '#c07a4b'];
 function usePickRows(eventId: string | undefined, scope: Scope) {
   return useQuery({
     queryKey: ['ranking', scope === 'geral' ? 'geral' : eventId],
-    enabled: scope === 'geral' || !!eventId,
+    enabled: supabaseEnabled && (scope === 'geral' || !!eventId),
     staleTime: 60_000,
     refetchInterval: 60_000,
     queryFn: async () => {
@@ -39,6 +39,20 @@ function usePickRows(eventId: string | undefined, scope: Scope) {
       return (data ?? []) as PickRow[];
     },
   });
+}
+
+/** Classificação de um evento (a mesma da aba Ranking), para a imagem de compartilhar mostrar a posição. */
+export function useEventBoard(event?: EventDetail) {
+  const rows = usePickRows(event?.id, 'evento');
+  const { data: bonus } = useBonuses(event?.status === 'post' ? event.id : undefined);
+  return useMemo(() => {
+    if (!event || !rows.data) return [];
+    const fights = new Map(event.fights.map(f => [f.id, f]));
+    const start = cardStart(event.fights);
+    const events = new Map<string, EventInfo>([[event.id, { start, awarded: fotnAwarded(event, bonus) }]]);
+    const closed = rows.data.filter(r => (r.fight_id === FOTN ? !!start && Date.parse(start) <= Date.now() : isLocked(fights.get(r.fight_id) ?? ({ status: 'pre' } as Fight))));
+    return leaderboard(closed, fights, events);
+  }, [event, rows.data, bonus]);
 }
 
 /** Quem já palpitou em cada luta (sem o palpite). */
@@ -56,11 +70,11 @@ function useParticipation(eventId: string) {
   });
 }
 
-function useNames(ids: string[]) {
+export function useNames(ids: string[]) {
   const key = [...new Set(ids)].sort();
   return useQuery({
     queryKey: ['profiles', key],
-    enabled: key.length > 0,
+    enabled: supabaseEnabled && key.length > 0,
     staleTime: 5 * 60_000,
     queryFn: async () => {
       const sb = await getSupabase();
@@ -211,8 +225,8 @@ function FightBoard({ f, voters, revealed, names, me, fotnVotes, awarded, i }: {
       ) : total ? (
         <div className="mt-4">
           <div className="mb-2 flex justify-between text-[13px] font-semibold">
-            <span style={{ color: CORNER.a }}>{pct}% · {lastName(f.red.name)}</span>
-            <span style={{ color: CORNER.b }}>{lastName(f.blue.name)} · {100 - pct}%</span>
+            <span style={{ color: CORNER_INK.a }}>{pct}% · {lastName(f.red.name)}</span>
+            <span style={{ color: CORNER_INK.b }}>{lastName(f.blue.name)} · {100 - pct}%</span>
           </div>
           {/* divisão da galera entre os dois cantos */}
           <div className="flex h-3 overflow-hidden rounded-full bg-surface-2">

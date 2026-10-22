@@ -97,8 +97,55 @@ language sql stable security definer set search_path = '' as $$
 $$;
 grant execute on function public.event_participation(text) to anon, authenticated;
 
+-- palpite da galera em cada luta, só em totais (quantos votos em cada lutador), sem dizer quem votou em quem:
+-- a página da luta compara com a probabilidade das casas de aposta
+create or replace function public.event_crowd(eid text) returns table (fight_id text, winner text, votes bigint)
+language sql stable security definer set search_path = '' as $$
+  select p.fight_id, p.winner, count(*) from public.picks p where p.event_id = eid and p.fight_id <> 'fotn' group by p.fight_id, p.winner;
+$$;
+grant execute on function public.event_crowd(text) to anon, authenticated;
+
 -- Observação: o ranking soma os pontos com o horário real de cada luta (ESPN) e ignora palpites com updated_at
 -- posterior a ele, então mesmo um locks_at falso enviado à mão não dá vantagem.
+
+-- ---------- "Seja o 4º juiz": a nota de cada round dada pelos usuários ----------
+
+create table if not exists public.round_scores (
+  user_id    uuid        not null references auth.users (id) on delete cascade,
+  event_id   text        not null,
+  fight_id   text        not null,
+  round      smallint    not null check (round between 1 and 5),
+  red        smallint    not null check (red between 7 and 10),
+  blue       smallint    not null check (blue between 7 and 10),
+  updated_at timestamptz not null default now(),
+  primary key (user_id, event_id, fight_id, round),
+  check (red = 10 or blue = 10)                         -- como no cartão oficial: o vencedor do round leva 10
+);
+
+alter table public.round_scores enable row level security;
+
+drop policy if exists "ver as proprias notas"    on public.round_scores;
+drop policy if exists "dar as proprias notas"    on public.round_scores;
+drop policy if exists "mudar as proprias notas"  on public.round_scores;
+drop policy if exists "apagar as proprias notas" on public.round_scores;
+
+create policy "ver as proprias notas"    on public.round_scores for select using (auth.uid() = user_id);
+create policy "dar as proprias notas"    on public.round_scores for insert with check (auth.uid() = user_id);
+create policy "mudar as proprias notas"  on public.round_scores for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "apagar as proprias notas" on public.round_scores for delete using (auth.uid() = user_id);
+
+-- notas da galera, sem identificar ninguém: quantas pessoas deram cada nota em cada round...
+create or replace function public.fight_fan_rounds(eid text, fid text) returns table (round smallint, red smallint, blue smallint, votes bigint)
+language sql stable security definer set search_path = '' as $$
+  select s.round, s.red, s.blue, count(*) from public.round_scores s where s.event_id = eid and s.fight_id = fid group by s.round, s.red, s.blue;
+$$;
+-- ...e o cartão completo de cada pessoa (soma dos rounds), para dizer a quem a galera deu a luta
+create or replace function public.fight_fan_cards(eid text, fid text) returns table (rounds bigint, red bigint, blue bigint)
+language sql stable security definer set search_path = '' as $$
+  select count(*), sum(s.red), sum(s.blue) from public.round_scores s where s.event_id = eid and s.fight_id = fid group by s.user_id;
+$$;
+grant execute on function public.fight_fan_rounds(text, text) to anon, authenticated;
+grant execute on function public.fight_fan_cards(text, text) to anon, authenticated;
 
 -- ---------- Administração (rode só quando precisar) ----------
 -- O login é apelido + senha. Por baixo, o Supabase guarda cada conta com um e-mail interno

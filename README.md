@@ -28,6 +28,15 @@
 - **Palpites:** escolha vencedor, método e round de cada luta do card. Os palpites fecham luta a luta e, quando os resultados saem, a página calcula acertos e pontos (10 pelo vencedor, +5 método, +5 round, +5 palpite perfeito, bônus por zebra) e um voto de **luta da noite** por evento (+15 se a luta escolhida levar o bônus oficial do UFC). O botão **Salvar palpites** confirma o que foi computado e grava no banco (Supabase/Postgres), na conta de cada pessoa. A pontuação é uma função pura e testada (`src/lib/picks.ts`).
 - **Ranking entre usuários:** aba dentro de Palpites com pódio e classificação (do evento ou geral, com empate dividindo a posição) e o quadro **Quem está palpitando**: antes da luta, quem já palpitou (sem revelar em quem); depois, de que lado cada um ficou, a divisão da galera e os pontos. O banco só revela o palpite de alguém depois do horário da luta, e palpite gravado depois do início não conta (`src/lib/picks-ranking.ts`, testado).
 - **Contas:** login com **apelido e senha**, sem e-mail (apelido único, conferido enquanto a pessoa digita, e o apelido aparece no cartaz da tela de entrar) e página **Minha conta** com a pontuação somada e a troca de senha.
+- **Domínio por round:** na página da luta, uma barra por round para o lado de quem levou vantagem (golpes, quedas, knockdowns e controle, do UFC Fight Tracker) e a linha da vantagem acumulada.
+- **Quem leva, segundo quem:** a chance das casas de aposta ao lado da divisão dos palpites da galera (só em totais, sem revelar ninguém).
+- **Resumo da noite:** depois do evento, cartões em tela cheia no estilo stories (luta principal, zebra, a mais rápida, bônus, seus pontos e o pódio da galera), com link para compartilhar.
+- **Linha do tempo do cinturão:** nos rankings, os reinados de cada divisão desde a criação, com o reinado mais longo e o recordista de defesas (Wikipédia, CC BY-SA).
+- **Imagem dos palpites:** "Compartilhar palpites" gera uma imagem pronta para o WhatsApp; depois do evento, com pontos e posição no ranking.
+- **Nota Elo:** ranking alternativo calculado com todas as lutas da história do UFC (desde o UFC 1, pelo placar anual da ESPN): nota, posição na divisão e curva da carreira no perfil, alternância "Ranking oficial × Nota Elo" nos rankings e a terceira probabilidade em "Quem leva, segundo quem" (`server/elo.ts`, testado).
+- **Seja o 4º juiz:** cada usuário dá nota a cada round (10-9, 10-8), ao vivo ou depois da decisão, e compara o seu cartão com o da galera e o dos juízes.
+- **Estilo e trocação:** etiquetas automáticas de estilo (trocador de volume, wrestler, finalizador…) e o diferencial de golpes, calculados das estatísticas oficiais.
+- **Modo iniciante:** termos como golpe significativo, knockdown, controle e decisão dividida têm explicação ao passar o mouse.
 - **Prévias ao compartilhar:** cada luta, evento e lutador tem imagem e título próprios no WhatsApp, LinkedIn etc.
 
 ## Stack
@@ -71,6 +80,8 @@ O primeiro carregamento de um lutador leva alguns segundos (cerca de 60 chamadas
 | UFC.com (ufc.com.br) | rankings oficiais, estatísticas oficiais de carreira, bio | leitura do HTML no servidor |
 | UFC Fight Tracker | cartões dos juízes e bônus da noite | JSON |
 | BestFightOdds | odds de abertura e fechamento de lutas encerradas | leitura do HTML, com cache de 7 dias |
+| Wikipédia (List of UFC champions) | histórico dos cinturões | API oficial (wikitext), uma leitura por dia, conteúdo CC BY-SA creditado |
+| UFC Fight Tracker | também as estatísticas por round (domínio por round) | JSON |
 
 **Tapology e Sherdog** não têm API e os termos não permitem reaproveitar o conteúdo (o Tapology também bloqueia acesso automatizado), então entram só como links no perfil de cada lutador.
 

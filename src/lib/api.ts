@@ -1,5 +1,5 @@
 import { keepPreviousData, queryOptions, useQuery } from '@tanstack/react-query';
-import type { BookedMap, DivisionAverages, EventDetail, EventListItem, FightDetail, FighterProfile, FighterRef, Rankings, RankingsMeta, SearchHit } from '@shared/types';
+import type { BeltReign, BookedMap, EloFighter, DivisionAverages, EventDetail, EventListItem, FightDetail, FighterProfile, FighterRef, Rankings, RankingsMeta, SearchHit } from '@shared/types';
 
 export class ApiError extends Error {
   status: number;
@@ -109,3 +109,16 @@ export function prefetchFromHref(client: import('@tanstack/react-query').QueryCl
   const e = url.pathname.match(/^\/eventos\/(\d+)$/);
   if (e) return client.prefetchQuery(eventQuery(e[1]));
 }
+
+/** Reinados do cinturão de uma divisão (Wikipédia), para a linha do tempo nos rankings. */
+export const useBeltHistory = (division?: string) =>
+  useQuery({ queryKey: ['belts', division], queryFn: () => get<BeltReign[]>(`/api/divisions/belts?name=${encodeURIComponent(division!)}`), enabled: !!division, staleTime: 6 * 60 * MIN, retry: false });
+
+/* ---------- Nota Elo (N7) ---------- */
+export const useEloFighter = (espnId?: string) =>
+  useQuery({ queryKey: ['elo', espnId], queryFn: () => get<EloFighter>(`/api/elo/fighter/${espnId}`), enabled: !!espnId, staleTime: 60 * MIN, retry: false });
+export const useEloRanking = (division?: string) =>
+  useQuery({ queryKey: ['elo-rank', division], queryFn: () => get<Omit<EloFighter, 'history'>[]>(`/api/elo/ranking?division=${encodeURIComponent(division!)}`), enabled: !!division, staleTime: 60 * MIN });
+export const useEloPair = (a?: string, b?: string) =>
+  useQuery({ queryKey: ['elo-pair', a, b], queryFn: () => get<{ a: { rating: number; fights: number } | null; b: { rating: number; fights: number } | null }>(`/api/elo/pair?a=${a}&b=${b}`), enabled: !!a && !!b, staleTime: 60 * MIN });
+

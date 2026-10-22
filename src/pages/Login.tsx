@@ -35,8 +35,7 @@ function Poster({ mode, name }: { mode: Mode; name: string }) {
   const shown = name.trim().toUpperCase();
   return (
     <div className="relative isolate flex min-h-[260px] flex-col justify-between overflow-hidden bg-band p-6 text-white sm:p-10 lg:min-h-[560px]">
-      <Cage className="pointer-events-none absolute -bottom-[30%] -right-[25%] -z-10 h-[120%] text-white/[0.08] lg:-bottom-[12%] lg:-right-[30%] lg:h-[105%]" />
-      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(70%_60%_at_15%_100%,color-mix(in_oklab,var(--color-brand)_28%,transparent),transparent)]" />
+      <Cage className="pointer-events-none absolute -bottom-[30%] -right-[25%] -z-10 h-[120%] text-white/[0.11] lg:-bottom-[12%] lg:-right-[30%] lg:h-[105%]" />
 
       <div className="flex items-center gap-2.5 font-display text-[13px] font-semibold uppercase tracking-[0.12em] text-white/70">
         <OctagonMark className="h-5 w-5" /> Palpites OctagonIQ
@@ -55,7 +54,7 @@ function Poster({ mode, name }: { mode: Mode; name: string }) {
               ? [...shown].map((ch, i) => (
                   <motion.span key={`${i}${ch}`} className="inline-block" initial={reduce ? false : { y: '35%', opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}>{ch}</motion.span>
                 ))
-              : <span className="text-white/25">Seu apelido</span>}
+              : <span className="text-white/45">Seu apelido</span>}
           </div>
           <Brush className="absolute -bottom-6 left-[4%] h-4 w-[92%] sm:-bottom-7 sm:h-5" />
         </div>

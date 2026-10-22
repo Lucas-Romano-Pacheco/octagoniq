@@ -3,7 +3,7 @@
    core.api   → estrutura de cada luta, status/método, histórico (eventlog)
    web.api    → bio, estatísticas luta a luta, notícias */
 
-import type { CardSegment, EventDetail, EventListItem, EventStatus, Fight, FightDetail, FightOdds, FightSideStats, FighterRef, HistoryFight, HistoryStats, MethodOdds, NewsItem, SearchHit } from '../shared/types.ts';
+import type { CardSegment, EventDetail, EventListItem, EventStatus, Fight, FightDetail, FightOdds, FightSideStats, FighterRef, HistoryFight, HistoryStats, MethodOdds, NewsItem, OfficialStats, SearchHit } from '../shared/types.ts';
 import { detailPt, feetInchesToCm, fold, methodPt, slugify, stancePt, toSeconds, weightClassPt } from '../shared/format.ts';
 import { HOUR, MIN, getJson, https, remember, settle } from './http.ts';
 import { countryInfo } from './countries.ts';
@@ -219,6 +219,45 @@ export async function fightDetail(eventId: string, fightId: string): Promise<Fig
     blue: { ...fight.blue, stats: sideStats(bs) },
     seconds: toSeconds(fight.result?.round, fight.result?.clock),
   };
+}
+
+/** Soma os números de várias lutas (minha estatística e a do adversário) em médias de carreira, no formato do
+    UFC.com. Função pura, testada em espn.test.ts. */
+export function careerFrom(fights: { me: FightSideStats; opp: FightSideStats; seconds: number }[]): OfficialStats | null {
+  const ok = fights.filter(f => f.seconds > 0);
+  if (!ok.length) return null;
+  const sum = (pick: (f: typeof ok[number]) => number) => ok.reduce((n, f) => n + pick(f), 0);
+  const min = sum(f => f.seconds) / 60;
+  const per = (n: number, base: number) => Math.round((n / base) * 100) / 100;
+  const pct = (a: number, b: number) => (b ? Math.round((a / b) * 100) : undefined);
+  const myTd = sum(f => f.me.tdLanded), myTdAtt = sum(f => f.me.tdAttempted), oppTd = sum(f => f.opp.tdLanded), oppTdAtt = sum(f => f.opp.tdAttempted);
+  const mySig = sum(f => f.me.sigLanded), mySigAtt = sum(f => f.me.sigAttempted), oppSig = sum(f => f.opp.sigLanded), oppSigAtt = sum(f => f.opp.sigAttempted);
+  const avg = sum(f => f.seconds) / ok.length;
+  return {
+    slpm: per(mySig, min), sapm: per(oppSig, min),
+    strAcc: pct(mySig, mySigAtt), strDef: oppSigAtt ? 100 - pct(oppSig, oppSigAtt)! : undefined,
+    tdAvg: per(myTd * 15, min), tdAcc: pct(myTd, myTdAtt), tdDef: oppTdAtt ? 100 - pct(oppTd, oppTdAtt)! : undefined,
+    subAvg: per(sum(f => f.me.subAttempts) * 15, min), kdAvg: per(sum(f => f.me.kd) * 15, min),
+    avgFightTime: `${String(Math.floor(avg / 60)).padStart(2, '0')}:${String(Math.round(avg % 60)).padStart(2, '0')}`,
+    sigLanded: mySig, sigAttempted: mySigAtt, tdLanded: myTd, tdAttempted: myTdAtt,
+    byTarget: { head: sum(f => f.me.head[0]), body: sum(f => f.me.body[0]), leg: sum(f => f.me.leg[0]) },
+    byPosition: { standing: sum(f => f.me.distance[0]), clinch: sum(f => f.me.clinch[0]), ground: sum(f => f.me.ground[0]) },
+    source: 'espn', fights: ok.length,
+  };
+}
+
+/** Plano B quando o UFC.com não publica as estatísticas de um atleta: busca, luta a luta, os números dele e do
+    adversário na ESPN e monta as médias de carreira. As lutas encerradas não mudam: 30 dias em cache. */
+export async function careerFromFights(espnId: string, hist: HistoryFight[]): Promise<OfficialStats | null> {
+  const done = hist.filter(h => h.outcome !== 'pending' && h.eventId && h.fightId && h.opponent.espnId);
+  const stat = (h: HistoryFight, id: string) =>
+    getJson<J>(`${CORE}/leagues/ufc/events/${h.eventId}/competitions/${h.fightId}/competitors/${id}/statistics`, 30 * 24 * HOUR).catch(() => null);
+  const rows = await Promise.all(done.map(async h => {
+    const [me, opp] = await Promise.all([stat(h, espnId), stat(h, h.opponent.espnId!)]);
+    const a = sideStats(me), b = sideStats(opp);
+    return a && b ? { me: a, opp: b, seconds: toSeconds(h.round, h.clock) ?? 0 } : null;
+  }));
+  return careerFrom(rows.filter((r): r is NonNullable<typeof r> => !!r));
 }
 
 /* ---------- Lutador ---------- */

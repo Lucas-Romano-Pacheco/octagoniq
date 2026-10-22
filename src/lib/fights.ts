@@ -1,4 +1,4 @@
-import type { Fight } from '@shared/types';
+import type { Fight, RoundSide, RoundStat } from '@shared/types';
 import { fairProbs } from '@shared/format';
 
 /* Contas sobre as lutas de um card, compartilhadas pelo resumo do evento e pela home. */
@@ -48,4 +48,11 @@ export function bonusFightIds(fights: Fight[], pairs: string[][]): string[] {
 /** Resultado da luta da noite para a pontuação: undefined enquanto o evento não acabou ou os bônus não chegaram. */
 export const fotnAwarded = (ev: { status: string; fights: Fight[] } | undefined, bonus: { fight: string[][] } | undefined) =>
   ev && ev.status === 'post' && bonus ? bonusFightIds(ev.fights, bonus.fight) : undefined;
+
+/** Peso de cada ação no domínio de um round: golpe significativo 1, knockdown 8, queda 4, finalização tentada 2,
+    cada 15 s de controle 1. É uma régua simples para o gráfico, não o critério dos juízes. */
+export const EDGE_WEIGHTS = { sig: 1, kd: 8, td: 4, subs: 2, ctrlPer: 15 } as const;
+export const roundScore = (s: RoundSide) => s.sig * EDGE_WEIGHTS.sig + s.kd * EDGE_WEIGHTS.kd + s.td * EDGE_WEIGHTS.td + s.subs * EDGE_WEIGHTS.subs + s.ctrl / EDGE_WEIGHTS.ctrlPer;
+/** Vantagem num round: positiva para o vermelho, negativa para o azul. */
+export const roundEdge = (r: RoundStat) => roundScore(r.red) - roundScore(r.blue);
 

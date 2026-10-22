@@ -2,16 +2,18 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { clsx } from 'clsx';
-import { ArrowCounterClockwise, CaretLeft, CaretRight, Check, Crown, FloppyDisk, HandGrabbing, Lightning, LockSimple, Scales, SignIn, Star, Trophy, X } from '@phosphor-icons/react';
+import { ArrowCounterClockwise, CaretLeft, CaretRight, Check, Crown, FloppyDisk, ShareNetwork, HandGrabbing, Lightning, LockSimple, Scales, SignIn, Star, Trophy, X } from '@phosphor-icons/react';
 import type { CardSegment, Fight, FighterRef } from '@shared/types';
 import { fightHref, useBonuses, useEvent, useSchedule, useUpcoming } from '@/lib/api';
 import { fotnAwarded } from '@/lib/fights';
+import { crowdShare, useCrowd } from '@/lib/crowd';
 import { dayMonth, lastName, SEGMENT_LABEL, splitEventName, time } from '@/lib/format';
 import { cardStart, FOTN, fightCount, fotnLocked, isLocked, MAX_POINTS, METHODS, POINTS, isDirty, scoreFight, summarize, usePicks, type MethodKey, type Pick, type Summary } from '@/lib/picks';
 import { CORNER, CORNER_FILL, OddsChip, oddsView } from '@/components/Duel';
 import { PicksAccount, loginHref } from '@/components/PicksAccount';
 import { PicksHistory } from '@/components/PicksHistory';
-import { PicksRanking } from '@/components/PicksRanking';
+import { PicksRanking, useEventBoard } from '@/components/PicksRanking';
+import { sharePicksCard } from '@/lib/share-card';
 import { supabaseEnabled, useAuth } from '@/lib/supabase';
 import { Avatar, Empty, ErrorState, Flag, PageHeader, Panel, Segmented, Skeleton, Tag, usePageTitle } from '@/components/kit';
 
@@ -21,9 +23,9 @@ import { Avatar, Empty, ErrorState, Flag, PageHeader, Panel, Segmented, Skeleton
 
 const ORDER: CardSegment[] = ['main', 'prelims', 'early'];
 const METHOD_ICON = { ko: Lightning, sub: HandGrabbing, dec: Scales } as const;
-/** Uma cor por método (fora do vermelho/azul dos cantos e do dourado do cinturão): KO laranja, finalização verde, decisão ardósia. */
+/** Uma cor por método (fora do vermelho/azul dos cantos e do dourado do cinturão): KO fúcsia, finalização esmeralda, decisão violeta. */
 const METHOD_COLOR: Record<MethodKey, { c: string; ink: string }> = {
-  ko: { c: 'var(--color-orange-fill)', ink: '#fff' }, sub: { c: 'var(--color-aqua-fill)', ink: '#fff' }, dec: { c: 'var(--color-slate-fill)', ink: '#fff' },
+  ko: { c: 'var(--color-ko-fill)', ink: '#fff' }, sub: { c: 'var(--color-sub-fill)', ink: '#fff' }, dec: { c: 'var(--color-dec-fill)', ink: '#fff' },
 };
 /** Cada ícone tem o seu movimento ao ser escolhido: raio chacoalha, mão aperta, balança pende. */
 const ICON_MOVE: Record<MethodKey, { animate: Record<string, number[]>; transition: { duration: number } }> = {
@@ -288,7 +290,11 @@ function FotnPicker({ fights, vote, locked, awarded, onVote }: { fights: Fight[]
   );
 }
 
-function FightPick({ eventId, f, draft, saved, onChange, fotn }: { eventId: string; f: Fight; draft?: Pick; saved?: Pick; onChange: (p: Pick | null) => void; fotn: FotnProps }) {
+function FightPick({ eventId, f, draft, saved, onChange, fotn, crowd }: {
+  eventId: string; f: Fight; draft?: Pick; saved?: Pick; onChange: (p: Pick | null) => void; fotn: FotnProps;
+  /** divisão da galera; só aparece depois que você escolhe, para não influenciar */
+  crowd?: { red: number; votes: number } | null;
+}) {
   const locked = isLocked(f);
   // luta aberta: edita o rascunho; luta travada: mostra só o que foi salvo (é o que conta pontos)
   const pick = locked ? saved : draft;
@@ -361,6 +367,13 @@ function FightPick({ eventId, f, draft, saved, onChange, fotn }: { eventId: stri
         </AnimatePresence>
       </div>
       {!locked && <ComboBar pick={pick} accent={accent} />}
+      {pick && crowd && (
+        <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="mt-2 flex flex-wrap items-center gap-x-1.5 text-[13px] text-fg-3">
+          A galera: <b className="num font-semibold" style={{ color: CORNER.a }}>{Math.round(crowd.red * 100)}% {lastName(f.red.name)}</b> ·
+          <b className="num font-semibold" style={{ color: CORNER.b }}>{100 - Math.round(crowd.red * 100)}% {lastName(f.blue.name)}</b>
+          <span>({crowd.votes} {crowd.votes === 1 ? 'palpite' : 'palpites'})</span>
+        </motion.p>
+      )}
       {pick && !locked && (
         <div className="mt-1.5 flex items-center justify-between">
           <span />
@@ -543,6 +556,23 @@ export default function Picks() {
   const summary = useMemo(() => summarize(savedPicks, fights, awarded), [savedPicks, fights, awarded?.join()]); // eslint-disable-line react-hooks/exhaustive-deps
   const fotnClosed = fotnLocked(fights);
   const fotnVote = (fotnClosed ? savedPicks : mine)[FOTN]?.winner;
+  const { data: crowd } = useCrowd(e?.id);
+  const board = useEventBoard(tab === 'meus' ? e : undefined);
+  const [sharing, setSharing] = useState<'idle' | 'busy' | 'downloaded'>('idle');
+  // antes do card, o que está na tela; depois, o que foi salvo (é o que pontuou)
+  const sharePicks = fights.some(f => isLocked(f)) ? savedPicks : mine;
+  const share = async () => {
+    if (!e) return;
+    setSharing('busy');
+    const done = summary.scored > 0 || summary.fotn === 'done';
+    const me = board.find(b => b.userId === auth.user?.id);
+    try {
+      const r = await sharePicksCard({ eventName: e.name, eventDate: e.date, fights, picks: sharePicks, user: auth.name || undefined,
+        ...(done ? { points: summary.points, hits: summary.hits, scored: summary.scored, position: me ? { pos: me.pos, of: board.length } : undefined } : {}) });
+      setSharing(r === 'downloaded' ? 'downloaded' : 'idle');
+      if (r === 'downloaded') setTimeout(() => setSharing('idle'), 3000);
+    } catch { setSharing('idle'); }
+  };
   const voteFotn = (fightId: string | null) => id && setPick(id, FOTN, fightId ? { winner: fightId, at: Date.now() } : null);
   const dirty = isDirty(mine, savedPicks);
   // avisa antes de sair da página com alterações não salvas
@@ -596,6 +626,13 @@ export default function Picks() {
               <h2 className="display text-[32px] text-fg">{splitEventName(e.name).title || splitEventName(e.name).series}</h2>
               <p className="mt-1 text-[14px] text-fg-3">{splitEventName(e.name).series} · {dayMonth(e.date)}, card principal às {time(e.date)} (Brasília)</p>
             </div>
+            <div className="flex flex-wrap items-center gap-2">
+            {fightCount(sharePicks) > 0 && (
+              <button type="button" onClick={share} disabled={sharing === 'busy'} className="btn">
+                <ShareNetwork weight="bold" className="h-4 w-4" />
+                {sharing === 'busy' ? 'Gerando imagem…' : sharing === 'downloaded' ? 'Imagem baixada' : summary.scored > 0 ? 'Compartilhar resultado' : 'Compartilhar palpites'}
+              </button>
+            )}
             {(fightCount(mine) > 0 || summary.made > 0) && open > 0 && (
               confirm
                 ? <span className="flex items-center gap-2 text-[13px]">Apagar os palpites das lutas que ainda não começaram?
@@ -603,6 +640,7 @@ export default function Picks() {
                     <button className="btn-ghost" onClick={() => setConfirm(false)}>Cancelar</button></span>
                 : <button className="btn-ghost" onClick={() => setConfirm(true)}><ArrowCounterClockwise className="h-4 w-4" /> Recomeçar</button>
             )}
+            </div>
           </div>
 
           <Strip s={summary} total={fights.length} made={fightCount(mine)} dirty={dirty} />
@@ -621,6 +659,7 @@ export default function Picks() {
                     bodyClass="divide-y divide-line/70">
                     {list.map(f => (
                       <FightPick key={f.id} eventId={e.id} f={f} draft={mine[f.id]} saved={savedPicks[f.id]} onChange={p => setPick(e.id, f.id, p)}
+                        crowd={crowdShare(crowd, f)}
                         fotn={{ on: fotnVote === f.id, locked: fotnClosed, awarded: awarded?.includes(f.id), onToggle: () => voteFotn(fotnVote === f.id ? null : f.id) }} />
                     ))}
                   </Panel>

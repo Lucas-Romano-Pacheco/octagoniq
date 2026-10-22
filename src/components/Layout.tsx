@@ -52,7 +52,8 @@ function TickerItem({ e, now, hidden }: { e: UpcomingEvent; now: number; hidden?
       <span className="num text-white/70">{weekday(e.date)}, {dayMonth(e.date)} · {time(e.date)}</span>
       {e.city && <span className="flex items-center gap-1 text-white/50"><MapPin className="h-3 w-3" />{e.city.split(',')[0]}</span>}
       {e.status === 'in' ? <LiveTag /> : <span className="num rounded-full bg-white/10 px-2 py-0.5 text-[13px] font-semibold text-white/80">{countdown(e.date, now)}</span>}
-      <OctagonMark className="ml-3 h-3 w-3 opacity-60" />
+      {/* separador entre eventos: losango discreto (o octógono vazado em 12px parecia um ícone quebrado) */}
+      <span aria-hidden className="ml-3 h-1.5 w-1.5 rotate-45 bg-white/30" />
     </Link>
   );
 }
@@ -191,33 +192,28 @@ export function Layout() {
         <Outlet />
       </main>
 
+      {/* rodapé compacto: marca e menu numa linha; as fontes dos dados (todas as quatro) e o crédito na outra */}
       <footer className="bg-band text-white/70">
-        <div className="mx-auto grid max-w-[1280px] gap-8 px-5 py-14 sm:px-8 md:grid-cols-[1.4fr_1fr_1fr]">
-          <div>
+        <div className="mx-auto max-w-[1280px] px-5 py-10 sm:px-8">
+          <div className="flex flex-wrap items-center justify-between gap-x-10 gap-y-5">
             <Logo light />
-            <p className="mt-4 max-w-sm text-[14px] leading-relaxed">Eventos, resultados, rankings oficiais e o histórico de cada lutador do UFC. Os dados são renovados a cada poucos minutos; durante um evento ao vivo, a cada 20 segundos.</p>
-            <FreshnessNote />
+            <nav aria-label="Rodapé" className="flex flex-wrap gap-x-6 gap-y-2 font-display text-[13px] font-semibold uppercase tracking-[0.08em]">
+              {[...NAV, { to: '/comparar', label: 'Comparar' }, { to: '/sobre', label: 'Sobre o projeto' }].map(n => <Link key={n.to} to={n.to} className="hover:text-white">{n.label}</Link>)}
+            </nav>
           </div>
-          <div>
-            <div className="mb-3 text-[13px] font-bold uppercase tracking-[0.14em] text-gold">Navegar</div>
-            <ul className="space-y-2 text-[14px]">
-              {[...NAV, { to: '/comparar', label: 'Comparar' }, { to: '/sobre', label: 'Sobre o projeto' }].map(n => <li key={n.to}><Link to={n.to} className="hover:text-white">{n.label}</Link></li>)}
-            </ul>
+          <div className="mt-8 grid gap-4 border-t border-white/10 pt-6 text-[13px] md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+            <div>
+              <p className="max-w-[60ch]">
+                <span className="font-semibold text-white">Dados:</span> UFC.com (rankings e estatísticas oficiais), ESPN (eventos, resultados e histórico),
+                UFC Fight Tracker (juízes e bônus) e BestFightOdds (odds antigas). Horários de Brasília; ao vivo, atualiza a cada 20 segundos.
+              </p>
+              <FreshnessNote />
+            </div>
+            <p className="text-white/65 md:text-right">
+              Projeto de portfólio, sem vínculo com o UFC ou a ESPN.<br />
+              Feito por <Link to="/sobre" className="font-semibold text-white/80 hover:text-white">Lucas Pacheco</Link> · <a href="https://github.com/Lucas-Romano-Pacheco/octagoniq" target="_blank" rel="noreferrer" className="font-semibold text-white/80 hover:text-white">GitHub</a>
+            </p>
           </div>
-          <div>
-            <div className="mb-3 text-[13px] font-bold uppercase tracking-[0.14em] text-gold">Fontes</div>
-            <ul className="space-y-2 text-[14px]">
-              <li>UFC.com: rankings e estatísticas oficiais</li>
-              <li>ESPN: eventos, resultados e histórico</li>
-              <li>Horários de Brasília</li>
-            </ul>
-          </div>
-        </div>
-        <div className="border-t border-white/10">
-          <p className="mx-auto flex max-w-[1280px] flex-wrap justify-between gap-2 px-5 py-5 text-[13px] text-white/65 sm:px-8">
-            <span>OctagonIQ · projeto de portfólio, sem vínculo com o UFC ou a ESPN.</span>
-            <span>Feito por <Link to="/sobre" className="font-semibold text-white/70 hover:text-white">Lucas Pacheco</Link> · <a href="https://github.com/Lucas-Romano-Pacheco/octagoniq" target="_blank" rel="noreferrer" className="font-semibold text-white/70 hover:text-white">GitHub</a></span>
-          </p>
         </div>
       </footer>
 

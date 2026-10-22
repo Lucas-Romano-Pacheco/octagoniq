@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { clsx } from 'clsx';
 import { ArrowDown, ArrowRight, ArrowUp, Crown } from '@phosphor-icons/react';
 import type { BookedMap, RankEntry, RankingDivision, RankingsMeta } from '@shared/types';
 import { fighterHref, useBooked, useRankings, useRankingsMeta } from '@/lib/api';
-import { Avatar, BookedTag, ErrorState, morphPhoto, FlagBackdrop, NationRecord, PageHeader, Panel, Skeleton, SortTh, Tag, Tip, useSort, usePageTitle } from '@/components/kit';
+import { Avatar, BookedTag, ErrorState, FlagBackdrop, morphPhoto, NationRecord, PageHeader, Panel, Segmented, Skeleton, SortTh, Tag, Tip, usePageTitle, useSort } from '@/components/kit';
+import { BeltTimeline } from '@/components/BeltTimeline';
+import { EloTable } from '@/components/EloPanel';
 import { proxy } from '@/lib/img';
 
 const headshot = (espnId?: string) => (espnId ? `https://a.espncdn.com/i/headshots/mma/players/full/${espnId}.png` : undefined);
@@ -11,12 +14,12 @@ const wins = (rec?: string) => (rec ? Number(rec.split('-')[0]) : undefined);
 
 function Change({ e }: { e: RankEntry }) {
   if (e.isNew) return <Tag tone="blue">Novo</Tag>;
-  if (!e.change) return <span className="text-fg-3">—</span>;
+  if (!e.change) return null;
   const up = e.change > 0;
   return (
     <Tip content={`${up ? 'Subiu' : 'Caiu'} ${Math.abs(e.change)} ${Math.abs(e.change) === 1 ? 'posição' : 'posições'} desde a última atualização do ranking`}>
       <span tabIndex={0} className={clsx('inline-flex cursor-help items-center gap-0.5 font-mono text-[13px]', up ? 'text-win' : 'text-loss')}>
-        {up ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}{Math.abs(e.change)}
+        {up ? <ArrowUp weight="bold" className="h-3 w-3" /> : <ArrowDown weight="bold" className="h-3 w-3" />}{Math.abs(e.change)}
       </span>
     </Tip>
   );
@@ -63,22 +66,18 @@ function DivisionNav({ divisions, active }: { divisions: RankingDivision[]; acti
   );
 }
 
-/** Tabela da divisão: ordena por posição, nome, variação ou vitórias. */
+/** Tabela da divisão: ordena por posição, nome ou vitórias. A variação aparece junto da posição, só em quem mudou. */
 function RankTable({ entries, meta, booked }: { entries: RankEntry[]; meta?: RankingsMeta; booked?: BookedMap }) {
   const { sorted, sort, toggle } = useSort(entries, {
     rank: e => e.rank,
     name: e => e.name,
-    change: e => (e.isNew ? 99 : e.change ?? 0),
     wins: e => wins(meta?.[e.slug]?.record),
   }, 'rank', 'asc');
-  // "Variação" só aparece se alguém mudou de posição desde a última atualização (senão era uma coluna inteira de "—")
-  const moved = entries.some(e => e.isNew || e.change);
   return (
     <table className="table w-full table-fixed sm:table-auto">
       <thead><tr>
         <SortTh k="rank" sort={sort} toggle={toggle} first="asc" className="w-12 text-right sm:w-14">#</SortTh>
         <SortTh k="name" sort={sort} toggle={toggle} first="asc">Lutador</SortTh>
-        {moved && <SortTh k="change" sort={sort} toggle={toggle} className="hidden w-24 text-center sm:table-cell">Variação</SortTh>}
         <SortTh k="wins" sort={sort} toggle={toggle} className="w-28 text-right sm:w-auto"><span className="sm:hidden">Cartel</span><span className="hidden sm:inline">País · Cartel</span></SortTh>
       </tr></thead>
       <tbody>
@@ -86,7 +85,9 @@ function RankTable({ entries, meta, booked }: { entries: RankEntry[]; meta?: Ran
           const m = meta?.[e.slug];
           return (
             <tr key={e.slug} className="row-fx" style={{ ['--item-accent' as string]: e.rank <= 5 ? 'var(--color-gold)' : 'var(--color-blue)' }}>
-              <td className="num text-right font-display text-[18px] font-semibold text-fg-3">{e.rank}</td>
+              <td className="num text-right font-display text-[18px] font-semibold text-fg-3">
+                <span className="flex flex-col items-end leading-tight">{e.rank}<Change e={e} /></span>
+              </td>
               <td>
                 <div className="flex items-center gap-3">
                   <Link to={fighterHref({ slug: e.slug, espnId: m?.espnId })} viewTransition onClick={morphPhoto} className="flex min-w-0 items-center gap-3 text-[16px] font-semibold text-fg hover:text-brand">
@@ -95,7 +96,6 @@ function RankTable({ entries, meta, booked }: { entries: RankEntry[]; meta?: Ran
                   <BookedTag b={m?.espnId ? booked?.[m.espnId] : undefined} />
                 </div>
               </td>
-              {moved && <td className="hidden text-center sm:table-cell"><Change e={e} /></td>}
               <td><NationRecord code={m?.countryCode} country={m?.country} record={m?.record} /></td>
             </tr>
           );
@@ -138,6 +138,7 @@ function LeaderCard({ division, divisions, meta, booked }: { division: RankingDi
 }
 
 export default function Rankings() {
+  const [mode, setMode] = useState<'oficial' | 'elo'>('oficial');
   const { div } = useParams();
   const { data, isPending: isLoading, isError, refetch } = useRankings();
   const { data: meta } = useRankingsMeta();
@@ -155,11 +156,16 @@ export default function Rankings() {
           <DivisionNav divisions={data.divisions} active={division.id} />
           <div className="min-w-0 space-y-4">
             <LeaderCard division={division} divisions={data.divisions} meta={meta} booked={booked} />
-            <Panel title={division.p4p ? `${division.name} · top 15` : `${division.name} · desafiantes`}
-              action={!division.entries.some(e => e.isNew || e.change) && <span className="text-[13px] text-fg-3">Sem mudanças de posição na última atualização</span>}>
+            <Panel title={division.p4p ? `${division.name} · top 15` : mode === 'elo' ? `${division.name} · nota Elo` : `${division.name} · desafiantes`}
+              action={division.p4p ? (!division.entries.some(e => e.isNew || e.change) && <span className="text-[13px] text-fg-3">Sem mudanças de posição na última atualização</span>) : (
+                <Segmented value={mode} onChange={setMode} options={[{ value: 'oficial', label: 'Ranking oficial' }, { value: 'elo', label: 'Nota Elo' }]} />
+              )}>
               {/* no peso por peso o nº 1 já está no card de destaque, como o campeão nas divisões */}
-              <RankTable entries={division.champion ? division.entries : division.entries.slice(1)} meta={meta} booked={booked} />
+              {mode === 'elo' && !division.p4p
+                ? <EloTable division={division.name} />
+                : <RankTable entries={division.champion ? division.entries : division.entries.slice(1)} meta={meta} booked={booked} />}
             </Panel>
+            {!division.p4p && <div className="pt-6"><BeltTimeline key={division.name} division={division.name} /></div>}
           </div>
         </div>
       )}

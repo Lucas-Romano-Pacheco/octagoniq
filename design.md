@@ -22,9 +22,11 @@ não para enfeitar. Uma tela tem **um** protagonista: o número, a foto ou o con
 | `gold` / `gold-ink` | `#f1a501` / `#8a5d00` | `#f5b020` / `#f5c55a` | **só** cinturão, campeão e disputa de título |
 | `red-fill` / `blue-fill` | `#d63b3b` / `#2468c0` | `#c93838` / `#2468c0` | **só** os cantos de uma luta (vermelho × azul) |
 | `blue-ink` | `#1f5fae` | `#7fb0f0` | texto azul sobre fundo claro (rótulos do canto azul, "luta marcada") |
-| `orange-fill` / `orange-ink` | `#c4501d` / `#9a3d16` | `#c4501d` / `#f39a6e` | zebra (azarão venceu) e nocaute |
-| `aqua-fill` | `#13865c` | `#13865c` | finalização |
-| `slate-fill` | `#5b6178` | `#4a5070` | decisão, Dana White's Contender Series |
+| `orange-fill` / `orange-ink` | `#c4501d` / `#9a3d16` | `#c4501d` / `#f39a6e` | zebra (azarão venceu) |
+| `ko-fill` | `#d03a7c` | `#d03a7c` | método: nocaute (KO/TKO), fúcsia |
+| `sub-fill` | `#0c7a55` | `#0c7a55` | método: finalização, esmeralda |
+| `dec-fill` | `#7445d6` | `#7445d6` | método: decisão, violeta |
+| `slate-fill` | `#5b6178` | `#4a5070` | Dana White's Contender Series |
 | `win` / `loss` / `draw` | `#13834a` / `#c8323a` / `#9a6700` | `#45d08a` / `#ff6b72` / `#f5c542` | resultado, sempre com ícone |
 
 No CSS os tokens estão em **OKLCH** (`oklch(L% C H)`); a tabela mostra o hexadecimal equivalente. Para clarear ou escurecer
@@ -34,7 +36,9 @@ Regras:
 - **`*-fill`** é fundo com texto branco (contraste AA garantido). **`*-ink`** é texto colorido sobre fundo claro. As versões
   sem sufixo (`red`, `blue`, `orange`, `aqua`) servem para traços, gráficos e fundos com `/15` de opacidade.
 - Tipos de evento: numerado em `brand`, Fight Night em `blue-fill`, DWCS em `slate-fill`.
-- Método: nocaute `orange-fill`, finalização `aqua-fill`, decisão `slate-fill`.
+- Método: nocaute `ko-fill`, finalização `sub-fill`, decisão `dec-fill`, sempre pelo componente `MethodTag` (cor + ícone + texto),
+  em todo lugar onde o método aparece. A paleta passou no validador de daltonismo; o ícone e o texto garantem a leitura
+  mesmo sem a cor.
 - Proibido: dourado em botão comum, gradiente roxo ou índigo, texto com gradiente, vidro fosco como padrão,
   texto com `opacity` (use `fg-2`/`fg-3`).
 

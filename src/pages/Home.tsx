@@ -345,27 +345,47 @@ function Champions() {
       {isLoading && <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[210px]" />)}</div>}
       {divs.length > 0 && (
         <Reveal delay={0.1}>
-          {/* todos os cinturões de uma vez (o carrossel escondia 7 dos 11) */}
-          <div className="grid grid-cols-1 gap-3 min-[520px]:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-            {divs.map(d => {
-              const c = d.champion!, mm = meta?.[c.slug];
-              return (
-                <Link key={d.id} to={fighterHref({ slug: c.slug, espnId: mm?.espnId })} className="cut group block overflow-hidden rounded-xl bg-surface shadow-[var(--shadow-soft)] ring-1 ring-fg/[0.04] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lift)]">
-                  <div className="relative h-[170px] overflow-hidden bg-cream lg:h-[150px]">
-                    <FlagBackdrop code={mm?.countryCode} className="inset-0 opacity-45 dark:opacity-35" />
-                    {c.image && <img src={proxy(c.image, 640)} alt="" loading="lazy" decoding="async" className="absolute bottom-0 left-1/2 h-[96%] w-auto max-w-none -translate-x-1/2 object-contain transition-transform duration-500 group-hover:scale-[1.05]" />}
-                  </div>
-                  <div className="px-4 pb-4 pt-3.5">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="flex min-w-0 items-center gap-1 text-[13px] font-semibold text-fg-3"><Crown weight="fill" className="h-3.5 w-3.5 shrink-0 text-gold" /><span className="truncate">{d.name}</span></span>
-                      {mm && <Flag code={mm.countryCode} title={mm.country} size={16} />}
-                    </div>
-                    <div className="mt-1 line-clamp-2 font-display text-[18px] font-bold uppercase leading-tight text-fg group-hover:text-brand">{c.name}</div>
-                    {mm?.record && <div className="num text-[14px] font-semibold text-fg-3">{mm.record}</div>}
-                  </div>
-                </Link>
-              );
-            })}
+          {/* separados em masculino e feminino; no celular cada grupo desliza para o lado (11 cartões empilhados
+              deixavam a página com 8 mil pixels), no computador viram grade */}
+          <div className="space-y-8">
+            {([['Masculino', divs.filter(d => !d.women)], ['Feminino', divs.filter(d => d.women)]] as const).map(([label, list]) => list.length > 0 && (
+              <div key={label}>
+                <div className="label mb-3 flex items-center gap-2">
+                  <span className={`h-2 w-2 rounded-full ${label === 'Masculino' ? 'bg-blue' : 'bg-red'}`} />{label}
+                  <span className="font-sans text-[13px] font-medium normal-case tracking-normal text-fg-3">· {list.length} cinturões</span>
+                </div>
+                <div className="no-scrollbar -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 lg:grid-cols-4">
+                  {list.map(d => {
+                    const c = d.champion!, mm = meta?.[c.slug];
+                    return (
+                      <Link key={d.id} to={fighterHref({ slug: c.slug, espnId: mm?.espnId })} className="cut group block w-[46%] shrink-0 snap-start overflow-hidden rounded-xl bg-surface shadow-[var(--shadow-soft)] ring-1 ring-fg/[0.04] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lift)] sm:w-auto">
+                        <div className="relative h-[150px] overflow-hidden bg-cream lg:h-[180px]">
+                          <FlagBackdrop code={mm?.countryCode} className="inset-0 opacity-45 dark:opacity-35" />
+                          {c.image && <img src={proxy(c.image, 640)} alt="" loading="lazy" decoding="async" className="absolute bottom-0 left-1/2 h-[96%] w-auto max-w-none -translate-x-1/2 object-contain transition-transform duration-500 group-hover:scale-[1.05]" />}
+                        </div>
+                        <div className="px-4 pb-4 pt-3.5">
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="flex min-w-0 items-center gap-1 text-[13px] font-semibold text-fg-3"><Crown weight="fill" className="h-3.5 w-3.5 shrink-0 text-gold" /><span className="truncate">{d.name}</span></span>
+                            {mm && <Flag code={mm.countryCode} title={mm.country} size={16} />}
+                          </div>
+                          <div className="mt-1 line-clamp-2 font-display text-[16px] font-bold uppercase leading-tight text-fg group-hover:text-brand sm:text-[18px]">{c.name}</div>
+                          {mm?.record && <div className="num text-[14px] font-semibold text-fg-3">{mm.record}</div>}
+                        </div>
+                      </Link>
+                    );
+                  })}
+                  {/* o espaço que sobra na fileira feminina leva aos rankings completos */}
+                  {label === 'Feminino' && (
+                    <Link to="/rankings" className="group hidden flex-col justify-end rounded-xl bg-band p-5 text-white transition-transform duration-300 hover:-translate-y-1 lg:flex">
+                      <Trophy weight="fill" className="h-8 w-8 text-gold" />
+                      <span className="mt-3 font-display text-[20px] font-bold uppercase leading-tight">Rankings completos</span>
+                      <span className="mt-1 text-[14px] text-white/70">Top 15 das 11 divisões e o peso por peso</span>
+                      <span className="mt-4 inline-flex items-center gap-1.5 font-display text-[13px] font-bold uppercase tracking-[0.06em] text-white group-hover:gap-2.5">Ver rankings <ArrowRight className="h-4 w-4" /></span>
+                    </Link>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </Reveal>
       )}

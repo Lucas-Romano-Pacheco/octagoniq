@@ -7,7 +7,9 @@ import { fightHref, fighterHref, useFighter, useRankings, useRankingsMeta, useUp
 import { dayMonth, fullDate, lastName, nf, recordStr, splitEventName } from '@/lib/format';
 import { FighterPicker } from '@/components/FighterPicker';
 import { CORNER as COLOR, DuelHead, DuelRow, better as cmp, type Side } from '@/components/Duel';
-import { Avatar, CountUp, ErrorState, Flag, HistoryBadge, OutcomeBadge, PageHeader, Panel, RankBadge, Skeleton, Tip, usePageTitle } from '@/components/kit';
+import { Avatar, CountUp, ErrorState, Flag, HistoryBadge, MethodTag, OutcomeBadge, PageHeader, Panel, RankBadge, Skeleton, Tip, usePageTitle } from '@/components/kit';
+import { StyleTags } from '@/components/StyleTags';
+import { strikeDiff } from '@/lib/style';
 import { AttrRadar, hasRadar, RADAR_NOTE } from '@/components/Radar';
 
 
@@ -26,6 +28,7 @@ function Card({ p, side }: { p: FighterProfile; side: Side }) {
           <Flag code={b.countryCode} src={b.flag} title={b.country} size={18} /><span>{b.country}</span>
           <span className="num font-mono">{recordStr(b.record)}</span>
         </div>
+        <StyleTags stats={p.stats} className="mt-2 hidden sm:flex" align={right ? 'end' : 'start'} />
       </div>
     </Link>
   );
@@ -51,6 +54,7 @@ const EDGES: { label: string; get: (p: FighterProfile) => number | undefined; lo
   { label: 'Altura', get: p => p.bio.heightCm },
   { label: 'Idade', get: p => p.bio.age, lower: true },
   { label: 'Vitórias', get: p => p.bio.record?.w },
+  { label: 'Diferencial de golpes', get: p => strikeDiff(p.stats) },
   { label: 'Golpes sig. / min', get: p => p.stats.slpm },
   { label: 'Absorvidos / min', get: p => p.stats.sapm, lower: true },
   { label: 'Precisão de golpes', get: p => p.stats.strAcc },
@@ -109,7 +113,7 @@ function CommonOpponents({ a, b }: { a: FighterProfile; b: FighterProfile }) {
 
   const last = (n: string) => n.split(' ').slice(-1)[0];
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+    <div className={clsx('grid gap-8', rows.length > 0 && 'lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]')}>
       {/* confronto direto: cada luta numa frase ("Makhachev venceu Volkanovski"), do ponto de vista do vencedor */}
       <Panel plain title="Confronto direto" action={direct.length > 0 && <span className="text-[13px] text-fg-3">{direct.length} {direct.length > 1 ? 'lutas' : 'luta'}</span>}>
         {direct.length === 0 ? <p className="py-2 text-[14px] text-fg-3">Os dois nunca se enfrentaram.</p> : (
@@ -125,7 +129,7 @@ function CommonOpponents({ a, b }: { a: FighterProfile; b: FighterProfile }) {
                       <div className="text-[16px] font-semibold text-fg group-hover:text-brand">
                         {winner ? <>{last(winner.name)} venceu {last(loser.name)}</> : h.outcome === 'D' ? 'Empate' : 'Sem resultado'}
                       </div>
-                      <div className="text-[13px] text-fg-3">{[h.method, h.round && `R${h.round} ${h.clock}`, fullDate(h.date)].filter(Boolean).join(' · ')}</div>
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[13px] text-fg-3"><MethodTag method={h.method} />{[h.round && `R${h.round} ${h.clock}`, fullDate(h.date)].filter(Boolean).join(' · ')}</div>
                     </div>
                     {h.title && <Crown weight="fill" className="ml-auto h-4 w-4 shrink-0 text-gold" aria-label="Disputa de título" />}
                   </Link>
@@ -136,8 +140,8 @@ function CommonOpponents({ a, b }: { a: FighterProfile; b: FighterProfile }) {
         )}
       </Panel>
 
-      <Panel plain title="Adversários em comum" action={rows.length > 0 && <span className="text-[13px] text-fg-3">{rows.length}</span>}>
-        {rows.length === 0 ? <p className="py-2 text-[14px] text-fg-3">Nenhum adversário em comum.</p> : (
+      {rows.length > 0 && <Panel plain title="Adversários em comum" action={<span className="text-[13px] text-fg-3">{rows.length}</span>}>
+        {(
           <table className="table">
             <thead><tr><th className="text-right">{last(a.bio.name)}</th><th className="text-center">Adversário</th><th>{last(b.bio.name)}</th></tr></thead>
             <tbody>
@@ -151,7 +155,7 @@ function CommonOpponents({ a, b }: { a: FighterProfile; b: FighterProfile }) {
             </tbody>
           </table>
         )}
-      </Panel>
+      </Panel>}
     </div>
   );
 }
@@ -279,18 +283,19 @@ export default function Compare() {
             <Card p={b} side="b" />
           </div>
 
-          <EdgeBoard a={a} b={b} />
-
-          {hasRadar(sa) && hasRadar(sb) && (
-            <Panel plain title="Perfil de luta" action={
-              <div className="flex items-center gap-3 text-[13px] text-fg-2">
-                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red" />{a.bio.name}</span>
-                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-blue" />{b.bio.name}</span>
-              </div>}>
-              <AttrRadar height={340} series={[{ name: a.bio.name, color: 'red', stats: sa! }, { name: b.bio.name, color: 'blue', stats: sb! }]} />
-              <p className="text-[13px] text-fg-3">{RADAR_NOTE}</p>
-            </Panel>
-          )}
+          <div className={clsx('grid items-start gap-6', hasRadar(sa) && hasRadar(sb) && 'lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]')}>
+            <EdgeBoard a={a} b={b} />
+            {hasRadar(sa) && hasRadar(sb) && (
+              <Panel plain title="Perfil de luta" action={
+                <div className="flex items-center gap-3 text-[13px] text-fg-2">
+                  <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red" />{lastName(a.bio.name)}</span>
+                  <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-blue" />{lastName(b.bio.name)}</span>
+                </div>}>
+                <AttrRadar height={320} series={[{ name: a.bio.name, color: 'red', stats: sa! }, { name: b.bio.name, color: 'blue', stats: sb! }]} />
+                <p className="text-[13px] text-fg-3">{RADAR_NOTE}</p>
+              </Panel>
+            )}
+          </div>
 
           <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-6 lg:grid-cols-2">
             <Panel plain title="Ficha técnica" bodyClass="divide-y divide-line/70">
@@ -309,6 +314,7 @@ export default function Compare() {
 
             <Panel plain title="Estatísticas oficiais" action={<span className="text-[13px] text-fg-3">UFC.com</span>} bodyClass="divide-y divide-line/70">
               <DuelHead a={lastName(a.bio.name)} b={lastName(b.bio.name)} />
+              <DuelRow label="Diferencial / min" a={strikeDiff(sa)} b={strikeDiff(sb)} fmt={n2} />
               <DuelRow label="Golpes sig. / min" a={sa?.slpm} b={sb?.slpm} fmt={n2} />
               <DuelRow label="Absorvidos / min" a={sa?.sapm} b={sb?.sapm} fmt={n2} lowerIsBetter />
               <DuelRow label="Precisão de golpes" a={sa?.strAcc} b={sb?.strAcc} fmt={p0} />

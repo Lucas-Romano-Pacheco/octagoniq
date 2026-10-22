@@ -70,7 +70,7 @@ export default function About() {
           <Arrow />
           <Box icon={<Database weight="bold" className="h-4 w-4" />} tone="bg-gold-soft text-gold-ink" title="Fontes" lines={['ESPN: eventos, histórico, odds', 'UFC.com: rankings e estatísticas', 'Fight Tracker: juízes e bônus', 'BestFightOdds: odds antigas']} />
         </div>
-        <p className="mt-4 flex items-start gap-2 text-[14px] text-fg-3">
+        <p className="mt-4 flex max-w-[68ch] items-start gap-2 text-[14px] text-fg-3">
           <Lightning weight="fill" className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
           Publicado no Vercel: o site estático vai pela CDN e a API roda como função serverless, com as respostas também guardadas na CDN.
         </p>
@@ -81,7 +81,7 @@ export default function About() {
           {DECISIONS.map(([t, d]) => (
             <div key={t}>
               <dt className="text-[16px] font-semibold text-fg">{t}</dt>
-              <dd className="mt-1.5 text-[14px] leading-relaxed text-fg-2">{d}</dd>
+              <dd className="mt-1.5 max-w-[62ch] text-pretty text-[14px] leading-relaxed text-fg-2">{d}</dd>
             </div>
           ))}
         </dl>

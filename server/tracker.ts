@@ -2,7 +2,7 @@
    Não há busca por nome: a página do evento no UFC.com traz o id de cada luta (data-fmid); a luta aponta
    o id do evento no tracker, e o card do evento é casado com a luta da ESPN pelos sobrenomes. */
 
-import type { Scorecards } from '../shared/types.ts';
+import type { RoundSide, RoundStat, Scorecards } from '../shared/types.ts';
 import { fold } from '../shared/format.ts';
 import { HOUR, getJson, getText, remember } from './http.ts';
 import { UFC_BASE } from './ufc.ts';
@@ -65,9 +65,9 @@ export function buildScorecards(fight: J, red: string): Scorecards | null {
   };
 }
 
-/** Cartões de uma luta encerrada por decisão. `red`/`blue` são os nomes da ESPN (o canto é recalculado pelo tracker). */
-export function scorecards(eventName: string, eventDate: string, red: string, blue: string): Promise<Scorecards | null> {
-  return remember(`scorecards:v1:${fold(red)}:${fold(blue)}:${eventDate.slice(0, 10)}`, 7 * 24 * HOUR, async () => {
+/** Detalhe da luta no tracker (cartões e estatísticas por round). `red`/`blue` são os nomes da ESPN. */
+function trackerFight(eventName: string, eventDate: string, red: string, blue: string): Promise<J | null> {
+  return remember(`tracker-fight:v1:${fold(red)}:${fold(blue)}:${eventDate.slice(0, 10)}`, 7 * 24 * HOUR, async () => {
     const eventId = await trackerEventId(eventName, eventDate);
     if (!eventId) throw new Error('sem evento');
     const ev = await getJson<J>(`${API}/event/live/${eventId}.json`, 6 * HOUR);
@@ -75,10 +75,39 @@ export function scorecards(eventName: string, eventDate: string, red: string, bl
     const match = findFight(card, red, blue);
     if (!match) throw new Error('luta não encontrada no card');
     const fight = (await getJson<J>(`${API}/fight/live/${match.FightId}.json`, 24 * HOUR))?.LiveFightDetail;
-    const sc = buildScorecards(fight, red);
-    if (!sc) throw new Error('sem cartões');
-    return sc;
+    if (!fight) throw new Error('sem detalhe');
+    return fight;
   }).catch(() => null);
+}
+
+const secs = (t?: string) => { const [m, s] = (t ?? '0:00').split(':').map(Number); return (m || 0) * 60 + (s || 0); };
+
+/** Estatísticas round a round, no canto da ESPN; null sem dados. */
+export function buildRounds(fight: J, red: string): RoundStat[] | null {
+  const list: J[] = fight?.RoundStats ?? [];
+  if (list.length !== 2) return null;
+  const nameOf = new Map<number, string>((fight.Fighters ?? []).map((x: J) => [x.FighterId, `${x.Name?.FirstName} ${x.Name?.LastName}`]));
+  const redStats = list.find(x => last(nameOf.get(x.FighterId) ?? '') === last(red)) ?? list[0];
+  const blueStats = list.find(x => x !== redStats)!;
+  const side = (r?: J): RoundSide => ({
+    sig: r?.SigStrikesLanded ?? 0, sigAtt: r?.SigStrikesAttempted ?? 0, kd: r?.Knockdowns ?? 0,
+    td: r?.TakedownsLanded ?? 0, tdAtt: r?.TakedownsAttempted ?? 0, ctrl: secs(r?.ControlTime), subs: r?.SubmissionsAttempted ?? 0,
+  });
+  const ns = [...new Set([...(redStats.Rounds ?? []), ...(blueStats.Rounds ?? [])].map((r: J) => r.RoundNumber as number))].sort((a, b) => a - b);
+  const rounds = ns.map(n => ({ n, red: side(redStats.Rounds?.find((r: J) => r.RoundNumber === n)), blue: side(blueStats.Rounds?.find((r: J) => r.RoundNumber === n)) }));
+  return rounds.length && rounds.some(r => r.red.sigAtt + r.blue.sigAtt + r.red.tdAtt + r.blue.tdAtt > 0) ? rounds : null;
+}
+
+/** Cartões dos juízes (decisão inteira ou até a interrupção). */
+export async function scorecards(eventName: string, eventDate: string, red: string, blue: string): Promise<Scorecards | null> {
+  const fight = await trackerFight(eventName, eventDate, red, blue);
+  return fight ? buildScorecards(fight, red) : null;
+}
+
+/** Estatísticas por round de uma luta (para o gráfico de domínio). */
+export async function roundStats(eventName: string, eventDate: string, red: string, blue: string): Promise<RoundStat[] | null> {
+  const fight = await trackerFight(eventName, eventDate, red, blue);
+  return fight ? buildRounds(fight, red) : null;
 }
 
 /** Bônus da noite do UFC (Performance, Luta, KO e Finalização da Noite), pelos nomes dos lutadores. */

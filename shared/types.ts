@@ -102,6 +102,10 @@ export interface OfficialStats {
   byPosition?: { standing: number; clinch: number; ground: number };
   byTarget?: { head: number; body: number; leg: number };
   winsBy?: { ko: number; dec: number; sub: number };
+  /** de onde vieram os números: UFC.com (oficial) ou calculados das lutas na ESPN, quando o UFC.com não publica */
+  source?: 'ufc' | 'espn';
+  /** quantas lutas entraram na conta (só quando calculado das lutas) */
+  fights?: number;
 }
 
 export interface FighterBio {
@@ -235,6 +239,19 @@ export interface Scorecards {
   judges: { name: string; red: number; blue: number; rounds: { n: number; red: number; blue: number }[] }[];
 }
 
+/** Nota Elo de um lutador (calculada com todas as lutas do UFC). `history`: nota depois de cada luta. */
+export interface EloFighter {
+  id: string; name: string; rating: number; peak: number; peakDate?: string; fights: number; wins: number;
+  lastDate?: string; division?: string; history: { d: string; r: number }[]; rank?: number; of?: number;
+}
+
+/** Um reinado de cinturão (Wikipédia). `days` falta no reinado atual (incumbent). */
+export interface BeltReign { n: number; name: string; country?: string; event?: string; start: string; days?: number; defenses: number; incumbent: boolean }
+
+/** Números de um lutador num round (UFC Fight Tracker). */
+export interface RoundSide { sig: number; sigAtt: number; kd: number; td: number; tdAtt: number; ctrl: number /* segundos de controle */; subs: number }
+export interface RoundStat { n: number; red: RoundSide; blue: RoundSide }
+
 export interface FightDetail {
   eventId: string;
   eventName: string;
@@ -243,6 +260,8 @@ export interface FightDetail {
   blue: FighterRef & { stats?: FightSideStats };
   seconds?: number;
   scorecards?: Scorecards;
+  /** estatísticas round a round (UFC Fight Tracker), para o gráfico de domínio */
+  rounds?: RoundStat[];
 }
 
 export interface ApiError { error: string; detail?: string }

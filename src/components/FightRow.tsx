@@ -5,7 +5,7 @@ import type { Fight, FighterRef } from '@shared/types';
 import { fightHref, fighterHref } from '@/lib/api';
 import { OddsChip, oddsView } from './Duel';
 import type { ReactNode } from 'react';
-import { Avatar, FightCard, Flag, LiveTag, morphPhoto, OutcomeBadge, Tag } from './kit';
+import { Avatar, FightCard, Flag, LiveTag, MethodTag, morphPhoto, OutcomeBadge, Tag } from './kit';
 
 function Side({ f, align, state, tip, odds, compact }: { f: FighterRef; align: 'left' | 'right'; state: 'win' | 'loss' | 'none'; tip?: ReactNode; odds?: ReactNode; compact?: boolean }) {
   const right = align === 'right';
@@ -13,7 +13,7 @@ function Side({ f, align, state, tip, odds, compact }: { f: FighterRef; align: '
     // relative z-10: fica por cima do link da linha inteira (que abre a luta)
     <Link to={fighterHref(f)} viewTransition onClick={morphPhoto}
       className={clsx('group/side relative z-10 flex min-w-0 flex-col items-center gap-2 text-center sm:flex-row sm:gap-3', right ? 'sm:flex-row-reverse sm:text-right' : 'sm:text-left')}>
-      <Avatar src={f.headshot} name={f.name} size={compact ? 56 : 64} ring={right ? 'var(--color-red)' : 'var(--color-blue)'} className={clsx(state === 'loss' && 'opacity-50 grayscale')} />
+      <span data-corner={right ? 'a' : 'b'}><Avatar src={f.headshot} name={f.name} size={compact ? 56 : 64} ring={right ? 'var(--color-red)' : 'var(--color-blue)'} className={clsx(state === 'loss' && 'opacity-50 grayscale')} /></span>
       <div className="min-w-0 max-w-full">
         <div className={clsx('flex items-center justify-center gap-2', right ? 'sm:flex-row-reverse sm:justify-start' : 'sm:justify-start')}>
           {/* compacta (coluna estreita): nome curto da ESPN numa linha só ("A. Volkanovski") */}
@@ -38,6 +38,13 @@ const winTip = (winner: FighterRef, loser: FighterRef, r: NonNullable<Fight['res
   <FightCard me={winner} opp={loser} outcome="W" method={r.method} detail={r.detail} round={r.round} clock={r.clock} date={date} />
 );
 
+/** Ao abrir a luta, as duas fotos da linha "voam" até os cantos do topo da página da luta (View Transitions);
+    os nomes só são dados no clique, para não repetir o mesmo nome em várias linhas da lista. */
+function morphFight(e: { currentTarget: Element }) {
+  const row = e.currentTarget.closest('.group');
+  row?.querySelectorAll<HTMLElement>('[data-corner]').forEach(el => { el.style.viewTransitionName = `fight-${el.dataset.corner}`; });
+}
+
 export function FightRow({ fight, compact, eventId }: { fight: Fight; compact?: boolean; eventId?: string }) {
   const r = fight.result;
   const winRed = r?.winnerId === fight.red.espnId, winBlue = r?.winnerId === fight.blue.espnId;
@@ -48,7 +55,7 @@ export function FightRow({ fight, compact, eventId }: { fight: Fight; compact?: 
 
   const href = eventId ? fightHref(eventId, fight.id) : undefined;
   return (
-    <div className={clsx('group relative grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-xl px-3 transition-colors duration-150 hover:bg-surface-2/60 max-sm:grid-cols-2 max-sm:gap-y-3 sm:gap-5 sm:px-4', compact ? 'py-4' : 'py-5')}>
+    <div className={clsx('group relative grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-xl px-3 transition-colors duration-150 hover:bg-surface-2/60 max-sm:grid-cols-2 max-sm:gap-y-3 sm:gap-5 sm:px-4', compact ? 'py-3.5' : 'py-4')}>
       <Side f={fight.red} align="right" compact={compact} state={state(winRed)} tip={winRed && r ? winTip(fight.red, fight.blue, r, fight.date) : undefined} odds={ov && <OddsChip {...ov.red} compact />} />
       <div className={clsx('flex flex-col items-center gap-1.5 text-center max-sm:order-last max-sm:col-span-2 max-sm:flex-row max-sm:flex-wrap max-sm:justify-center max-sm:gap-x-3 max-sm:border-t max-sm:border-line/60 max-sm:pt-3', compact ? 'sm:w-[160px]' : 'sm:w-[196px]')}>
         <div className="flex flex-wrap items-center justify-center gap-1.5">
@@ -62,7 +69,8 @@ export function FightRow({ fight, compact, eventId }: { fight: Fight; compact?: 
           </>
         ) : r ? (
           <>
-            <span className="text-[16px] font-semibold text-fg">{r.method}{r.detail && r.method !== 'Decisão unânime' && !compact ? <span className="text-fg-2"> · {r.detail}</span> : null}</span>
+            <MethodTag method={r.method} size={compact ? 'sm' : 'md'} />
+            {r.detail && !/decis/i.test(r.method) && !compact && <span className="text-[13px] text-fg-2">{r.detail}</span>}
             <span className="num rounded-md bg-surface-2 px-2 py-0.5 text-[13px] font-semibold text-fg-2">R{r.round} · {r.clock}</span>
           </>
         ) : (
@@ -73,7 +81,7 @@ export function FightRow({ fight, compact, eventId }: { fight: Fight; compact?: 
       <Side f={fight.blue} align="left" compact={compact} state={state(winBlue)} tip={winBlue && r ? winTip(fight.blue, fight.red, r, fight.date) : undefined} odds={ov && <OddsChip {...ov.blue} compact />} />
       {/* a linha inteira abre a luta; a seta só aparece ao passar o mouse (no lugar dos links "Ver a luta" repetidos) */}
       {href && (
-        <Link to={href} aria-label={`${fight.status === 'post' ? 'Ver a luta' : 'Odds e prévia'}: ${fight.red.name} × ${fight.blue.name}`} className="absolute inset-0 rounded-xl">
+        <Link to={href} viewTransition onClick={morphFight} aria-label={`${fight.status === 'post' ? 'Ver a luta' : 'Odds e prévia'}: ${fight.red.name} × ${fight.blue.name}`} className="absolute inset-0 rounded-xl">
           <ArrowRight weight="bold" className="absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-brand opacity-0 transition-all group-hover:right-1 group-hover:opacity-100" />
         </Link>
       )}
