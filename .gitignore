@@ -14,3 +14,11 @@ C:*
 .env
 .env.local
 !.env.example
+
+# relatórios de testes e qualidade (gerados)
+coverage/
+reports/
+test-results/
+playwright-report/
+.stryker-tmp/
+.cache-test/
