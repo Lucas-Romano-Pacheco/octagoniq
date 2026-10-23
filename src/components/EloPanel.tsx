@@ -10,7 +10,7 @@ import { Avatar, Empty, Panel, Skeleton, Tip } from './kit';
 /* Nota Elo (N7): o painel do lutador (nota, posição, pico e a curva da carreira) e a tabela do ranking alternativo.
    Cálculo em server/elo.ts. */
 
-export const ELO_NOTE = 'Calculada com todas as lutas do UFC, na ordem: todos começam com 1500 e cada vitória vale mais quanto mais forte o adversário. Empates e lutas sem resultado não contam; lutas fora do UFC também não.';
+const ELO_NOTE = 'Calculada com todas as lutas do UFC, na ordem: todos começam com 1500 e cada vitória vale mais quanto mais forte o adversário. Empates e lutas sem resultado não contam; lutas fora do UFC também não.';
 
 /** Curva da nota ao longo da carreira (uma marca por luta). */
 function Curve({ h }: { h: EloFighter['history'] }) {
@@ -35,7 +35,7 @@ function Curve({ h }: { h: EloFighter['history'] }) {
 export function EloPanel({ espnId }: { espnId?: string }) {
   const { data: f, isPending, isError } = useEloFighter(espnId);
   if (!espnId || isError) return null;
-  if (isPending) return <Skeleton className="h-56" />;
+  if (isPending) return <Skeleton label="Carregando o Elo" className="h-56" />;
   if (!f || f.fights < 1) return null;
   return (
     <Panel plain title="Nota Elo" action={<Tip title="Como é calculada" content={ELO_NOTE}><span tabIndex={0} className="cursor-help text-[13px] text-fg-3 underline decoration-dotted underline-offset-4">O que é</span></Tip>}>
@@ -58,7 +58,7 @@ export function EloPanel({ espnId }: { espnId?: string }) {
 /** Tabela do ranking alternativo de uma divisão (só ativos com 3+ lutas). */
 export function EloTable({ division }: { division: string }) {
   const { data, isPending } = useEloRanking(division);
-  if (isPending) return <div className="space-y-2 p-4">{[0, 1, 2, 3, 4].map(i => <Skeleton key={i} className="h-12" />)}</div>;
+  if (isPending) return <div role="status" aria-busy="true" aria-label="Carregando o ranking Elo" className="space-y-2 p-4">{[0, 1, 2, 3, 4].map(i => <Skeleton key={i} className="h-12" />)}</div>;
   if (!data?.length) return <Empty>Sem lutadores ativos suficientes para a nota Elo nesta divisão.</Empty>;
   const max = data[0].rating;
   return (
@@ -80,7 +80,7 @@ export function EloTable({ division }: { division: string }) {
           </motion.li>
         ))}
       </ol>
-      <p className="flex items-start gap-2 px-4 pb-4 pt-3 text-[13px] text-fg-3 sm:px-6"><ChartLineUp className="mt-0.5 h-4 w-4 shrink-0" />{ELO_NOTE} Só ativos (luta nos últimos 2 anos) com 3 ou mais lutas.</p>
+      <p className="flex items-start gap-2 px-4 pb-4 pt-3 text-[13px] text-fg-3 sm:px-6"><ChartLineUp className="mt-1 h-4 w-4 shrink-0" />{ELO_NOTE} Só ativos (luta nos últimos 2 anos) com 3 ou mais lutas.</p>
     </div>
   );
 }

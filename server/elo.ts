@@ -11,7 +11,7 @@ const SITE = 'https://site.api.espn.com/apis/site/v2/sports/mma/ufc';
 type J = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 export const ELO_START = 1500;
-export const kFactor = (fightsBefore: number) => (fightsBefore < 5 ? 48 : 32);
+const kFactor = (fightsBefore: number) => (fightsBefore < 5 ? 48 : 32);
 /** Chance de A vencer B pela diferença de notas. */
 export const eloChance = (a: number, b: number) => 1 / (1 + 10 ** ((b - a) / 400));
 

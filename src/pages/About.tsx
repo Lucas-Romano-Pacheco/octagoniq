@@ -16,7 +16,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 const Box = ({ icon, title, lines, tone }: { icon: ReactNode; title: string; lines: string[]; tone: string }) => (
   <div className="cut flex-1 rounded-xl bg-surface p-4 ring-1 ring-fg/[0.06]">
-    <div className="flex items-center gap-2 font-display text-[14px] font-bold uppercase tracking-[0.05em] text-fg">
+    <div className="flex items-center gap-2 font-display text-[14px] font-bold text-fg">
       <span className={`grid h-8 w-8 place-items-center rounded-full ${tone}`}>{icon}</span>{title}
     </div>
     <ul className="mt-3 space-y-1 text-[14px] text-fg-2">{lines.map(l => <li key={l}>{l}</li>)}</ul>
@@ -71,7 +71,7 @@ export default function About() {
           <Box icon={<Database weight="bold" className="h-4 w-4" />} tone="bg-gold-soft text-gold-ink" title="Fontes" lines={['ESPN: eventos, histórico, odds', 'UFC.com: rankings e estatísticas', 'Fight Tracker: juízes e bônus', 'BestFightOdds: odds antigas']} />
         </div>
         <p className="mt-4 flex max-w-[68ch] items-start gap-2 text-[14px] text-fg-3">
-          <Lightning weight="fill" className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+          <Lightning weight="fill" className="mt-1 h-4 w-4 shrink-0 text-gold" />
           Publicado no Vercel: o site estático vai pela CDN e a API roda como função serverless, com as respostas também guardadas na CDN.
         </p>
       </Section>
@@ -81,7 +81,7 @@ export default function About() {
           {DECISIONS.map(([t, d]) => (
             <div key={t}>
               <dt className="text-[16px] font-semibold text-fg">{t}</dt>
-              <dd className="mt-1.5 max-w-[62ch] text-pretty text-[14px] leading-relaxed text-fg-2">{d}</dd>
+              <dd className="mt-2 max-w-[62ch] text-pretty text-[14px] leading-relaxed text-fg-2">{d}</dd>
             </div>
           ))}
         </dl>
@@ -91,7 +91,7 @@ export default function About() {
         <ul className="space-y-2 text-[14px] text-fg-2">
           <li>Dados: ESPN, UFC.com, UFC Fight Tracker e BestFightOdds. Fotos dos atletas servidas pelas próprias fontes.</li>
           <li>Modelo 3D: <a className="link" href="https://quaternius.itch.io/universal-base-characters" target="_blank" rel="noreferrer">Universal Base Characters, de Quaternius</a> (CC0).</li>
-          <li>Bandeiras: circle-flags e flag-icons. Ícones: Phosphor. Fontes: Saira e Inter.</li>
+          <li>Bandeiras: circle-flags e flag-icons. Ícones: Phosphor. Fontes: Archivo Narrow, IBM Plex Sans e IBM Plex Mono.</li>
         </ul>
       </Section>
 

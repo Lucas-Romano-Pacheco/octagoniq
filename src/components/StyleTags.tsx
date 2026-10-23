@@ -14,13 +14,13 @@ export function StyleTags({ stats, className, align = 'start' }: { stats?: Offic
   const tags = fighterStyle(stats);
   if (!tags.length) return null;
   return (
-    <div className={clsx('flex flex-wrap gap-1.5', align === 'end' && 'justify-end', className)}>
+    <div className={clsx('flex flex-wrap gap-2', align === 'end' && 'justify-end', className)}>
       {tags.map((t, i) => {
         const Icon = ICON[t.key as keyof typeof ICON] ?? ChartLineUp;
         return (
           <Tip key={t.key} title={t.label} content={<>{t.why}. Calculado das estatísticas {stats?.source === 'espn' ? 'das lutas no UFC (ESPN)' : 'oficiais do UFC.com'}.</>}>
             <motion.span tabIndex={0} initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 + i * 0.08, type: 'spring', stiffness: 420, damping: 20 }}
-              className="inline-flex h-7 cursor-help items-center gap-1.5 rounded-full bg-surface px-3 font-display text-[12px] font-bold uppercase tracking-[0.05em] text-fg ring-1 ring-line">
+              className="inline-flex h-7 cursor-help items-center gap-2 rounded-full bg-surface px-3 font-display text-[12px] font-bold text-fg ring-1 ring-line">
               <Icon weight="fill" className="h-3.5 w-3.5" style={{ color: COLOR[t.key] }} />{t.label}
             </motion.span>
           </Tip>

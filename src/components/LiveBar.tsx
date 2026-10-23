@@ -61,7 +61,7 @@ export function LiveBar({ e, notices }: { e: EventDetail; notices: Notice[] }) {
   return (
     <section aria-live="polite" className="cut rounded-xl bg-fg p-5 text-bg">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3"><LiveTag /><span className="font-display text-[13px] font-semibold uppercase tracking-[0.1em] text-bg/70">{done} de {total} lutas encerradas</span></div>
+        <div className="flex items-center gap-3"><LiveTag /><span className="font-display text-[13px] font-semibold text-bg/70">{done} de {total} lutas encerradas</span></div>
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg/15 sm:w-56"><div className="h-full rounded-full bg-gold transition-[width] duration-700" style={{ width: `${(done / total) * 100}%` }} /></div>
       </div>
       <div className="mt-4 grid gap-5 lg:grid-cols-[1.2fr_1fr]">
@@ -81,12 +81,12 @@ export function LiveBar({ e, notices }: { e: EventDetail; notices: Notice[] }) {
             </Link>
           ) : <div className="label text-bg/70">Card encerrado</div>}
         </div>
-        <ul className="space-y-1.5 text-[14px]" aria-label="Últimos acontecimentos">
+        <ul className="space-y-2 text-[14px]" aria-label="Últimos acontecimentos">
           <AnimatePresence initial={false}>
             {notices.length === 0 && <li className="text-bg/70">Os avisos de "começou" e "terminou" aparecem aqui, em tempo real.</li>}
             {notices.map(n => (
               <motion.li key={n.id} layout initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-start gap-2">
-                {n.kind === 'start' ? <Play weight="fill" className="mt-0.5 h-4 w-4 shrink-0 text-gold" /> : <CheckCircle weight="fill" className="mt-0.5 h-4 w-4 shrink-0 text-win" />}
+                {n.kind === 'start' ? <Play weight="fill" className="mt-1 h-4 w-4 shrink-0 text-gold" /> : <CheckCircle weight="fill" className="mt-1 h-4 w-4 shrink-0 text-win" />}
                 <Link to={fightHref(e.id, n.fight.id)} className="hover:underline">
                   <b className="font-semibold">{n.kind === 'start' ? 'Começou' : 'Terminou'}: {names(n.fight)}</b>
                   {n.kind === 'end' && <span className="text-bg/70"> · {how(n.fight)}</span>}
@@ -97,7 +97,7 @@ export function LiveBar({ e, notices }: { e: EventDetail; notices: Notice[] }) {
           </AnimatePresence>
         </ul>
       </div>
-      <p className="mt-4 flex items-center gap-1.5 text-[13px] text-bg/65"><Lightning weight="fill" className="h-3.5 w-3.5" />Atualiza sozinho a cada 20 s. Os dados da ESPN podem ter alguns segundos de atraso.</p>
+      <p className="mt-4 flex items-center gap-2 text-[13px] text-bg/65"><Lightning weight="fill" className="h-3.5 w-3.5" />Atualiza sozinho a cada 20 s. Os dados da ESPN podem ter alguns segundos de atraso.</p>
     </section>
   );
 }

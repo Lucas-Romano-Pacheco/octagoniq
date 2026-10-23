@@ -5,7 +5,7 @@ import { ArrowRight, CalendarCheck, Crown, UsersThree } from '@phosphor-icons/re
 import type { BookedMap, RankEntry, RankingDivision, RankingsMeta } from '@shared/types';
 import { fighterHref, useBooked, useRankings, useRankingsMeta } from '@/lib/api';
 import { FighterPicker } from '@/components/FighterPicker';
-import { Avatar, BookedTag, Empty, morphPhoto, ErrorState, Flag, PageHeader, Panel, Skeleton, usePageTitle } from '@/components/kit';
+import { Avatar, BookedTag, Empty, morphPhoto, ErrorState, Flag, PageHeader, Panel, Loading, Skeleton, usePageTitle } from '@/components/kit';
 
 /* Lutadores: a busca em destaque; abaixo, os ranqueados agrupados por divisão em listas editoriais
    (sem cards), com filtros rápidos (brasileiros, campeões, luta marcada) e por divisão, guardados na URL. */
@@ -18,7 +18,7 @@ function Row({ e, meta, booked }: { e: RankEntry; meta?: RankingsMeta; booked?: 
   const champ = e.rank === 0;
   return (
     // "stretched link": o nome cobre a linha inteira; a etiqueta de luta marcada fica por cima, clicável
-    <li className={clsx('item-fx group flex min-w-0 items-center gap-3 rounded-xl px-3 py-2.5', champ && 'is-active')}
+    <li className={clsx('item-fx group flex min-w-0 items-center gap-3 rounded-xl px-3 py-3', champ && 'is-active')}
       style={{ ['--item-accent' as string]: champ ? 'var(--color-gold)' : m?.countryCode === 'br' ? 'var(--color-win)' : 'var(--color-blue)' }}>
       <span className="num w-5 shrink-0 text-right text-[14px] font-semibold text-fg-3">
         {champ ? <Crown weight="fill" className="ml-auto h-4 w-4 text-gold" aria-label="Campeão" /> : e.rank}
@@ -36,11 +36,11 @@ function Row({ e, meta, booked }: { e: RankEntry; meta?: RankingsMeta; booked?: 
 
 function Chip({ on, onClick, children, count }: { on: boolean; onClick: () => void; children: React.ReactNode; count?: number }) {
   return (
-    <button onClick={onClick} aria-pressed={on}
+    <button type="button" onClick={onClick} aria-pressed={on}
       className={clsx('lift inline-flex h-10 shrink-0 items-center gap-2 rounded-full px-4 text-[14px] font-semibold ring-1',
         on ? 'bg-fg text-bg ring-fg' : 'bg-surface text-fg-2 ring-fg/[0.08] hover:bg-surface-2 hover:text-fg hover:ring-fg/20')}>
       {children}
-      {count !== undefined && <span className={clsx('num rounded-md px-1.5 text-[12px]', on ? 'bg-bg/15' : 'bg-surface-2 text-fg-3')}>{count}</span>}
+      {count !== undefined && <span className={clsx('num rounded-md px-2 text-[12px]', on ? 'bg-bg/15' : 'bg-surface-2 text-fg-3')}>{count}</span>}
     </button>
   );
 }
@@ -102,8 +102,8 @@ export default function Fighters() {
       {divisions.length > 0 && (
         <div className="no-scrollbar -mx-5 mt-3 flex gap-1 overflow-x-auto px-5 sm:mx-0 sm:flex-wrap sm:px-0">
           {[{ id: 'todas', name: 'Todas as divisões' }, ...divisions].map(d => (
-            <button key={d.id} onClick={() => set('divisao', d.id, 'todas')}
-              className={clsx('h-9 shrink-0 rounded-full px-3.5 text-[13px] font-semibold transition-colors',
+            <button type="button" key={d.id} onClick={() => set('divisao', d.id, 'todas')}
+              className={clsx('h-9 shrink-0 rounded-full px-4 text-[13px] font-semibold transition-colors',
                 div === d.id ? 'bg-surface-2 text-fg ring-1 ring-fg/15' : 'text-fg-3 hover:bg-surface-2/70 hover:text-fg')}>
               {d.name}
             </button>
@@ -112,7 +112,7 @@ export default function Fighters() {
       )}
 
       {isError && <Panel className="mt-8"><ErrorState onRetry={() => refetch()} /></Panel>}
-      {isLoading && <div className="mt-10 space-y-6">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-72" />)}</div>}
+      {isLoading && <Loading label="Carregando os lutadores" className="mt-10 space-y-6">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-72" />)}</Loading>}
 
       {data && (
         <>

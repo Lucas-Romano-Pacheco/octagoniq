@@ -148,7 +148,7 @@ function Standings({ board, nameOf, me }: { board: RankRow[]; nameOf: (id: strin
               </span>
               <span className="text-right">
                 <span className="num display text-[24px] text-fg">{u.points}</span><span className="ml-1 text-[13px] text-fg-3">pts</span>
-                <span className="block text-[13px] text-fg-3">{u.scored ? `${u.hits}/${u.scored} certos` : 'aguardando'}{u.perfects ? ` · ${u.perfects} ★` : ''}</span>
+                <span className="block text-[13px] text-fg-3">{u.scored ? `${u.hits}/${u.scored} certos` : 'aguardando'}{u.perfects ? ` · ${u.perfects} ${u.perfects === 1 ? 'perfeito' : 'perfeitos'}` : ''}</span>
               </span>
             </div>
             {/* distância para o líder */}
@@ -167,7 +167,7 @@ function Standings({ board, nameOf, me }: { board: RankRow[]; nameOf: (id: strin
 function Voter({ id, name, me, tip, state }: { id: string; name: string; me?: boolean; tip: ReactNode; state?: 'won' | 'lost' | 'late' }) {
   return (
     <Tip title={name} content={tip}>
-      <motion.span tabIndex={0} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 18 }} className="relative inline-flex outline-none">
+      <motion.span tabIndex={0} initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 420, damping: 18 }} className="relative inline-flex outline-none">
         <Face id={id} name={name} me={me} size={32} className={clsx(state === 'lost' && 'opacity-45 grayscale', state === 'late' && 'opacity-40')} ring={state === 'won' ? 'var(--color-win)' : undefined} />
         {state === 'won' && <span className="absolute -bottom-1 -right-1 grid h-4 w-4 place-items-center rounded-full bg-win text-white ring-2 ring-surface"><Check weight="bold" className="h-2.5 w-2.5" /></span>}
         {state === 'lost' && <span className="absolute -bottom-1 -right-1 grid h-4 w-4 place-items-center rounded-full bg-loss text-white ring-2 ring-surface"><X weight="bold" className="h-2.5 w-2.5" /></span>}
@@ -193,7 +193,7 @@ function FightBoard({ f, voters, revealed, names, me, fotnVotes, awarded, i }: {
   };
   const stateOf = (row: PickRow) => { const sc = scoreRow(row, f); return !sc ? 'late' : sc.state === 'done' ? (sc.winner ? 'won' : 'lost') : undefined; };
   const column = (s: 'a' | 'b') => (
-    <div className={clsx('flex min-h-8 flex-wrap gap-1.5', s === 'b' && 'justify-end')}>
+    <div className={clsx('flex min-h-8 flex-wrap gap-2', s === 'b' && 'justify-end')}>
       {sides[s].map(row => <Voter key={row.user_id} id={row.user_id} name={nameOf(row.user_id)} me={row.user_id === me} tip={voterTip(row)} state={stateOf(row)} />)}
     </div>
   );
@@ -217,7 +217,7 @@ function FightBoard({ f, voters, revealed, names, me, fotnVotes, awarded, i }: {
 
       {!locked ? (
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-2">
             {voters.map(id => <Voter key={id} id={id} name={nameOf(id)} me={id === me} tip={id === me ? 'Seu palpite fica escondido até a luta começar' : 'Já palpitou: o palpite aparece quando a luta começar'} />)}
           </div>
           <span className="text-[14px] text-fg-3">{voters.length ? `${voters.length} ${voters.length === 1 ? 'pessoa palpitou' : 'pessoas palpitaram'}` : 'Ninguém palpitou ainda'}</span>
@@ -241,7 +241,7 @@ function FightBoard({ f, voters, revealed, names, me, fotnVotes, awarded, i }: {
         <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-line/70 pt-3 text-[13px] text-fg-2">
           <Star weight="fill" className="h-4 w-4 text-gold" />
           <b className="font-semibold">{fotnVotes.length} {fotnVotes.length === 1 ? 'voto' : 'votos'}</b> para luta da noite
-          <span className="flex -space-x-1.5">{fotnVotes.map(id => <Face key={id} id={id} name={nameOf(id)} me={id === me} size={22} />)}</span>
+          <span className="flex -space-x-2">{fotnVotes.map(id => <Face key={id} id={id} name={nameOf(id)} me={id === me} size={22} />)}</span>
           {awarded && <span className="font-semibold text-win">+{POINTS.fotn} para cada um</span>}
         </div>
       )}
@@ -302,7 +302,7 @@ export function PicksRanking({ event }: { event: EventDetail }) {
         <Panel plain title="Pódio" action={
           <Segmented value={scope} onChange={setScope} options={[{ value: 'evento', label: 'Este evento' }, { value: 'geral', label: 'Geral' }]} />}>
           <p className="-mt-1 mb-8 text-[13px] text-fg-3">{scope === 'evento' ? `${title || series} · só as lutas que já começaram` : 'Todos os eventos somados'}</p>
-          {rows.isPending ? <Skeleton className="h-64" />
+          {rows.isPending ? <Skeleton label="Carregando o ranking" className="h-64" />
             : rows.isError ? <Empty>Não foi possível carregar o ranking agora.</Empty>
             : board.length ? <Podium top={board.slice(0, 3)} nameOf={nameOf} me={me} />
             : <Empty><Trophy weight="duotone" className="mx-auto mb-2 h-10 w-10 text-gold" />{ordered.some(isLocked) || scope === 'geral' ? 'Ninguém pontuou ainda. Os pontos aparecem quando as lutas terminam.' : 'O pódio abre quando a primeira luta do card começar.'}</Empty>}
@@ -317,7 +317,7 @@ export function PicksRanking({ event }: { event: EventDetail }) {
         {/* participantes: rosto, apelido e quantas lutas do card já palpitou */}
         {people.length > 0 && (
           <div className="flex flex-wrap items-center gap-4 rounded-xl bg-cream px-4 py-4 ring-1 ring-line sm:px-5">
-            <span className="flex items-center gap-2 font-display text-[14px] font-bold uppercase tracking-[0.06em] text-fg"><Users weight="bold" className="h-5 w-5" /> {people.length} {people.length === 1 ? 'palpiteiro' : 'palpiteiros'}</span>
+            <span className="flex items-center gap-2 font-display text-[14px] font-bold text-fg"><Users weight="bold" className="h-5 w-5" /> {people.length} {people.length === 1 ? 'palpiteiro' : 'palpiteiros'}</span>
             <ul className="flex flex-wrap gap-3">
               {people.map((id, i) => {
                 const n = fightsOf(id), full = n >= event.fights.length;
@@ -325,15 +325,15 @@ export function PicksRanking({ event }: { event: EventDetail }) {
                   <motion.li key={id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} className="flex items-center gap-2 rounded-full bg-surface py-1 pl-1 pr-3 ring-1 ring-line">
                     <Face id={id} name={nameOf(id)} me={id === me} size={30} />
                     <span className="text-[14px] font-semibold text-fg">{nameOf(id)}</span>
-                    <span className={clsx('num text-[12px] font-semibold', full ? 'text-win' : 'text-fg-3')}>{n}/{event.fights.length}{full && ' ✓'}</span>
+                    <span className={clsx('num text-[12px] font-semibold', full ? 'text-win' : 'text-fg-3')}>{n}/{event.fights.length}{full && <Check weight="bold" className="ml-1 inline h-3 w-3" />}</span>
                   </motion.li>
                 );
               })}
             </ul>
-            {fotnOpen && <span className="ml-auto flex items-center gap-1.5 text-[13px] text-fg-3"><LockSimple className="h-4 w-4" /> Palpites e votos aparecem quando cada luta começar</span>}
+            {fotnOpen && <span className="ml-auto flex items-center gap-2 text-[13px] text-fg-3"><LockSimple className="h-4 w-4" /> Palpites e votos aparecem quando cada luta começar</span>}
           </div>
         )}
-        {part.isPending && eventRows.isPending ? <Skeleton className="h-48" />
+        {part.isPending && eventRows.isPending ? <Skeleton label="Carregando a participação" className="h-48" />
           : !people.length ? <Empty><Users weight="duotone" className="mx-auto mb-2 h-10 w-10" />Ninguém palpitou neste evento ainda. Seja o primeiro na aba Meus palpites.</Empty>
           : ordered.map((f, i) => (
               <FightBoard key={f.id} i={i} f={f} voters={voters.get(f.id) ?? []} revealed={revealed.get(f.id) ?? []} names={names.data ?? new Map()} me={me}

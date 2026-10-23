@@ -109,7 +109,7 @@ function insights(a: FighterProfile, b: FighterProfile): Insight[] {
 /** Linha da ficha: valor A | rótulo | valor B, com o lado vantajoso em destaque. */
 function Tape({ label, a, b, win }: { label: string; a?: ReactNode; b?: ReactNode; win?: Side | null }) {
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-5 py-2.5">
+    <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-5 py-3">
       <span className={`num text-right text-[14px] ${win === 'a' ? 'font-bold text-fg' : 'text-fg-2'}`}>{a ?? '—'}</span>
       <span className="label w-28 text-center">{label}</span>
       <span className={`num text-[14px] ${win === 'b' ? 'font-bold text-fg' : 'text-fg-2'}`}>{b ?? '—'}</span>
@@ -125,7 +125,7 @@ export function FightPreview({ red, blue }: { red: Ref; blue: Ref }) {
   const header = (
     <div>
       <h2 className="panel-title">Prévia da luta</h2>
-      <p className="mt-0.5 text-[13px] text-fg-3">A luta ainda não aconteceu: a carreira dos dois, frente a frente</p>
+      <p className="mt-1 text-[13px] text-fg-3">A luta ainda não aconteceu: a carreira dos dois, frente a frente</p>
     </div>
   );
   if (!a || !b) return (
@@ -151,14 +151,14 @@ export function FightPreview({ red, blue }: { red: Ref; blue: Ref }) {
     <Panel title={header} action={
       <Segmented value={tab} onChange={setTab} options={[{ value: 'chaves', label: 'Pontos-chave' }, { value: 'numeros', label: 'Estatísticas' }, { value: 'ficha', label: 'Ficha técnica' }]} />}>
       <AnimatePresence mode="wait" initial={false}>
-        <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }}>
+        <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
           {tab === 'chaves' && (
             <div className="px-6 pb-6">
               {keys.length === 0 ? <p className="py-2 text-[14px] text-fg-3">Números muito parecidos: nenhuma vantagem clara no papel.</p> : (
                 <ul className="divide-y divide-line/70">
                   {keys.map((k, i) => (
                     <li key={i} className="flex gap-3 py-3 text-[14px] leading-snug text-fg-2">
-                      <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full text-white" style={{ background: k.side ? CORNER[k.side] : 'var(--color-fg-3)' }}>{k.icon}</span>
+                      <span className="mt-1 grid h-7 w-7 shrink-0 place-items-center rounded-full text-white" style={{ background: k.side ? CORNER[k.side] : 'var(--color-fg-3)' }}>{k.icon}</span>
                       <span>{k.text}</span>
                     </li>
                   ))}
@@ -169,8 +169,8 @@ export function FightPreview({ red, blue }: { red: Ref; blue: Ref }) {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="label">Perfil de luta</span>
                     <span className="flex gap-3 text-[13px] text-fg-2">
-                      <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red" />{lastName(a.bio.name)}</span>
-                      <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-blue" />{lastName(b.bio.name)}</span>
+                      <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-red" />{lastName(a.bio.name)}</span>
+                      <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-blue" />{lastName(b.bio.name)}</span>
                     </span>
                   </div>
                   <AttrRadar height={300} series={[{ name: a.bio.name, color: 'red', stats: sa }, { name: b.bio.name, color: 'blue', stats: sb }]} />

@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom';
 import { clsx } from 'clsx';
-import { ArrowRight, Crown, Lightning } from '@phosphor-icons/react';
+import { ArrowRight, Lightning } from '@phosphor-icons/react';
 import type { Fight, FighterRef } from '@shared/types';
 import { fightHref, fighterHref } from '@/lib/api';
 import { OddsChip, oddsView } from './Duel';
 import type { ReactNode } from 'react';
-import { Avatar, FightCard, Flag, LiveTag, MethodTag, morphPhoto, OutcomeBadge, Tag } from './kit';
+import { Avatar, BeltIcon, FightCard, Flag, LiveTag, MethodTag, morphPhoto, OutcomeBadge, Tag } from './kit';
 
 function Side({ f, align, state, tip, odds, compact }: { f: FighterRef; align: 'left' | 'right'; state: 'win' | 'loss' | 'none'; tip?: ReactNode; odds?: ReactNode; compact?: boolean }) {
   const right = align === 'right';
@@ -27,7 +27,7 @@ function Side({ f, align, state, tip, odds, compact }: { f: FighterRef; align: '
           <Flag code={f.countryCode} src={f.flag} title={f.country} size={22} />
           <span className="num font-semibold">{f.record ?? '—'}</span>
         </div>
-        {odds && <div className={clsx('mt-1.5 flex justify-center', right ? 'sm:justify-end' : 'sm:justify-start')}>{odds}</div>}
+        {odds && <div className={clsx('mt-2 flex justify-center', right ? 'sm:justify-end' : 'sm:justify-start')}>{odds}</div>}
       </div>
     </Link>
   );
@@ -51,27 +51,27 @@ export function FightRow({ fight, compact, eventId }: { fight: Fight; compact?: 
   const ov = oddsView(fight.odds);
   // zebra: o vencedor tinha menos de 35% de chance pelas odds
   const upset = ov && r?.winnerId && (winRed ? ov.red.p : winBlue ? ov.blue.p : 1) < 0.35;
-  const state = (w: boolean) => (!r || !r.winnerId ? 'none' : w ? 'win' : 'loss') as 'win' | 'loss' | 'none';
+  const state = (w: boolean) => (!r?.winnerId ? 'none' : w ? 'win' : 'loss') as 'win' | 'loss' | 'none';
 
   const href = eventId ? fightHref(eventId, fight.id) : undefined;
   return (
-    <div className={clsx('group relative grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-xl px-3 transition-colors duration-150 hover:bg-surface-2/60 max-sm:grid-cols-2 max-sm:gap-y-3 sm:gap-5 sm:px-4', compact ? 'py-3.5' : 'py-4')}>
+    <div className={clsx('group relative grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-xl px-3 transition-colors duration-150 hover:bg-surface-2/60 max-sm:grid-cols-2 max-sm:gap-y-3 sm:gap-5 sm:px-4', compact ? 'py-4' : 'py-4')}>
       <Side f={fight.red} align="right" compact={compact} state={state(winRed)} tip={winRed && r ? winTip(fight.red, fight.blue, r, fight.date) : undefined} odds={ov && <OddsChip {...ov.red} compact />} />
-      <div className={clsx('flex flex-col items-center gap-1.5 text-center max-sm:order-last max-sm:col-span-2 max-sm:flex-row max-sm:flex-wrap max-sm:justify-center max-sm:gap-x-3 max-sm:border-t max-sm:border-line/60 max-sm:pt-3', compact ? 'sm:w-[160px]' : 'sm:w-[196px]')}>
-        <div className="flex flex-wrap items-center justify-center gap-1.5">
-          {fight.title && <Tag tone="gold"><Crown weight="fill" className="h-3.5 w-3.5" /> Título</Tag>}
+      <div className={clsx('flex flex-col items-center gap-2 text-center max-sm:order-last max-sm:col-span-2 max-sm:flex-row max-sm:flex-wrap max-sm:justify-center max-sm:gap-x-3 max-sm:border-t max-sm:border-line/60 max-sm:pt-3', compact ? 'sm:w-[160px]' : 'sm:w-[196px]')}>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {fight.title && <Tag tone="gold"><BeltIcon className="h-3.5 w-6" /> Título</Tag>}
           <span className="text-[16px] font-medium text-fg-3">{fight.weightClass}</span>
         </div>
         {fight.status === 'in' ? (
           <>
             <LiveTag />
-            {fight.live?.round && <span className="num rounded-md bg-brand-soft px-2 py-0.5 text-[13px] font-semibold text-brand">R{fight.live.round} · {fight.live.clock}</span>}
+            {fight.live?.round && <span className="num rounded-md bg-brand-soft px-2 py-1 text-[13px] font-semibold text-brand">R{fight.live.round} · {fight.live.clock}</span>}
           </>
         ) : r ? (
           <>
             <MethodTag method={r.method} size={compact ? 'sm' : 'md'} />
             {r.detail && !/decis/i.test(r.method) && !compact && <span className="text-[13px] text-fg-2">{r.detail}</span>}
-            <span className="num rounded-md bg-surface-2 px-2 py-0.5 text-[13px] font-semibold text-fg-2">R{r.round} · {r.clock}</span>
+            <span className="num rounded-md bg-surface-2 px-2 py-1 text-[13px] font-semibold text-fg-2">R{r.round} · {r.clock}</span>
           </>
         ) : (
           <span className="text-[16px] font-medium text-fg-3">{fight.rounds} rounds</span>
@@ -82,7 +82,7 @@ export function FightRow({ fight, compact, eventId }: { fight: Fight; compact?: 
       {/* a linha inteira abre a luta; a seta só aparece ao passar o mouse (no lugar dos links "Ver a luta" repetidos) */}
       {href && (
         <Link to={href} viewTransition onClick={morphFight} aria-label={`${fight.status === 'post' ? 'Ver a luta' : 'Odds e prévia'}: ${fight.red.name} × ${fight.blue.name}`} className="absolute inset-0 rounded-xl">
-          <ArrowRight weight="bold" className="absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-brand opacity-0 transition-all group-hover:right-1 group-hover:opacity-100" />
+          <ArrowRight weight="bold" className="absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-brand opacity-0 transition group-hover:right-1 group-hover:opacity-100" />
         </Link>
       )}
     </div>

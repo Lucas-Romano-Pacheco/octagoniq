@@ -18,16 +18,16 @@ const Strip = ({ n = 4 }: { n?: number }) => (
 
 /** Linha de luta: foto + nome de cada lado e o resultado no meio. */
 const FightLine = () => (
-  <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-4 py-4">
-    <div className="flex items-center justify-end gap-3"><div className="space-y-2"><S className="ml-auto h-4 w-32" /><S className="ml-auto h-3 w-16" /></div><S className="h-14 w-14 rounded-full" /></div>
-    <div className="w-[140px] space-y-2"><S className="mx-auto h-3 w-16" /><S className="mx-auto h-4 w-24" /></div>
-    <div className="flex items-center gap-3"><S className="h-14 w-14 rounded-full" /><div className="space-y-2"><S className="h-4 w-32" /><S className="h-3 w-16" /></div></div>
+  <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-4 py-4 sm:gap-4">
+    <div className="flex items-center justify-end gap-3"><div className="min-w-0 space-y-2"><S className="ml-auto h-4 w-20 sm:w-32" /><S className="ml-auto h-3 w-12 sm:w-16" /></div><S className="h-10 w-10 shrink-0 rounded-full sm:h-14 sm:w-14" /></div>
+    <div className="w-16 space-y-2 sm:w-[140px]"><S className="mx-auto h-3 w-12 sm:w-16" /><S className="mx-auto h-4 w-14 sm:w-24" /></div>
+    <div className="flex items-center gap-3"><S className="h-10 w-10 shrink-0 rounded-full sm:h-14 sm:w-14" /><div className="min-w-0 space-y-2"><S className="h-4 w-20 sm:w-32" /><S className="h-3 w-12 sm:w-16" /></div></div>
   </div>
 );
 
 export function FighterSkeleton() {
   return (
-    <div className="min-h-[1500px] space-y-6" aria-busy="true" aria-label="Carregando o perfil do lutador">
+    <div className="min-h-[1500px] space-y-6" role="status" aria-busy="true" aria-label="Carregando o perfil do lutador">
       <section className="grid items-center gap-8 pb-6 pt-2 lg:grid-cols-[1.1fr_1fr]">
         <div>
           <div className="flex gap-2"><S className="h-7 w-36 rounded-md" /><S className="h-7 w-28 rounded-md" /></div>
@@ -56,7 +56,7 @@ export function FighterSkeleton() {
 
 export function EventSkeleton() {
   return (
-    <div className="min-h-[1600px] space-y-6" aria-busy="true" aria-label="Carregando o evento">
+    <div className="min-h-[1600px] space-y-6" role="status" aria-busy="true" aria-label="Carregando o evento">
       <S className="h-8 w-24 rounded-full" />
       <section className="grid items-end gap-8 lg:grid-cols-[1.1fr_1fr]">
         <div className="pb-4"><S className="h-4 w-24" /><S className="mt-5 h-16 w-[85%]" /><S className="mt-3 h-16 w-[60%]" /><S className="mt-6 h-4 w-80" /></div>
@@ -75,7 +75,7 @@ export function FightSkeleton() {
     </div>
   );
   return (
-    <div className="min-h-[1300px] space-y-8" aria-busy="true" aria-label="Carregando a luta">
+    <div className="min-h-[1300px] space-y-8" role="status" aria-busy="true" aria-label="Carregando a luta">
       <div><S className="h-5 w-72" /><S className="mt-4 h-4 w-48" /></div>
       <section className="grid grid-cols-2 items-start gap-x-3 gap-y-6 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:gap-8">
         {corner()}

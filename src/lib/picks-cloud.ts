@@ -49,7 +49,7 @@ function claimLocal(userId: string): boolean {
 
 /* ---------- Estado da nuvem (para a interface) ---------- */
 
-export type CloudState = 'off' | 'syncing' | 'ok' | 'error';
+type CloudState = 'off' | 'syncing' | 'ok' | 'error';
 let state: { state: CloudState; at?: number; error?: string } = { state: 'off' };
 const subs = new Set<() => void>();
 const set = (s: typeof state) => { state = s; subs.forEach(f => f()); };

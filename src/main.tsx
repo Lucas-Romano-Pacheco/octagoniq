@@ -1,18 +1,27 @@
-import { StrictMode, lazy, Suspense } from 'react';
+import { StrictMode, lazy, Suspense, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, Link, RouterProvider, useRouteError } from 'react-router-dom';
-import { QueryClient } from '@tanstack/react-query';
+import { QueryCache, QueryClient } from '@tanstack/react-query';
 import { PersistQueryClientProvider, removeOldestQuery } from '@tanstack/react-query-persist-client';
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister';
 
-import '@fontsource-variable/saira/wdth.css'; // títulos, rótulos e botões: sans esportiva de cantos quadrados (eixos de peso e largura)
-import '@fontsource-variable/ibm-plex-sans';     // texto e tabelas (Inter era a fonte padrão mais usada por interfaces geradas)
+import '@fontsource/archivo-narrow/500.css';      // títulos e números grandes: grotesca estreita de jornal esportivo
+import '@fontsource/archivo-narrow/600.css';
+import '@fontsource/archivo-narrow/700.css';
+import '@fontsource-variable/ibm-plex-sans';
+import '@fontsource/ibm-plex-mono/500.css';        // números (cartel, odds, estatísticas): cara de placar, mesma família do texto
+import '@fontsource/ibm-plex-mono/600.css';     // texto e tabelas (Inter era a fonte padrão mais usada por interfaces geradas)
 import './styles.css';
 
 import { Layout } from '@/components/Layout';
 import { ErrorState, OctagonMark, Panel, Skeleton } from '@/components/kit';
+import { EventSkeleton, FightSkeleton, FighterSkeleton } from '@/components/Skeletons';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { ApiError } from '@/lib/api';
+import { initObservability, reportError } from '@/lib/observability';
+import { hideSplash } from '@/lib/splash';
 import { IconContext } from '@phosphor-icons/react';
+import { MotionConfig } from 'motion/react';
 import Home from '@/pages/Home';
 
 // Páginas secundárias em chunks separados
@@ -28,7 +37,10 @@ const Picks = lazy(() => import('@/pages/Picks'));
 const Login = lazy(() => import('@/pages/Login'));
 const Account = lazy(() => import('@/pages/Account'));
 
-const page = (el: React.ReactNode) => <Suspense fallback={<Skeleton className="h-[1200px]" />}>{el}</Suspense>;
+/* Enquanto o código da página chega, já aparece o esqueleto com o contorno dela (o mesmo do carregamento dos dados),
+   para a troca esqueleto → conteúdo não pular de formato. */
+const GenericSkeleton = () => <div role="status" aria-busy="true" aria-label="Carregando a página"><Skeleton className="h-[1200px]" /></div>;
+const page = (el: React.ReactNode, Fallback: React.ComponentType = GenericSkeleton) => <Suspense fallback={<Fallback />}>{el}</Suspense>;
 
 /* 404 temática: o "placar" da página que não existe */
 const NotFound = () => (
@@ -48,6 +60,7 @@ const NotFound = () => (
 function RouteError() {
   const err = useRouteError();
   console.error(err);
+  useEffect(() => { reportError(err, { where: 'rota' }); }, [err]);
   return (
     <Panel className="mx-auto mt-10 max-w-xl">
       <ErrorState title="Golpe ilegal na página" message="Algo deu errado ao montar esta tela. Recarregar costuma resolver." onRetry={() => location.reload()} />
@@ -64,11 +77,11 @@ const router = createBrowserRouter([
       { errorElement: <RouteError />, children: [
       { index: true, element: <Home /> },
       { path: 'eventos', element: page(<Events />) },
-      { path: 'eventos/:id', element: page(<Event />) },
-      { path: 'eventos/:id/lutas/:fight', element: page(<FightPage />) },
+      { path: 'eventos/:id', element: page(<Event />, EventSkeleton) },
+      { path: 'eventos/:id/lutas/:fight', element: page(<FightPage />, FightSkeleton) },
       { path: 'rankings/:div?', element: page(<Rankings />) },
       { path: 'lutadores', element: page(<Fighters />) },
-      { path: 'lutadores/:slug', element: page(<Fighter />) },
+      { path: 'lutadores/:slug', element: page(<Fighter />, FighterSkeleton) },
       { path: 'comparar', element: page(<Compare />) },
       { path: 'palpites/:id?', element: page(<Picks />) },
       { path: 'sobre', element: page(<About />) },
@@ -81,6 +94,8 @@ const router = createBrowserRouter([
 ]);
 
 const queryClient = new QueryClient({
+  // consulta que falhou de vez (depois do retry) vai para o Sentry; 404 é resposta normal (lutador inexistente etc.)
+  queryCache: new QueryCache({ onError: (e, q) => { if (!(e instanceof ApiError && e.status === 404)) reportError(e, { queryKey: q.queryKey }); } }),
   // gcTime ≥ maxAge do persister, senão as consultas somem antes de serem salvas
   defaultOptions: { queries: { refetchOnWindowFocus: false, retry: 1, gcTime: 24 * 3600_000 } },
 });
@@ -95,6 +110,8 @@ const persister = createSyncStoragePersister({
   retry: removeOldestQuery, // estourou a cota: descarta a consulta mais antiga e tenta de novo
 });
 
+initObservability();
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <PersistQueryClientProvider client={queryClient} persistOptions={{
@@ -106,9 +123,15 @@ createRoot(document.getElementById('root')!).render(
       <TooltipProvider delayDuration={150}>
         {/* Phosphor em duotone por padrão: traço com preenchimento suave, mais autoral que ícones de linha */}
         <IconContext.Provider value={{ weight: 'duotone', mirrored: false }}>
-          <RouterProvider router={router} />
+          {/* reducedMotion="user": com "reduzir movimento" ligado no sistema, todas as animações do Motion
+              perdem o deslocamento e ficam só com a opacidade */}
+          <MotionConfig reducedMotion="user">
+            <RouterProvider router={router} />
+          </MotionConfig>
         </IconContext.Provider>
       </TooltipProvider>
     </PersistQueryClientProvider>
   </StrictMode>,
 );
+
+hideSplash(queryClient);

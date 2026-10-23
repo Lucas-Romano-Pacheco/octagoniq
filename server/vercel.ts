@@ -7,10 +7,14 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { handle } from './routes.ts';
 import { htmlWithMeta, ogImage } from './og.ts';
 import { IMG_CACHE, resizeImage } from './img.ts';
+import { flushTelemetry, initTelemetry } from './telemetry.ts';
+
+const telemetry = initTelemetry();
 
 let indexHtml: string | null = null;
 
 export default async function handler(req: IncomingMessage, res: ServerResponse) {
+  await telemetry;
   const url = new URL(req.url ?? '/', `https://${req.headers.host ?? 'localhost'}`);
   const origin = `https://${req.headers['x-forwarded-host'] ?? req.headers.host}`;
 
@@ -48,4 +52,6 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     'Cache-Control': r.maxAge ? `public, max-age=${r.maxAge}, s-maxage=${r.maxAge}, stale-while-revalidate=86400` : 'no-store',
   });
   res.end(JSON.stringify(r.body));
+  // depois da resposta: a pessoa não espera, mas os traces e erros saem antes de a instância congelar
+  await flushTelemetry();
 }

@@ -30,7 +30,7 @@ export function scoreRow(r: PickRow, f: Fight): Scored | null {
 export interface EventInfo { start?: string; awarded?: string[] }
 
 /** Pontuação do voto de luta da noite de alguém (null = feito depois de o card começar). */
-export function scoreFotnRow(r: PickRow, ev: EventInfo): Scored | null {
+function scoreFotnRow(r: PickRow, ev: EventInfo): Scored | null {
   return ev.start && Date.parse(r.updated_at) > Date.parse(ev.start) ? null : scoreFotn(toPick(r), ev.awarded);
 }
 

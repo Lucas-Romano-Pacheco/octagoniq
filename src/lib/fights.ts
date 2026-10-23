@@ -51,8 +51,8 @@ export const fotnAwarded = (ev: { status: string; fights: Fight[] } | undefined,
 
 /** Peso de cada ação no domínio de um round: golpe significativo 1, knockdown 8, queda 4, finalização tentada 2,
     cada 15 s de controle 1. É uma régua simples para o gráfico, não o critério dos juízes. */
-export const EDGE_WEIGHTS = { sig: 1, kd: 8, td: 4, subs: 2, ctrlPer: 15 } as const;
-export const roundScore = (s: RoundSide) => s.sig * EDGE_WEIGHTS.sig + s.kd * EDGE_WEIGHTS.kd + s.td * EDGE_WEIGHTS.td + s.subs * EDGE_WEIGHTS.subs + s.ctrl / EDGE_WEIGHTS.ctrlPer;
+const EDGE_WEIGHTS = { sig: 1, kd: 8, td: 4, subs: 2, ctrlPer: 15 } as const;
+const roundScore = (s: RoundSide) => s.sig * EDGE_WEIGHTS.sig + s.kd * EDGE_WEIGHTS.kd + s.td * EDGE_WEIGHTS.td + s.subs * EDGE_WEIGHTS.subs + s.ctrl / EDGE_WEIGHTS.ctrlPer;
 /** Vantagem num round: positiva para o vermelho, negativa para o azul. */
 export const roundEdge = (r: RoundStat) => roundScore(r.red) - roundScore(r.blue);
 

@@ -10,6 +10,7 @@ import * as tracker from './tracker.ts';
 import * as wiki from './wiki.ts';
 import * as elo from './elo.ts';
 import { UpstreamError, remember, settle, MIN, HOUR } from './http.ts';
+import { captureError, traced } from './telemetry.ts';
 
 export interface ApiResponse { status: number; body: unknown; maxAge: number }
 
@@ -142,7 +143,7 @@ export function fighterProfile(slug: string, espnHint?: string | null): Promise<
   });
 }
 
-export const officialRankings = () => remember('rankings', 1 * HOUR, () => ufc.rankings());
+const officialRankings = () => remember('rankings', 1 * HOUR, () => ufc.rankings());
 
 /** Bandeira, cartel e id ESPN de cada ranqueado. ~190 lutadores × 2 chamadas, então fica 12 h em cache (disco). */
 export function rankingsMeta(): Promise<RankingsMeta> {
@@ -168,7 +169,7 @@ export function rankingsMeta(): Promise<RankingsMeta> {
 const AVG_KEYS = ['slpm', 'sapm', 'strAcc', 'strDef', 'tdAvg', 'tdAcc', 'tdDef', 'subAvg', 'kdAvg'] as const;
 
 /** Média dos ranqueados de uma divisão (nome em pt-BR, como no UFC.com: "Meio-médio", "Mosca (F)"). 24 h em cache. */
-export function divisionAverages(name: string): Promise<DivisionAverages | null> {
+function divisionAverages(name: string): Promise<DivisionAverages | null> {
   return remember(`divavg:v2:${fold(name)}`, 24 * HOUR, async () => {
     const d = (await officialRankings()).divisions.find(x => !x.p4p && fold(x.name) === fold(name));
     if (!d) return null;
@@ -188,7 +189,7 @@ export function divisionAverages(name: string): Promise<DivisionAverages | null>
 }
 
 /** Quem tem luta marcada nos próximos eventos (exceto Contender Series): id ESPN → luta. A mais próxima vence. */
-export function bookedFights(): Promise<BookedMap> {
+function bookedFights(): Promise<BookedMap> {
   return remember('booked:v1', 30 * MIN, async () => {
     const list = (await upcoming(14)).filter(e => e.series !== 'dwcs');
     const details = await settle(list.map(e => espn.eventDetail(e.id)));
@@ -296,18 +297,25 @@ const routes: [RegExp, Handler][] = [
   }],
 ];
 
+/** Nome da rota para o rastreamento: /^\/api\/fighters\/(?<slug>…)$/ → /api/fighters/:slug */
+const routeName = (re: RegExp) => re.source.replace(/^\^|\$$/g, '').replaceAll('\\/', '/').replace(/\(\?<(\w+)>[^)]*\)/g, ':$1');
+
 export async function handle(url: URL): Promise<ApiResponse> {
   for (const [re, fn] of routes) {
     const m = url.pathname.match(re);
     if (!m) continue;
-    try {
-      return await fn(m.groups ?? {}, url.searchParams);
-    } catch (e) {
-      const detail = e instanceof Error ? e.message : String(e);
-      const status = e instanceof UpstreamError ? 502 : 500;
-      console.error(`[api] ${url.pathname}: ${detail}`);
-      return { status, body: { error: 'Falha ao consultar a fonte de dados', detail }, maxAge: 0 };
-    }
+    return traced(routeName(re), url.pathname, async () => {
+      try {
+        return await fn(m.groups ?? {}, url.searchParams);
+      } catch (e) {
+        const detail = e instanceof Error ? e.message : String(e);
+        const upstream = e instanceof UpstreamError;
+        console.error(`[api] ${url.pathname}: ${detail}`);
+        // fonte fora do ar (502) é esperado de vez em quando; erro nosso (500) vai para o Sentry
+        if (!upstream) captureError(e, { path: url.pathname, query: url.search });
+        return { status: upstream ? 502 : 500, body: { error: 'Falha ao consultar a fonte de dados', detail }, maxAge: 0 };
+      }
+    });
   }
   return notFound('Rota inexistente');
 }

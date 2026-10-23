@@ -47,7 +47,7 @@
 - **three.js:** boneco 3D da aba "Por alvo", carregado só nessa aba. Modelo "Universal Base Characters", de [Quaternius](https://quaternius.itch.io/universal-base-characters), CC0 (créditos em `public/models/CREDITS.txt`)
 - **BFF em Node** (`server/`): consolida as fontes, normaliza para tipos próprios e guarda cache
 - **satori + resvg** (imagens de prévia) e **sharp** (fotos redimensionadas em WebP)
-- Tipografia: Saira (títulos, rótulos e botões) e IBM Plex Sans (texto e tabelas). Regras de design em [`design.md`](design.md) e objetivos de cada tela em [`PRODUCT.md`](PRODUCT.md)
+- Tipografia: Archivo Narrow (títulos), IBM Plex Sans (texto) e IBM Plex Mono (números). Regras de design em [`design.md`](design.md) e objetivos de cada tela em [`PRODUCT.md`](PRODUCT.md)
 - Testes com **Vitest**; CI no GitHub Actions; publicação no **Vercel**
 
 ## Como rodar
@@ -64,8 +64,11 @@ npm run dev          # http://localhost:5173 (site + /api no mesmo servidor)
 Outros comandos:
 
 ```bash
-npm test             # testes (Vitest)
+npm test             # testes unitários e de integração (Vitest)
 npm run typecheck    # checagem de tipos
+npm run check        # tudo que o CI cobra: tipos, lint, arquitetura, código morto e testes com cobertura
+npm run test:e2e     # ponta a ponta no navegador (Playwright, desktop e celular)
+npm run test:mutation # testes de mutação (Stryker; lento, relatório em reports/mutation)
 npm run build        # tipos + build em dist/
 npm start            # servidor de produção: dist/ + /api + /og + /img em http://localhost:4173
 ```
@@ -95,6 +98,40 @@ As fontes não são oficiais e podem mudar sem aviso. Os adaptadores ficam isola
 - **Fotos redimensionadas:** `/img` entrega WebP na largura pedida (um avatar de 282 KB virou 4,6 KB).
 - **Carregamento sob demanda:** páginas, gráficos, 3D e a busca são baixados só quando usados; seções abaixo da dobra só são montadas quando o visitante se aproxima.
 - **Lighthouse** (build de produção, local): desktop **93–100** em desempenho, **96–100** em acessibilidade, **100** em boas práticas e SEO. No celular simulado (rede 4G lenta e CPU 4× mais lenta) o desempenho fica em 64–78. Passar disso exigiria pré-renderizar as páginas no servidor.
+
+## Qualidade de código e testes
+
+| Ferramenta | O que garante | Comando |
+|---|---|---|
+| **Biome** | lint de TS/TSX/CSS (o formatador fica desligado para não reescrever o projeto) | `npm run lint` |
+| **dependency-cruiser** | contrato de arquitetura: `shared` não importa nada do app; interface e servidor não se importam; páginas não importam outras páginas; `src/lib` não importa componentes; sem ciclos | `npm run lint:arch` |
+| **Knip** | arquivos, exportações e dependências sem uso | `npm run lint:dead` |
+| **commitlint** | mensagens no padrão Conventional Commits (`feat:`, `fix:`, `docs:`…; assunto em português) | `npm run lint:commits` |
+| **Vitest + v8** | testes unitários e de integração (as rotas `/api` com as fontes simuladas), cobertura com piso | `npm run test:coverage` |
+| **Codecov** | histórico da cobertura em cada PR (o CI envia `coverage/lcov.info`) | CI |
+| **Playwright** | navegação real em desktop e Pixel 7: início → evento → luta, menu, perfil, comparador, palpite, login, esqueleto de carregamento, 404 e, em toda página, nada de rolagem lateral no celular | `npm run test:e2e` |
+| **Stryker** | testes de mutação nas regras de pontuação, Elo, estilos e histórias: altera o código de propósito e confere se algum teste falha | `npm run test:mutation` |
+
+Situação em out/2026: cobertura de 38% das linhas (80% dos ramos) na lógica de `shared`, `server` e `src/lib`;
+mutação em 54,7% (o piso do CI é 50%). Os pontos mais fracos são `style.ts`, `fanscore.ts` e `elo.ts`.
+O CI (`.github/workflows/ci.yml`) roda tudo isso em cada PR; a mutação roda só no `main`, por ser lenta.
+
+## Observabilidade
+
+Tudo opcional e ligado por variáveis de ambiente (exemplos em `.env.example`); sem elas, nenhum pacote extra é baixado
+nem carregado.
+
+- **Sentry no navegador** (`VITE_SENTRY_DSN`, `src/lib/observability.ts`): telas que quebram, consultas que falham
+  (menos 404), tempo de navegação e Web Vitals (LCP, INP, CLS). O pacote só é baixado no tempo ocioso, depois da
+  primeira pintura.
+- **Sentry no servidor** (`SENTRY_DSN`, `server/telemetry.ts`): erros das rotas `/api` (falha de fonte externa, 502,
+  não conta como erro nosso).
+- **OpenTelemetry** (`OTEL_EXPORTER_OTLP_ENDPOINT`): cada chamada a `/api` vira um trace com um span por consulta a
+  ESPN, UFC.com, Wikipedia e BestFightOdds. Sai por OTLP/HTTP, então o mesmo código manda para **New Relic**
+  (`https://otlp.nr-data.net`, cabeçalho `api-key`), **Datadog** (OTLP direto com `dd-api-key`, ou pelo Agent),
+  Grafana, Honeycomb ou um Jaeger local. A instrumentação é manual + undici (e não a automática), porque a função do
+  Vercel é empacotada num arquivo só e a automática depende de interceptar `require`.
+- No Vercel, a telemetria é enviada depois da resposta, então ninguém espera por ela.
 
 ## Estrutura
 
@@ -166,5 +203,5 @@ No Vercel o cache fica em `/tmp`, que só dura enquanto a instância da função
 
 ## Créditos
 
-Dados: ESPN, UFC.com, UFC Fight Tracker e BestFightOdds. Modelo 3D: Quaternius (CC0). Bandeiras: circle-flags e flag-icons. Ícones: Phosphor. Fontes: Saira e IBM Plex Sans.
+Dados: ESPN, UFC.com, UFC Fight Tracker e BestFightOdds. Modelo 3D: Quaternius (CC0). Bandeiras: circle-flags e flag-icons. Ícones: Phosphor. Fontes: Archivo Narrow, IBM Plex Sans e IBM Plex Mono.
 Feito por **Lucas Pacheco**.

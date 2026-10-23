@@ -21,7 +21,7 @@ function apply(p: ThemePref) {
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach(l => l());
 
-export function setTheme(p: ThemePref) {
+function setTheme(p: ThemePref) {
   try { if (p === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, p); } catch { /* armazenamento bloqueado */ }
   apply(p);
   emit();

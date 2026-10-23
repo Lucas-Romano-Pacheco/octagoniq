@@ -40,13 +40,13 @@ const LOGIN_DOMAIN = 'octagoniq.vercel.app';
 const loginEmail = (username: string) => `${username.trim().toLowerCase()}@${LOGIN_DOMAIN}`;
 
 /** Só caminhos internos: impede que `?next=` mande a pessoa para outro site depois de entrar. */
-export const safeNext = (next: string | null | undefined) => (next && next.startsWith('/') && !next.startsWith('//') ? next : '/palpites');
+export const safeNext = (next: string | null | undefined) => (next?.startsWith('/') && !next.startsWith('//') ? next : '/palpites');
 
 export const USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
 export const MIN_PASSWORD = 8;
 
 /** Apelido exibido: o do cadastro ou, sem ele (ex.: entrou pelo Google), o começo do e-mail. */
-export const displayName = (s: Session | null) =>
+const displayName = (s: Session | null) =>
   (s?.user.user_metadata?.username as string | undefined) ?? s?.user.email?.split('@')[0] ?? '';
 
 /** O apelido está livre? (consulta o banco; usada no cadastro enquanto a pessoa digita) */

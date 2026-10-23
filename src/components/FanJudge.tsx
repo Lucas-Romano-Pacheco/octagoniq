@@ -37,7 +37,7 @@ export function FanJudge({ d }: { d: FightDetail }) {
   const agree = rounds.filter(n => { const x = my.get(n), j = judges(n); return x && j && (x.red > x.blue ? j.red > j.blue : j.blue > j.red); }).length;
   const judged = rounds.filter(n => my.get(n) && judges(n)).length;
   const cards = fans.data?.cards;
-  const fanWinner = cards && cards.total ? (cards.red > cards.blue ? 'a' : cards.blue > cards.red ? 'b' : null) : null;
+  const fanWinner = cards?.total ? (cards.red > cards.blue ? 'a' : cards.blue > cards.red ? 'b' : null) : null;
   const officialRed = f.result?.winnerId === d.red.espnId;
 
   return (
@@ -46,18 +46,18 @@ export function FanJudge({ d }: { d: FightDetail }) {
         <Link to={loginHref(`/eventos/${d.eventId}/lutas/${f.id}`)} className="btn mt-2"><SignIn weight="bold" className="h-4 w-4" /> Entre para dar suas notas</Link>
       )}
       <div className="mt-3 flex justify-between text-[13px] font-semibold text-fg-2">
-        <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: CORNER.a }} />{a}</span>
-        <span className="flex items-center gap-1.5">{b}<span className="h-2 w-2 rounded-full" style={{ background: CORNER.b }} /></span>
+        <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: CORNER.a }} />{a}</span>
+        <span className="flex items-center gap-2">{b}<span className="h-2 w-2 rounded-full" style={{ background: CORNER.b }} /></span>
       </div>
       <ol className="mt-2 divide-y divide-line/70">
         {rounds.map(n => {
           const pick = my.get(n), fr = fans.data?.rounds.get(n), j = judges(n);
-          const share = fr && fr.votes ? fr.red / fr.votes : null;
+          const share = fr?.votes ? fr.red / fr.votes : null;
           return (
             <li key={n} className="py-3">
               <div className="grid grid-cols-[32px_minmax(0,1fr)] items-center gap-3">
                 <span className="display text-[18px] text-fg-3">R{n}</span>
-                <div className="grid grid-cols-4 gap-1.5" role="radiogroup" aria-label={`Nota do round ${n}`}>
+                <div className="grid grid-cols-4 gap-2" role="radiogroup" aria-label={`Nota do round ${n}`}>
                   {NOTES.map(note => {
                     const side = note.red > note.blue ? 'a' : 'b', on = same(pick, note);
                     return (
@@ -89,7 +89,7 @@ export function FanJudge({ d }: { d: FightDetail }) {
         })}
       </ol>
 
-      <div className="mt-3 space-y-1.5 border-t border-line pt-3 text-[14px] text-fg-2">
+      <div className="mt-3 space-y-2 border-t border-line pt-3 text-[14px] text-fg-2">
         {myTotal.n > 0 && (
           <p><Gavel weight="fill" className="mr-1 inline h-4 w-4 text-fg-3" />Seu cartão: <b className="num text-fg">{myTotal.red}-{myTotal.blue}</b>{myTotal.n === rounds.length && myTotal.red !== myTotal.blue && <> para <b className="text-fg">{myTotal.red > myTotal.blue ? a : b}</b></>}
             {judged > 0 && <> · concordou com os juízes em {agree} de {judged} {judged === 1 ? 'round' : 'rounds'}</>}</p>
@@ -98,7 +98,7 @@ export function FanJudge({ d }: { d: FightDetail }) {
           <p>A galera deu a luta a <b className="text-fg" style={{ color: fanWinner ? CORNER_INK[fanWinner] : undefined }}>{fanWinner === 'a' ? a : fanWinner === 'b' ? b : 'ninguém (empate)'}</b> {cards.total === 1 ? 'no único cartão completo até agora' : `em ${Math.round((Math.max(cards.red, cards.blue) / cards.total) * 100)}% dos ${cards.total} cartões completos`}
             {f.status === 'post' && /decis/i.test(f.result?.method ?? '') && fanWinner && <>{(fanWinner === 'a') === officialRed ? ' e concordou com os juízes.' : ', mas os juízes deram a vitória ao outro lado.'}</>}</p>
         )}
-        {!myTotal.n && !(cards && cards.total) && <p className="text-fg-3">Ninguém deu notas ainda. Seja o primeiro.</p>}
+        {!myTotal.n && !(cards?.total) && <p className="text-fg-3">Ninguém deu notas ainda. Seja o primeiro.</p>}
       </div>
     </Panel>
   );

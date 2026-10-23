@@ -44,10 +44,11 @@ Regras:
 
 ## 3. Tipografia
 
-- **Saira** (`font-display`, largura variável): títulos (`.display`, caixa alta, 700, entrelinha 0,95), títulos de seção
+- **Archivo Narrow** (`font-display`): títulos (`.display`, caixa alta, 700, entrelinha 0,95), títulos de seção
   (`.panel-title`), rótulos (`.label`), botões e menu.
-- **IBM Plex Sans** (`font-sans`, variável): texto corrido, tabelas, gráficos e as imagens de prévia (`server/og.ts`).
-  Números em tabela levam `.num` (algarismos tabulares).
+- **IBM Plex Sans** (`font-sans`, variável): texto corrido, gráficos e as imagens de prévia (`server/og.ts`).
+- **IBM Plex Mono** (`.num` e `font-mono`): números de dados (cartel, odds, estatísticas, placares), com cara de planilha.
+  Os números grandes de título continuam na Archivo Narrow (`.display`).
 - **Escala única (px):** 12 · 13 · 14 · 16 · 18 · 20 · 24 · 32 · 44 · 64 · 72 · 96. Nada fora dela.
   12–13 rótulos e apoio, 14–16 texto, 18–24 títulos de card, 32–44 títulos de página, 64–96 o número protagonista.
 - Faixa de números (resumo do evento, palpites, calendário): o primeiro item em 64, os demais em 32. Não deixe todos iguais.
@@ -94,6 +95,37 @@ Regras:
 - Entradas ao rolar (`Reveal`): curtas. Transições com easing, sem mola (spring) em controles.
 - Respeite `prefers-reduced-motion`. Um efeito marcante por tela vale mais que vários sutis.
 
+### 7b. Regras de movimento (Motion Principles, out/2026)
+
+Base: skill [design-motion-principles](https://github.com/kylezantos/design-motion-principles), peso principal
+Jakub Krehel (acabamento sutil de produto) e secundário Emil Kowalski (contenção, frequência).
+
+- **Anima com motivo**: orientação (página nova, troca de aba), continuidade (foto que voa da lista ao perfil),
+  retorno (dado chegou, palpite marcado) ou progresso (barra do topo). Sem motivo, não anima.
+- **Frequência**: o que a pessoa faz dezenas de vezes (atalhos de teclado, hover em linhas, filtros) é instantâneo ou
+  quase. Nada de zoom em hover em tudo.
+- **Entrada** = opacidade + translateY curto (6 a 8px) + desfoque leve opcional. **Saída** mais discreta e mais
+  rápida que a entrada (diálogo: entra em 200ms, sai em 120ms).
+- **Curva**: `cubic-bezier(0.22, 1, 0.36, 1)` (`--ease-out-soft`) em tudo. Nunca `ease` puro.
+- **Só `transform`, `opacity` e `filter`**. Nunca largura, altura, `top` ou `left`.
+- **Origem**: tooltips e menus crescem a partir do gatilho (`--radix-*-transform-origin`), não do centro.
+- **Carregamento**: toda tela tem esqueleto com o contorno real (e `role="status"` com nome); a troca esqueleto →
+  conteúdo faz o fade de entrada da página (`.page-stage`); a barra do topo (`TopProgress`) só acende depois de
+  250ms e só para dados que a pessoa pediu, nunca na atualização automática.
+- **Deslize lateral** (cantos que entram de lado) exige `overflow-x-clip` no contêiner, senão cria rolagem lateral
+  no celular durante a animação. O teste de ponta a ponta pega isso.
+- **Laço**: só o ponto "ao vivo". Nada de pulsar, respirar ou flutuar para chamar atenção.
+- **Reduzir movimento**: `MotionConfig reducedMotion="user"` cobre todo o Motion; o CSS zera transições, a entrada
+  de página e as animações de tooltip e diálogo.
+- **Tela de entrada** (index.html + `src/lib/splash.ts`): só ao abrir pela página inicial, uma vez por aba
+  (`?abertura` mostra de novo). O octógono se desenha, o nome sobe, a barra mostra o carregamento real; pronto o site,
+  aparece "Soar o gongo" e a tela espera (fundo à deriva, anel do octógono respirando). Clique, toque, rolagem ou tecla
+  levam ao início, que entra em sequência (faixa, cabeçalho, conteúdo). Animações de entrada próprias esperam a tela
+  sair (`useSplashGone`). Link direto para lutador ou luta não passa por ela.
+- **Menu (gota)**: uma crista de líquido na linha de base marca a seção; ao trocar ela escorre esticada até o item
+  e uma gotinha sobe até o texto. Nada anima ao abrir o site, só depois de uma troca.
+- **Carrossel dos campeões**: o do centro em cor, os lados em cinza e menores; sem rolagem automática.
+
 ## 8. Texto
 
 - Específico e factual: nomes, números, datas ("Disputa de cinturão do peso-pena"). Nada de "eleve", "descubra",
@@ -106,11 +138,25 @@ Regras:
 - Somente fotos reais dos atletas (UFC.com/ESPN, via `/img` em WebP) e bandeiras. Sem banco de imagens nem ilustrações
   genéricas. O único desenho é o octógono em linhas finas no topo da luta.
 
+## 9b. Regras contra a cara de "feito por IA" (revisão de out/2026)
+
+- **Caixa-alta só em títulos grandes** (`.display`). Rótulos, botões, menu e etiquetas em caixa normal.
+- **Etiqueta é texto**, não caixinha: `Tag` sem fundo. Selo com fundo só para alerta (zebra, vitória, ao vivo).
+- **Sombras nítidas**: contorno de 1px e uma linha na borda de baixo. Nada de sombra cinza difusa nem brilho colorido.
+- **Movimento com motivo**: nada de fade em toda seção ao rolar; anima número que conta, barra que cresce e resposta a clique.
+  Transições só das propriedades que mudam (nunca `transition-all`).
+- **Cantos em hierarquia**: controles ~6px < cartões internos ~11px; pílula só em avatar e alternador.
+- **Espaçamento na grade de 4px** (8px nos espaços maiores): nada de meio passo (2, 6, 10, 14px).
+- **Ícones de um conjunto só** (Phosphor + os desenhados do site, como o cinturão); nunca símbolo digitado (★ ✓) nem emoji.
+- **O início muda com o momento**: ao vivo ou resumo da noite (até 3 dias depois).
+
 ## 10. Checklist antes de publicar
 
 1. As cores saíram dos tokens e cada uma tem um papel da tabela?
 2. Os tamanhos de fonte estão na escala?
 3. Existe um protagonista claro na tela?
 4. Nenhuma rolagem horizontal em 390px?
-5. `npx impeccable detect --json --no-design-system <url>` sem achados novos (o único restante conhecido é o letreiro rolante
+5. **Teste do olhar de fora:** olhar a captura da tela como quem nunca viu o site e perguntar "qual ferramenta de IA fez
+   isso?". Se a resposta vier fácil (caixinhas em caixa-alta, sombra difusa, tudo arredondado igual), revisar pela seção 9b.
+6. `npx impeccable detect --json --no-design-system <url>` sem achados novos (o único restante conhecido é o letreiro rolante
    de próximos eventos no topo, escolha deliberada).

@@ -7,7 +7,7 @@ import sharp from 'sharp';
 const ALLOWED = /^(https:\/\/)(a\.espncdn\.com|(www\.)?ufc\.com(\.br)?|dmxg5wxfqgb4u\.cloudfront\.net|ufc\.com\.br)\//i;
 const memo = new Map<string, Buffer>(); // LRU simples: respostas pequenas, ~400 itens
 
-export function isAllowedImage(u: string) { return ALLOWED.test(u); }
+function isAllowedImage(u: string) { return ALLOWED.test(u); }
 
 export async function resizeImage(url: string, width: number): Promise<Buffer | null> {
   if (!isAllowedImage(url)) return null;

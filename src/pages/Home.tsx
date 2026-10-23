@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState, type PointerEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
+import { clsx } from 'clsx';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ArrowRight, ArrowUpRight, CaretLeft, CaretRight, ArrowsLeftRight, CalendarDots, Crown, Lightning, MapPin, Timer, Trophy } from '@phosphor-icons/react';
@@ -9,8 +10,10 @@ import { FightRow } from '@/components/FightRow';
 import { cardSummary, fightSeconds, winnerChance } from '@/lib/fights';
 import { fairProbs, fmtMoneyline } from '@shared/format';
 import { SERIES_LABEL, SERIES_TONE } from '@/lib/series';
-import { Avatar, Brush, Defer, morphPhoto, OctagonFrame, Empty, ErrorState, Flag, FlagBackdrop, LiveTag, Panel, Reveal, SectionTitle, Skeleton, Tag } from '@/components/kit';
+import { NightStories } from '@/components/NightStories';
+import { Avatar, BeltIcon, Brush, Defer, Empty, ErrorState, Flag, FlagBackdrop, LiveTag, Loading, morphPhoto, OctagonFrame, Panel, Reveal, SectionTitle, Segmented, Skeleton, Tag } from '@/components/kit';
 import { proxy } from '@/lib/img';
+import { useSplashGone } from '@/lib/splash';
 
 /* ---------- Hero ---------- */
 
@@ -34,7 +37,7 @@ function Countdown({ iso }: { iso: string }) {
       {parts.map(p => (
         <div key={p.l} className="w-[52px] text-center">
           <div className="num font-display text-[24px] font-semibold leading-none text-fg">{String(p.v).padStart(2, '0')}</div>
-          <div className="mt-1 text-[12px] font-semibold uppercase tracking-wider text-fg-3">{p.l}</div>
+          <div className="mt-1 text-[12px] font-semibold text-fg-3">{p.l}</div>
         </div>
       ))}
     </div>
@@ -93,7 +96,7 @@ function Hero({ e }: { e: UpcomingEvent }) {
           <Link to={`/eventos/${e.id}`} className="btn-primary">Ver as {e.fightCount} lutas <ArrowRight className="h-4 w-4" /></Link>
           {m && (
             <Link to={`/comparar?a=${m.red.slug}&ae=${m.red.espnId}&b=${m.blue.slug}&be=${m.blue.espnId}`} className="group flex items-center gap-3 text-[16px] font-semibold text-fg-2 hover:text-fg">
-              <span className="grid h-12 w-12 place-items-center rounded-full bg-brand text-white shadow-[0_14px_28px_-10px_rgb(214_40_57/0.7)] transition-all duration-200 group-hover:-translate-y-0.5 group-hover:brightness-110 group-hover:shadow-[0_20px_34px_-10px_rgb(214_40_57/0.8)]">
+              <span className="grid h-12 w-12 place-items-center rounded-full bg-brand text-white  transition duration-200 group-hover:-translate-y-0.5 group-hover:brightness-110">
                 <ArrowsLeftRight className="h-5 w-5" />
               </span>
               Comparar {lastName(m.red.name)} e {lastName(m.blue.name)}
@@ -104,7 +107,7 @@ function Hero({ e }: { e: UpcomingEvent }) {
 
       {/* Lado direito: moldura em octógono, recortes frente a frente e cartões flutuantes */}
       {m && (
-        <div className="relative mx-auto h-[420px] w-full max-w-[600px] sm:h-[540px]">
+        <div className="relative mx-auto h-[420px] w-full max-w-[600px] overflow-x-clip sm:h-[540px]">
           {/* octógono com a bandeira de cada lutador do seu lado, esmaecendo até o centro */}
           <OctagonFrame className="bottom-0 left-1/2 h-[90%] -translate-x-1/2">
             <div className="absolute inset-0 bg-cream" />
@@ -124,25 +127,25 @@ function Hero({ e }: { e: UpcomingEvent }) {
           {/* cartão: contagem regressiva */}
           <motion.div initial={reduce ? false : { opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.55, duration: 0.6 }}
             className="cut absolute -bottom-4 left-1/2 w-max -translate-x-1/2 rounded-xl bg-surface/95 px-5 py-4 shadow-[var(--shadow-lift)] backdrop-blur">
-            <div className="mb-2 flex items-center gap-1.5 text-[13px] font-semibold text-fg-2"><Timer className="h-3.5 w-3.5 text-brand" /> {e.status === 'in' ? 'Acontecendo agora' : 'Começa em'}</div>
+            <div className="mb-2 flex items-center gap-2 text-[13px] font-semibold text-fg-2"><Timer className="h-3.5 w-3.5 text-brand" /> {e.status === 'in' ? 'Acontecendo agora' : 'Começa em'}</div>
             {e.status === 'in' ? <LiveTag /> : <Countdown iso={e.date} />}
           </motion.div>
 
           {/* cartões: cada canto */}
           {[{ f: m.red, side: 'left-0 top-[60%] sm:-left-6', dot: 'bg-red' }, { f: m.blue, side: 'right-0 top-[50%] sm:-right-6', dot: 'bg-blue' }].map(({ f, side, dot }, i) => (
             <motion.div key={f.espnId} initial={reduce ? false : { opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.7 + i * 0.1, duration: 0.5 }}
-              className={`absolute ${side} cut hidden items-center gap-3 rounded-xl bg-surface/95 py-2.5 pl-2.5 pr-4 shadow-[var(--shadow-lift)] backdrop-blur sm:flex`}>
+              className={`absolute ${side} cut hidden items-center gap-3 rounded-xl bg-surface/95 py-3 pl-3 pr-4 shadow-[var(--shadow-lift)] backdrop-blur sm:flex`}>
               <Avatar src={f.headshot} name={f.name} size={38} />
               <div>
-                <div className="flex items-center gap-1.5 text-[14px] font-bold text-fg"><span className={`h-2 w-2 rounded-full ${dot}`} />{f.name}</div>
-                <div className="mt-0.5 flex items-center gap-1.5 text-[13px] text-fg-2"><Flag code={f.countryCode} src={f.flag} title={f.country} size={16} /><span>{f.country}</span><span className="text-fg-3">·</span><span className="num font-semibold">{f.record}</span></div>
+                <div className="flex items-center gap-2 text-[14px] font-bold text-fg"><span className={`h-2 w-2 rounded-full ${dot}`} />{f.name}</div>
+                <div className="mt-1 flex items-center gap-2 text-[13px] text-fg-2"><Flag code={f.countryCode} src={f.flag} title={f.country} size={16} /><span>{f.country}</span><span className="text-fg-3">·</span><span className="num font-semibold">{f.record}</span></div>
               </div>
             </motion.div>
           ))}
           {m.title && (
             <motion.div initial={reduce ? false : { opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}
               className="absolute left-1/2 top-2 -translate-x-1/2">
-              <Tag tone="gold" className="h-8 px-3.5 text-[13px] shadow-[var(--shadow-soft)]"><Crown className="h-4 w-4" /> Cinturão · {m.weightClass}</Tag>
+              <Tag tone="gold" className="h-8 px-4 text-[13px] shadow-[var(--shadow-soft)]"><BeltIcon className="h-3.5 w-6" /> Cinturão · {m.weightClass}</Tag>
             </motion.div>
           )}
         </div>
@@ -210,17 +213,17 @@ function Highlight({ lastId }: { lastId?: string }) {
   return (
     <div className={`${tile} relative`}>
       <div className="flex items-center justify-between gap-3">
-        <div className="label flex items-center gap-1.5">{sl.icon} {sl.label}{ev && !sl.key.startsWith('title') && <span className="normal-case tracking-normal text-fg-3">· {splitEventName(ev.name).series}</span>}</div>
+        <div className="label flex items-center gap-2">{sl.icon} {sl.label}{ev && !sl.key.startsWith('title') && <span className="normal-case tracking-normal text-fg-3">· {splitEventName(ev.name).series}</span>}</div>
         {slides.length > 1 && (
           <div className="flex shrink-0 items-center gap-1">
             <span className="num mr-1 text-[13px] text-fg-3">{k + 1}/{slides.length}</span>
-            <button onClick={() => setI(k - 1)} aria-label="Destaque anterior" className="lift grid h-8 w-8 place-items-center rounded-full bg-surface-2 text-fg-2"><CaretLeft weight="bold" className="h-3.5 w-3.5" /></button>
-            <button onClick={() => setI(k + 1)} aria-label="Próximo destaque" className="lift grid h-8 w-8 place-items-center rounded-full bg-fg text-bg"><CaretRight weight="bold" className="h-3.5 w-3.5" /></button>
+            <button type="button" onClick={() => setI(k - 1)} aria-label="Destaque anterior" className="lift grid h-8 w-8 place-items-center rounded-full bg-surface-2 text-fg-2"><CaretLeft weight="bold" className="h-3.5 w-3.5" /></button>
+            <button type="button" onClick={() => setI(k + 1)} aria-label="Próximo destaque" className="lift grid h-8 w-8 place-items-center rounded-full bg-fg text-bg"><CaretRight weight="bold" className="h-3.5 w-3.5" /></button>
           </div>
         )}
       </div>
       <AnimatePresence mode="wait" initial={false}>
-        <motion.div key={sl.key} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.22 }}>
+        <motion.div key={sl.key} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}>
           <Link to={sl.href} className="group mt-3 flex items-center gap-5">
             <span className="flex shrink-0">
               <Avatar src={sl.faces[0]?.headshot} name={sl.faces[0]?.name ?? ''} size={84} flag={sl.faces[0]?.countryCode} />
@@ -262,14 +265,14 @@ function Bento({ next, lastId }: { next?: UpcomingEvent; lastId?: string }) {
               <div><div className="label">Peso por peso · {women ? 'feminino' : 'masculino'}</div><h3 className="panel-title mt-1">Top 5 do UFC</h3></div>
               <div className="flex items-center gap-1">
                 <Link to={p4p ? `/rankings/${p4p.id}` : '/rankings'} className="btn-ghost">Ranking <ArrowUpRight className="h-4 w-4" /></Link>
-                <button onClick={() => setWomen(w => !w)} aria-label={women ? 'Ver peso por peso masculino' : 'Ver peso por peso feminino'}
+                <button type="button" onClick={() => setWomen(w => !w)} aria-label={women ? 'Ver peso por peso masculino' : 'Ver peso por peso feminino'}
                   className="lift grid h-9 w-9 place-items-center rounded-full bg-fg text-bg">
                   {women ? <CaretLeft weight="bold" className="h-4 w-4" /> : <CaretRight weight="bold" className="h-4 w-4" />}
                 </button>
               </div>
             </div>
             <AnimatePresence mode="wait" initial={false}>
-            <motion.ol key={String(women)} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.22 }} className="mt-4 space-y-1">
+            <motion.ol key={String(women)} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }} className="mt-4 space-y-1">
               {(p4p?.entries.slice(0, 5) ?? []).map(e => {
                 const mm = meta?.[e.slug];
                 return (
@@ -302,7 +305,7 @@ function Bento({ next, lastId }: { next?: UpcomingEvent; lastId?: string }) {
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               {byCountry.map(([code, v]) => (
-                <span key={code} className="inline-flex items-center gap-1.5 rounded-full bg-surface-2 py-1.5 pl-1.5 pr-3 text-[16px] font-semibold text-fg-2">
+                <span key={code} className="inline-flex items-center gap-2 rounded-full bg-surface-2 py-2 pl-2 pr-3 text-[16px] font-semibold text-fg-2">
                   <Flag code={code} title={v.country} size={26} />{v.n}
                 </span>
               ))}
@@ -322,7 +325,7 @@ function Bento({ next, lastId }: { next?: UpcomingEvent; lastId?: string }) {
                   <Avatar src={m.blue.headshot} name={m.blue.name} size={116} ring="var(--color-blue)" flag={m.blue.countryCode} />
                 </div>
                 <div className="font-display text-[18px] font-bold uppercase leading-tight text-fg">{lastName(m.red.name)} × {lastName(m.blue.name)}</div>
-                <div className="mt-2 flex items-center gap-1.5 text-[14px] font-semibold text-fg-2 group-hover:text-brand">Comparar a luta principal <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></div>
+                <div className="mt-2 flex items-center gap-2 text-[14px] font-semibold text-fg-2 group-hover:text-brand">Comparar a luta principal <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></div>
               </div>
             </Link>
           ) : <Skeleton className="h-full" />}
@@ -332,62 +335,90 @@ function Bento({ next, lastId }: { next?: UpcomingEvent; lastId?: string }) {
   );
 }
 
+/* Carrossel dos campeões (inspirado no "Atlas" do codeandchill): o cartão do centro fica em cor e em destaque; os dos
+   lados, menores e em cinza. Desliza com o dedo (scroll-snap nativo), pelas setas ou tocando num cartão lateral, que
+   vem para o centro em vez de abrir o perfil. Sem rolagem automática: quem escolhe o ritmo é a pessoa. */
 function Champions() {
   const { data, isPending: isLoading, isError, refetch } = useRankings();
   const { data: meta } = useRankingsMeta();
-  const divs = data?.divisions.filter(d => d.champion) ?? [];
+  const [women, setWomen] = useState(false);
+  const list = (data?.divisions ?? []).filter(d => d.champion && !d.p4p && !!d.women === women);
+  const track = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(0);
+  const reduce = useReducedMotion();
+
+  // ativo = o cartão mais perto do centro do trilho
+  const frame = useRef(0);
+  const onScroll = () => {
+    cancelAnimationFrame(frame.current);
+    frame.current = requestAnimationFrame(() => {
+      const t = track.current;
+      if (!t) return;
+      const mid = t.scrollLeft + t.clientWidth / 2;
+      let best = 0, dist = Infinity;
+      Array.from(t.children).forEach((c, i) => {
+        const el = c as HTMLElement, d = Math.abs(el.offsetLeft + el.offsetWidth / 2 - mid);
+        if (d < dist) { dist = d; best = i; }
+      });
+      setActive(best);
+    });
+  };
+  const go = (i: number, instant = false) => {
+    const t = track.current, el = t?.children[Math.max(0, Math.min(i, list.length - 1))] as HTMLElement | undefined;
+    if (t && el) t.scrollTo({ left: el.offsetLeft + el.offsetWidth / 2 - t.clientWidth / 2, behavior: reduce || instant ? 'auto' : 'smooth' });
+  };
+  // abre no campeão do meio (vizinhos dos dois lados); trocar masculino/feminino recomeça do meio
+  const n = list.length;
+  // biome-ignore lint/correctness/useExhaustiveDependencies: só ao trocar o grupo ou quando os cartões chegam
+  useEffect(() => { if (n) { const mid = Math.floor((n - 1) / 2); go(mid, true); setActive(mid); } }, [women, n]);
+
   return (
     <section className="py-12">
       <Reveal>
         <SectionTitle title="Os donos dos cinturões" action={<Link to="/rankings" className="btn">Todos os rankings <ArrowUpRight className="h-4 w-4" /></Link>} />
       </Reveal>
       {isError && <Panel><ErrorState onRetry={() => refetch()} /></Panel>}
-      {isLoading && <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-[210px]" />)}</div>}
-      {divs.length > 0 && (
-        <Reveal delay={0.1}>
-          {/* separados em masculino e feminino; no celular cada grupo desliza para o lado (11 cartões empilhados
-              deixavam a página com 8 mil pixels), no computador viram grade */}
-          <div className="space-y-8">
-            {([['Masculino', divs.filter(d => !d.women)], ['Feminino', divs.filter(d => d.women)]] as const).map(([label, list]) => list.length > 0 && (
-              <div key={label}>
-                <div className="label mb-3 flex items-center gap-2">
-                  <span className={`h-2 w-2 rounded-full ${label === 'Masculino' ? 'bg-blue' : 'bg-red'}`} />{label}
-                  <span className="font-sans text-[13px] font-medium normal-case tracking-normal text-fg-3">· {list.length} cinturões</span>
-                </div>
-                <div className="no-scrollbar -mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 lg:grid-cols-4">
-                  {list.map(d => {
-                    const c = d.champion!, mm = meta?.[c.slug];
-                    return (
-                      <Link key={d.id} to={fighterHref({ slug: c.slug, espnId: mm?.espnId })} className="cut group block w-[46%] shrink-0 snap-start overflow-hidden rounded-xl bg-surface shadow-[var(--shadow-soft)] ring-1 ring-fg/[0.04] transition-all duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-lift)] sm:w-auto">
-                        <div className="relative h-[150px] overflow-hidden bg-cream lg:h-[180px]">
-                          <FlagBackdrop code={mm?.countryCode} className="inset-0 opacity-45 dark:opacity-35" />
-                          {c.image && <img src={proxy(c.image, 640)} alt="" loading="lazy" decoding="async" className="absolute bottom-0 left-1/2 h-[96%] w-auto max-w-none -translate-x-1/2 object-contain transition-transform duration-500 group-hover:scale-[1.05]" />}
-                        </div>
-                        <div className="px-4 pb-4 pt-3.5">
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="flex min-w-0 items-center gap-1 text-[13px] font-semibold text-fg-3"><Crown weight="fill" className="h-3.5 w-3.5 shrink-0 text-gold" /><span className="truncate">{d.name}</span></span>
-                            {mm && <Flag code={mm.countryCode} title={mm.country} size={16} />}
-                          </div>
-                          <div className="mt-1 line-clamp-2 font-display text-[16px] font-bold uppercase leading-tight text-fg group-hover:text-brand sm:text-[18px]">{c.name}</div>
-                          {mm?.record && <div className="num text-[14px] font-semibold text-fg-3">{mm.record}</div>}
-                        </div>
-                      </Link>
-                    );
-                  })}
-                  {/* o espaço que sobra na fileira feminina leva aos rankings completos */}
-                  {label === 'Feminino' && (
-                    <Link to="/rankings" className="group hidden flex-col justify-end rounded-xl bg-band p-5 text-white transition-transform duration-300 hover:-translate-y-1 lg:flex">
-                      <Trophy weight="fill" className="h-8 w-8 text-gold" />
-                      <span className="mt-3 font-display text-[20px] font-bold uppercase leading-tight">Rankings completos</span>
-                      <span className="mt-1 text-[14px] text-white/70">Top 15 das 11 divisões e o peso por peso</span>
-                      <span className="mt-4 inline-flex items-center gap-1.5 font-display text-[13px] font-bold uppercase tracking-[0.06em] text-white group-hover:gap-2.5">Ver rankings <ArrowRight className="h-4 w-4" /></span>
-                    </Link>
-                  )}
-                </div>
-              </div>
-            ))}
+      {isLoading && (
+        <Loading label="Carregando os campeões" className="flex justify-center gap-4 overflow-hidden">
+          {[0, 1, 2].map(i => <Skeleton key={i} className={clsx('h-[420px] w-[72vw] shrink-0 rounded-xl sm:w-[300px]', i !== 1 && 'opacity-50')} />)}
+        </Loading>
+      )}
+      {list.length > 0 && (
+        <>
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+            <Segmented value={women ? 'f' : 'm'} onChange={v => setWomen(v === 'f')} options={[{ value: 'm', label: 'Masculino' }, { value: 'f', label: 'Feminino' }]} />
+            <div className="flex items-center gap-1">
+              <span className="num mr-2 text-[13px] text-fg-3">{active + 1}/{list.length}</span>
+              <button type="button" onClick={() => go(active - 1)} disabled={active === 0} aria-label="Campeão anterior" className="lift grid h-10 w-10 place-items-center rounded-full bg-surface ring-1 ring-fg/[0.08] disabled:opacity-40"><CaretLeft weight="bold" className="h-4 w-4" /></button>
+              <button type="button" onClick={() => go(active + 1)} disabled={active === list.length - 1} aria-label="Próximo campeão" className="lift grid h-10 w-10 place-items-center rounded-full bg-fg text-bg disabled:opacity-40"><CaretRight weight="bold" className="h-4 w-4" /></button>
+            </div>
           </div>
-        </Reveal>
+          <div ref={track} onScroll={onScroll} role="region" aria-roledescription="carrossel" aria-label={`Campeões ${women ? 'femininos' : 'masculinos'}`}
+            className="champ-track no-scrollbar relative -mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 pt-2 sm:mx-0">
+            {list.map((d, i) => {
+              const c = d.champion!, mm = meta?.[c.slug], on = i === active;
+              return (
+                <Link key={d.id} to={fighterHref({ slug: c.slug, espnId: mm?.espnId })} data-active={on} aria-current={on || undefined}
+                  aria-label={`${c.name}, ${d.women ? "campeã" : "campeão"} ${d.name}${on ? "" : " (trazer para o centro)"}`}
+                  onClick={e => { if (!on) { e.preventDefault(); go(i); } }}
+                  className="champ-card cut group block shrink-0 snap-center overflow-hidden rounded-xl bg-surface shadow-[var(--shadow-soft)] ring-1 ring-fg/[0.05]">
+                  <div className="relative h-[280px] overflow-hidden bg-cream sm:h-[300px]">
+                    <FlagBackdrop code={mm?.countryCode} className="inset-0 opacity-45 dark:opacity-35" />
+                    {c.image && <img src={proxy(c.image, 640)} alt="" loading="lazy" decoding="async" className="absolute bottom-0 left-1/2 h-[96%] w-auto max-w-none -translate-x-1/2 object-contain" />}
+                  </div>
+                  <div className="px-5 pb-5 pt-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex min-w-0 items-center gap-1 text-[13px] font-semibold text-fg-3"><BeltIcon className="h-4 w-4 shrink-0 text-gold" /><span className="truncate">{d.name}</span></span>
+                      {mm && <Flag code={mm.countryCode} title={mm.country} size={16} />}
+                    </div>
+                    <div className="mt-1 line-clamp-1 font-display text-[22px] font-bold leading-tight text-fg group-hover:text-brand">{c.name}</div>
+                    {mm?.record && <div className="num text-[14px] font-semibold text-fg-3">{mm.record}</div>}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </>
       )}
     </section>
   );
@@ -408,8 +439,8 @@ function EventCard({ id, eyebrow, title, limit = 6 }: { id?: string; eyebrow: st
   ].filter(Boolean).join(' · ');
   return (
     <Panel eyebrow={eyebrow}
-      title={<div><h2 className="panel-title">{title}</h2>{data && <p className="mt-0.5 truncate text-[14px] text-fg-3">{data.name} · {fullDate(data.date)}</p>}
-        {line && <p className="mt-1.5 text-[14px] font-semibold text-fg-2">{line}</p>}</div>}
+      title={<div><h2 className="panel-title">{title}</h2>{data && <p className="mt-1 truncate text-[14px] text-fg-3">{data.name} · {fullDate(data.date)}</p>}
+        {line && <p className="mt-2 text-[14px] font-semibold text-fg-2">{line}</p>}</div>}
       action={id && <Link to={`/eventos/${id}`} className="btn-ghost shrink-0">{data ? `Ver as ${data.fights.length} lutas` : 'Ver evento'} <ArrowRight className="h-4 w-4" /></Link>}
       bodyClass="divide-y divide-line/70 px-2 pb-2">
       {isLoading && Array.from({ length: 4 }).map((_, i) => <div key={i} className="px-4 py-4"><Skeleton className="h-12" /></div>)}
@@ -431,16 +462,16 @@ function Agenda({ events }: { events: UpcomingEvent[] }) {
           const { series, title } = splitEventName(e.name);
           return (
             <li key={e.id}>
-              <Link to={`/eventos/${e.id}`} className="group flex items-center gap-4 rounded-xl p-2 pr-4 transition-all hover:bg-surface hover:shadow-[var(--shadow-soft)]">
+              <Link to={`/eventos/${e.id}`} className="group flex items-center gap-4 rounded-xl p-2 pr-4 transition hover:bg-surface hover:shadow-[var(--shadow-soft)]">
                 <div className={`cut grid h-14 w-14 shrink-0 place-items-center rounded-xl ${SERIES_TONE[e.series]}`} title={SERIES_LABEL[e.series]}>
                   <div className="text-center leading-none">
                     <div className="num font-display text-[20px] font-semibold">{dayMonth(e.date).split(' ')[0]}</div>
-                    <div className="mt-0.5 text-[12px] font-bold uppercase tracking-wider">{dayMonth(e.date).split(' ')[1]}</div>
+                    <div className="mt-1 text-[12px] font-bold">{dayMonth(e.date).split(' ')[1]}</div>
                   </div>
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[16px] font-bold text-fg">{title || series}</div>
-                  <div className="flex items-center gap-1.5 truncate text-[14px] text-fg-3">
+                  <div className="flex items-center gap-2 truncate text-[14px] text-fg-3">
                     {title ? `${series} · ` : ''}<MapPin className="h-3 w-3 shrink-0" />{e.city || 'Local a definir'}
                   </div>
                 </div>
@@ -451,7 +482,7 @@ function Agenda({ events }: { events: UpcomingEvent[] }) {
         })}
       </ul>
       <div className="mt-5 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-fg-3">
-        {(['ppv', 'fight-night'] as const).map(k => <span key={k} className="flex items-center gap-1.5"><span className={`h-2.5 w-2.5 rounded-md ${SERIES_TONE[k].split(' ')[0]}`} />{SERIES_LABEL[k]}</span>)}
+        {(['ppv', 'fight-night'] as const).map(k => <span key={k} className="flex items-center gap-2"><span className={`h-2.5 w-2.5 rounded-md ${SERIES_TONE[k].split(' ')[0]}`} />{SERIES_LABEL[k]}</span>)}
       </div>
       <Link to="/eventos" className="btn mt-5"><CalendarDots className="h-4 w-4" /> Calendário completo</Link>
     </div>
@@ -460,8 +491,51 @@ function Agenda({ events }: { events: UpcomingEvent[] }) {
 
 /* ---------- Página ---------- */
 
+/* ---------- Faixa do momento: o início muda conforme o calendário ----------
+   ao vivo > resumo (até 3 dias depois do evento) > nada. */
+
+type Moment = { kind: 'live'; ev: UpcomingEvent } | { kind: 'recap'; id: string } | null;
+
+function useMoment(next: UpcomingEvent | undefined, last: { id: string; date: string } | undefined): Moment {
+  const now = Date.now(), DAY = 86_400_000;
+  if (next?.status === 'in') return { kind: 'live', ev: next };
+  const untilNext = next ? Date.parse(next.date) - now : Infinity;
+  if (last && now - Date.parse(last.date) < 3 * DAY && untilNext > DAY) return { kind: 'recap', id: last.id };
+  return null;
+}
+
+function LiveStrip({ ev }: { ev: UpcomingEvent }) {
+  const { data } = useEvent(ev.id);
+  const now = data?.fights.find(f => f.status === 'in');
+  return (
+    <Link to={`/eventos/${ev.id}`} className="group mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-md bg-band px-5 py-4 text-white">
+      <LiveTag />
+      <span className="font-semibold">{splitEventName(ev.name).series} está acontecendo agora</span>
+      {now && <span className="text-white/75">Na luta agora: <b className="text-white">{lastName(now.red.name)} × {lastName(now.blue.name)}</b>{now.live?.round ? ` · R${now.live.round} ${now.live.clock ?? ''}` : ''}</span>}
+      <span className="ml-auto inline-flex items-center gap-1 font-semibold group-hover:gap-2">Acompanhar ao vivo <ArrowRight className="h-4 w-4" /></span>
+    </Link>
+  );
+}
+
+function RecapStrip({ id }: { id: string }) {
+  const { data: ev } = useEvent(id);
+  if (ev?.status !== 'post') return null;
+  const { title, series } = splitEventName(ev.name);
+  return (
+    <section className="mb-8 grid items-center gap-4 border-y border-line py-5 sm:grid-cols-[minmax(0,1fr)_auto]">
+      <div>
+        <p className="text-[14px] text-fg-3">{series} · {longDate(ev.date)}</p>
+        <h2 className="display mt-1 text-[32px] text-fg">{title || series}: como foi a noite</h2>
+        <Link to={`/eventos/${ev.id}`} className="mt-2 inline-flex items-center gap-1 text-[14px] font-semibold text-fg-2 hover:text-brand">Ver todos os resultados <ArrowRight className="h-4 w-4" /></Link>
+      </div>
+      <NightStories ev={ev} />
+    </section>
+  );
+}
+
 export default function Home() {
   const upcoming = useUpcoming(10);
+  const splashGone = useSplashGone();
   const schedule = useSchedule(new Date().getFullYear());
   const ufcOnly = (upcoming.data ?? []).filter(e => e.series !== 'dwcs');
   const next = ufcOnly[0];
@@ -471,17 +545,23 @@ export default function Home() {
     return [...(schedule.data ?? [])].reverse().find(e => e.series !== 'dwcs' && new Date(e.date).getTime() < now - 6 * 3600_000)?.id;
   }, [schedule.data]);
 
+  const lastEv = useMemo(() => (schedule.data ?? []).find(e => e.id === lastId), [schedule.data, lastId]);
+  const moment = useMoment(next, lastEv);
+
   return (
     <div>
+      {moment?.kind === 'live' && <LiveStrip ev={moment.ev} />}
+      {moment?.kind === 'recap' && <RecapStrip id={moment.id} />}
       {/* esqueleto com a altura do destaque real (927 px no celular, 628 no desktop): o mosaico abaixo não salta quando os dados chegam */}
       {upcoming.isPending && (
         <div className="grid min-h-[927px] items-center gap-10 pb-10 pt-6 sm:min-h-[999px] lg:min-h-[628px] lg:grid-cols-[1.05fr_1fr]">
-          <div className="space-y-5"><Skeleton className="h-4 w-60" /><Skeleton className="h-24 w-[90%]" /><Skeleton className="h-24 w-[60%]" /><Skeleton className="h-16 max-w-[520px]" /><Skeleton className="h-12 w-56 rounded-full" /></div>
+          <div role="status" aria-busy="true" aria-label="Carregando o próximo evento" className="space-y-5"><Skeleton className="h-4 w-60" /><Skeleton className="h-24 w-[90%]" /><Skeleton className="h-24 w-[60%]" /><Skeleton className="h-16 max-w-[520px]" /><Skeleton className="h-12 w-56 rounded-full" /></div>
           <div className="mx-auto aspect-square w-full max-w-[420px] skeleton" style={{ clipPath: 'polygon(29.3% 0, 70.7% 0, 100% 29.3%, 100% 70.7%, 70.7% 100%, 29.3% 100%, 0 70.7%, 0 29.3%)' }} />
         </div>
       )}
       {upcoming.isError && <Panel><ErrorState onRetry={() => upcoming.refetch()} /></Panel>}
-      {next && <Hero e={next} />}
+      {/* a entrada do destaque recomeça quando a abertura sai (key muda), em vez de rodar escondida atrás dela */}
+      {next && <Hero key={splashGone ? 'in' : 'pre'} e={next} />}
       {!upcoming.isPending && !next && <Panel><Empty>Octógono vazio: nenhum evento anunciado por enquanto.</Empty></Panel>}
 
       <Bento next={next} lastId={lastId} />

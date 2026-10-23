@@ -20,7 +20,7 @@ function Card({ p, side }: { p: FighterProfile; side: Side }) {
     <Link to={fighterHref({ slug: b.slug, espnId: b.espnId })} className={clsx('group flex min-w-0 flex-1 items-center gap-4', right && 'flex-row-reverse text-right')}>
       <Avatar src={b.headshot} name={b.name} size={72} flag={b.countryCode} ring={COLOR[side]} className="hidden sm:block" />
       <div className="min-w-0">
-        <div className={clsx('mb-1.5 h-0.5 w-6 rounded-full', right && 'ml-auto')} style={{ background: COLOR[side] }} />
+        <div className={clsx('mb-2 h-0.5 w-6 rounded-full', right && 'ml-auto')} style={{ background: COLOR[side] }} />
         <div className="display break-words text-[18px] leading-tight text-fg group-hover:text-brand sm:truncate sm:text-[32px]">{b.name}</div>
         <div className={clsx('mt-3 flex flex-wrap items-center gap-2 text-[13px] text-fg-3', right && 'justify-end')}>
           {/* no celular, a divisão sai do selo (não cabe na meia tela) */}
@@ -37,9 +37,9 @@ function Card({ p, side }: { p: FighterProfile; side: Side }) {
 /** Linha da ficha: valor A | rótulo | valor B. `better` destaca o lado vantajoso. */
 function TapeRow({ label, a, b, better }: { label: string; a?: ReactNode; b?: ReactNode; better?: Side | null }) {
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 py-2.5 sm:gap-4 sm:px-5">
+    <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 py-3 sm:gap-4 sm:px-5">
       <span className={clsx('num text-right text-[14px]', better === 'a' ? 'font-semibold text-fg' : 'text-fg-2')}>{a ?? '—'}</span>
-      <span className="label w-[92px] text-center text-[12px] tracking-[0.04em] sm:w-36 sm:text-[13px] sm:tracking-[0.08em]">{label}</span>
+      <span className="label w-[92px] text-center text-[12px] sm:w-36 sm:text-[13px] sm:">{label}</span>
       <span className={clsx('num text-[14px]', better === 'b' ? 'font-semibold text-fg' : 'text-fg-2')}>{b ?? '—'}</span>
     </div>
   );
@@ -76,9 +76,9 @@ function EdgeBoard({ a, b }: { a: FighterProfile; b: FighterProfile }) {
         <span className="text-[14px] font-semibold text-fg-2">vantagens</span>
       </div>
       <div className="mt-1 truncate text-[14px] text-fg-3">{p.bio.name}</div>
-      <div className={clsx('mt-3 flex flex-wrap gap-1.5', s === 'b' && 'justify-end')}>
+      <div className={clsx('mt-3 flex flex-wrap gap-2', s === 'b' && 'justify-end')}>
         {list.map(r => (
-          <span key={r.label} className="inline-flex items-center gap-1.5 rounded-md bg-surface-2 px-2 py-1 text-[13px] font-semibold text-fg-2">
+          <span key={r.label} className="inline-flex items-center gap-2 rounded-md bg-surface-2 px-2 py-1 text-[13px] font-semibold text-fg-2">
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: COLOR[s] }} />{r.label}
           </span>
         ))}
@@ -186,7 +186,7 @@ function Suggestions({ onPick }: { onPick: (p: Pair) => void }) {
     };
   });
   const card = (p: Pair) => (
-    <button key={p.key} onClick={() => onPick(p)} className="lift cut group flex items-center gap-4 rounded-xl bg-surface p-4 text-left ring-1 ring-fg/[0.06]">
+    <button type="button" key={p.key} onClick={() => onPick(p)} className="lift cut group flex items-center gap-4 rounded-xl bg-surface p-4 text-left ring-1 ring-fg/[0.06]">
       <span className="flex shrink-0 items-center">
         <Avatar src={p.a.headshot} name={p.a.name} size={44} ring="var(--color-red)" />
         <Avatar src={p.b.headshot} name={p.b.name} size={44} ring="var(--color-blue)" className="-ml-2" />
@@ -209,7 +209,7 @@ function Suggestions({ onPick }: { onPick: (p: Pair) => void }) {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{belts.map(card)}</div>
         </Panel>
       )}
-      {upcoming.isLoading && <Skeleton className="h-40" />}
+      {upcoming.isLoading && <Skeleton label="Carregando sugestões" className="h-40" />}
     </div>
   );
 }
@@ -222,8 +222,8 @@ function Toolbar({ onSwap }: { onSwap: () => void }) {
   };
   return (
     <div className="flex flex-wrap justify-end gap-2">
-      <button onClick={onSwap} className="btn"><ArrowsLeftRight className="h-4 w-4" /> Trocar cantos</button>
-      <button onClick={copy} className="btn" aria-live="polite">
+      <button type="button" onClick={onSwap} className="btn"><ArrowsLeftRight className="h-4 w-4" /> Trocar cantos</button>
+      <button type="button" onClick={copy} className="btn" aria-live="polite">
         {copied ? <><Check weight="bold" className="h-4 w-4 text-win" /> Link copiado</> : <><LinkSimple className="h-4 w-4" /> Copiar link da comparação</>}
       </button>
     </div>
@@ -271,7 +271,7 @@ export default function Compare() {
         <FighterPicker placeholder="Canto azul…" value={b?.bio.name} onClear={() => set('b')} onPick={h => set('b', h.slug, h.espnId)} />
       </div>
 
-      {(loadA || loadB) && <Skeleton className="min-h-[1800px] h-64" />}
+      {(loadA || loadB) && <Skeleton label="Carregando a comparação" className="min-h-[1800px] h-64" />}
       {(A.isError || B.isError) && <Panel><ErrorState message={(A.error ?? B.error)?.message} /></Panel>}
 
       {a && b ? (
@@ -288,8 +288,8 @@ export default function Compare() {
             {hasRadar(sa) && hasRadar(sb) && (
               <Panel plain title="Perfil de luta" action={
                 <div className="flex items-center gap-3 text-[13px] text-fg-2">
-                  <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red" />{lastName(a.bio.name)}</span>
-                  <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-blue" />{lastName(b.bio.name)}</span>
+                  <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-red" />{lastName(a.bio.name)}</span>
+                  <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-blue" />{lastName(b.bio.name)}</span>
                 </div>}>
                 <AttrRadar height={320} series={[{ name: a.bio.name, color: 'red', stats: sa! }, { name: b.bio.name, color: 'blue', stats: sb! }]} />
                 <p className="text-[13px] text-fg-3">{RADAR_NOTE}</p>

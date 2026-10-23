@@ -10,6 +10,10 @@ import { handle } from './routes.ts';
 import { warmUp } from './warm.ts';
 import { BOT_UA, htmlWithMeta, ogImage } from './og.ts';
 import { IMG_CACHE, resizeImage } from './img.ts';
+import { initTelemetry } from './telemetry.ts';
+
+// antes de qualquer requisição: liga Sentry e OpenTelemetry se as variáveis existirem
+await initTelemetry();
 
 const PORT = Number(process.env.PORT) || 4173;
 const DIST = join(import.meta.dirname, '..', 'dist');

@@ -16,7 +16,7 @@ function useDebounced<T>(value: T, ms: number) {
 // títulos de grupo no padrão do site (.label) e linhas sem o ícone de "check" do shadcn,
 // que dividia o espaço com o texto da direita e o empurrava para o meio
 const GROUP = '**:[[cmdk-group-heading]]:px-3 **:[[cmdk-group-heading]]:pb-2 **:[[cmdk-group-heading]]:pt-3 **:[[cmdk-group-heading]]:text-[12px] **:[[cmdk-group-heading]]:font-semibold **:[[cmdk-group-heading]]:uppercase **:[[cmdk-group-heading]]:tracking-[0.1em] **:[[cmdk-group-heading]]:text-fg-3';
-const ITEM = 'group gap-3 rounded-xl! px-3 py-2.5 data-selected:bg-surface-2 [&>svg:last-child]:hidden [&_.hint]:opacity-0 data-selected:[&_.hint]:opacity-100';
+const ITEM = 'group gap-3 rounded-xl! px-3 py-3 data-selected:bg-surface-2 [&>svg:last-child]:hidden [&_.hint]:opacity-0 data-selected:[&_.hint]:opacity-100';
 
 export default function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
   const [q, setQ] = useState('');
@@ -59,7 +59,7 @@ export default function SearchDialog({ open, onOpenChange }: { open: boolean; on
                 <CommandItem key={d.id} value={d.id} onSelect={() => go(fighterHref({ slug: d.champion!.slug }))} className={ITEM}>
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gold-soft"><Crown weight="fill" className="h-4 w-4 text-gold-ink" /></span>
                   <span className="flex-1 truncate text-[16px] font-semibold text-fg">{d.champion!.name}</span>
-                  <span className="shrink-0 rounded-md bg-surface-2 px-2 py-0.5 text-[13px] font-semibold text-fg-2">{d.name}</span>
+                  <span className="shrink-0 rounded-md bg-surface-2 px-2 py-1 text-[13px] font-semibold text-fg-2">{d.name}</span>
                 </CommandItem>
               ))}
             </CommandGroup>
@@ -68,9 +68,9 @@ export default function SearchDialog({ open, onOpenChange }: { open: boolean; on
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-surface-2/40 px-5 py-3 text-[13px] text-fg-3">
           <span>Fontes: ESPN · UFC.com</span>
           <span className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5"><kbd className="kbd">↑</kbd><kbd className="kbd">↓</kbd> Navegar</span>
-            <span className="flex items-center gap-1.5"><kbd className="kbd">↵</kbd> Abrir</span>
-            <span className="flex items-center gap-1.5"><kbd className="kbd">Esc</kbd> Fechar</span>
+            <span className="flex items-center gap-2"><kbd className="kbd">↑</kbd><kbd className="kbd">↓</kbd> Navegar</span>
+            <span className="flex items-center gap-2"><kbd className="kbd">↵</kbd> Abrir</span>
+            <span className="flex items-center gap-2"><kbd className="kbd">Esc</kbd> Fechar</span>
           </span>
         </div>
       </Command>

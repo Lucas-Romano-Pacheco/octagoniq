@@ -77,7 +77,7 @@ export const useBooked = () =>
 export const useRankingsMeta = () =>
   useQuery({ queryKey: ['rankings-meta'], queryFn: () => get<RankingsMeta>('/api/rankings/meta'), staleTime: 60 * MIN });
 
-export const fighterQuery = (slug?: string, espnId?: string | null) => queryOptions({
+const fighterQuery = (slug?: string, espnId?: string | null) => queryOptions({
   queryKey: ['fighter', slug],
   queryFn: () => get<FighterProfile>(`/api/fighters/${slug}${espnId ? `?espn=${espnId}` : ''}`),
   enabled: !!slug,

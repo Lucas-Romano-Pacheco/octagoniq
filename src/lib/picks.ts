@@ -104,7 +104,7 @@ export function summarize(book: Record<string, Pick>, fights: Fight[], awarded?:
 export interface SavedEvent { savedAt: number; picks: Record<string, Pick> }
 export type SavedBook = Record<string, SavedEvent>;
 
-const same = (a?: Pick, b?: Pick) => !!a && !!b ? a.winner === b.winner && a.method === b.method && a.round === b.round : !a && !b;
+const same = (a?: Pick, b?: Pick) => a && b ? a.winner === b.winner && a.method === b.method && a.round === b.round : !a && !b;
 
 /** O rascunho difere do que está salvo? (ignora a data do palpite) */
 export function isDirty(draft: Record<string, Pick>, saved: Record<string, Pick> = {}) {

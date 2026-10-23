@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type HTMLAttributes, type PointerEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
 import { clsx } from 'clsx';
 import { glossaryFor } from '@/lib/glossary';
 import { Link } from 'react-router-dom';
@@ -12,17 +12,10 @@ import { proxy } from '@/lib/img';
 /* ---------- Movimento ---------- */
 
 /** Entrada suave ao rolar (fade + subida). */
-export function Reveal({ children, delay = 0, className, y = 18 }: { children: ReactNode; delay?: number; className?: string; y?: number }) {
-  const reduce = useReducedMotion();
-  return (
-    <motion.div className={className}
-      initial={reduce ? false : { opacity: 0, y }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-60px' }}
-      transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}>
-      {children}
-    </motion.div>
-  );
+/** Antes: toda seção surgia com fade ao rolar (padrão de template). Agora o conteúdo aparece direto; o movimento fica
+    para o que tem motivo (números que contam, gráficos que crescem, interações). `delay` e `y` ficam por compatibilidade. */
+export function Reveal({ children, className }: { children: ReactNode; delay?: number; className?: string; y?: number }) {
+  return <div className={className}>{children}</div>;
 }
 
 /** Número que conta até o valor quando entra na tela. */
@@ -87,15 +80,6 @@ export function trackSpotlight(e: PointerEvent<HTMLElement>) {
   if (el.dataset.duel !== undefined) el.style.setProperty('--spot', x < r.width / 2 ? 'var(--color-red)' : 'var(--color-blue)');
 }
 
-/** Card com brilho que acompanha o cursor (inspirado no "Spotlight Card" do 21st.dev). */
-export function Spotlight({ color, duel, className, style, children, ...rest }: HTMLAttributes<HTMLDivElement> & { color?: string; duel?: boolean }) {
-  return (
-    <div {...rest} data-duel={duel ? '' : undefined} onPointerMove={trackSpotlight}
-      className={clsx('spotlight', className)} style={{ ...style, ...(color ? { '--spot': color } : {}) } as CSSProperties}>
-      {children}
-    </div>
-  );
-}
 
 /** Cartel "27-1-0" com cada parte contando ao entrar na tela. */
 export function RecordCount({ record }: { record?: { w: number; l: number; d: number; nc?: number } }) {
@@ -177,7 +161,7 @@ export function Panel({ title, action, children, className, bodyClass, eyebrow, 
           <div className="min-w-0">
             {typeof title === 'string' ? <h2 className="panel-title">{title}</h2> : title}
             {/* fonte ou contexto do painel: abaixo do título, em texto comum (rótulo em caixa alta acima do título é sinal de template) */}
-            {eyebrow && <div className="mt-0.5 text-[13px] text-fg-3">{eyebrow}</div>}
+            {eyebrow && <div className="mt-1 text-[13px] text-fg-3">{eyebrow}</div>}
           </div>
           {action}
         </header>
@@ -234,7 +218,7 @@ export function Avatar({ src, name, size = 40, className, flag, ring }: { src?: 
   return (
     <div className={clsx('relative shrink-0', className)} style={{ width: size, height: size }}>
       {photo}
-      <img src={circleFlag(flag)} alt="" className="absolute -bottom-0.5 -right-0.5 rounded-full ring-2 ring-surface" style={{ width: fs, height: fs }} />
+      <img src={circleFlag(flag)} alt="" loading="lazy" decoding="async" className="absolute -bottom-1 -right-1 rounded-full ring-2 ring-surface" style={{ width: fs, height: fs }} />
     </div>
   );
 }
@@ -252,7 +236,7 @@ export function Flag({ code, src, title, size = 18, className }: { code?: string
 export function NationRecord({ code, country, record, className }: { code?: string; country?: string; record?: string; className?: string }) {
   if (!code && !record) return <span className={clsx('h-5 w-24', className)} />;
   return (
-    <span className={clsx('flex shrink-0 items-center justify-end gap-2.5', className)}>
+    <span className={clsx('flex shrink-0 items-center justify-end gap-3', className)}>
       {country && <span className="hidden text-[14px] text-fg-3 xl:inline">{country}</span>}
       <Flag code={code} title={country} size={20} />
       {record && <span className="num w-[62px] text-right text-[13px] font-semibold text-fg-2">{record}</span>}
@@ -281,7 +265,7 @@ export function Tip({ content, title, children, side = 'top' }: { content: React
       <TooltipTrigger asChild>{children}</TooltipTrigger>
       <TooltipContent side={side} sideOffset={6} className="max-w-72 rounded-xl px-3 py-2 text-left text-[13px] leading-snug shadow-[var(--shadow-lift)]">
         <div>
-          {title && <div className="mb-0.5 text-[13px] font-semibold">{title}</div>}
+          {title && <div className="mb-1 text-[13px] font-semibold">{title}</div>}
           <div className={title ? 'opacity-80' : undefined}>{content}</div>
         </div>
       </TooltipContent>
@@ -289,7 +273,7 @@ export function Tip({ content, title, children, side = 'top' }: { content: React
   );
 }
 
-const MaybeTip = ({ content, children }: { content?: ReactNode; children: ReactNode }) => (content ? <Tip content={content}>{children}</Tip> : <>{children}</>);
+const MaybeTip = ({ content, children }: { content?: ReactNode; children: ReactNode }) => (content ? <Tip content={content}>{children}</Tip> : children);
 
 /** Etiqueta "luta marcada": data curta; o tooltip mostra adversário e evento, e o clique abre a luta. */
 export function BookedTag({ b, className }: { b?: BookedFight; className?: string }) {
@@ -333,7 +317,7 @@ export function SortTh<K extends string>({ k, sort, toggle, children, className,
   const Icon = !on ? CaretUpDown : sort.dir === 'asc' ? CaretUp : CaretDown;
   return (
     <th className={className} aria-sort={on ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-      <button onClick={() => toggle(k, first)} className={clsx('inline-flex items-center gap-1 uppercase transition-colors hover:text-fg', on && 'text-fg')}>
+      <button type="button" onClick={() => toggle(k, first)} className={clsx('inline-flex items-center gap-1 uppercase transition-colors hover:text-fg', on && 'text-fg')}>
         {children}<Icon weight="bold" className={clsx('h-3 w-3', !on && 'opacity-40')} />
       </button>
     </th>
@@ -392,7 +376,7 @@ export function FightCard({ me, opp, outcome, method, detail, round, clock, date
   const Photo = ({ f, won }: { f: Face; won: boolean }) => (
     <div className="relative flex h-full flex-1 items-end justify-center">
       {f.headshot ? <img src={proxy(f.headshot, 320)} alt={f.name} loading="lazy" decoding="async" className="h-full w-auto object-contain object-bottom" /> : <Avatar name={f.name} size={64} className="mb-3" />}
-      {won && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 whitespace-nowrap bg-brand px-2 py-0.5 font-display text-[12px] font-bold uppercase tracking-wide text-white">Vitória</span>}
+      {won && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 whitespace-nowrap bg-brand px-2 py-1 font-display text-[12px] font-bold text-white">Vitória</span>}
     </div>
   );
   const d = date ? new Date(date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : undefined;
@@ -402,17 +386,17 @@ export function FightCard({ me, opp, outcome, method, detail, round, clock, date
         <Photo f={me} won={outcome === 'W'} />
         <Photo f={opp} won={outcome === 'L'} />
       </div>
-      <div className="mt-2.5 text-center font-display text-[16px] font-bold uppercase leading-tight tracking-[0.02em] text-fg">{lastOf(me.name)} vs {lastOf(opp.name)}</div>
+      <div className="mt-3 text-center font-display text-[16px] font-bold leading-tight text-fg">{lastOf(me.name)} vs {lastOf(opp.name)}</div>
       <div className="num text-center text-[13px] text-fg-3">{[d, RESULT[outcome]].filter(Boolean).join(' · ')}</div>
       {method && (
         <dl className="mt-2 grid grid-cols-[1fr_1fr_2fr] gap-x-2 border-t border-line pt-2 text-center">
           {([['Round', round ?? '—'], ['Tempo', clock ?? '—'], ['Método', method]] as const).map(([k, v]) => (
-            <div key={k} className="min-w-0"><dt className="text-[12px] text-fg-3">{k}</dt><dd className="num text-[13px] font-bold text-fg">{k === 'Método' ? <MethodTag method={method} className="mt-0.5 max-w-full" /> : v}</dd></div>
+            <div key={k} className="min-w-0"><dt className="text-[12px] text-fg-3">{k}</dt><dd className="num text-[13px] font-bold text-fg">{k === 'Método' ? <MethodTag method={method} className="mt-1 max-w-full" /> : v}</dd></div>
           ))}
         </dl>
       )}
-      {(detail || eventName) && <div className="mt-1.5 truncate text-center text-[12px] text-fg-3">{[detail, eventName].filter(Boolean).join(' · ')}</div>}
-      {clickHint && <div className="mt-2 text-center text-[12px] font-semibold uppercase tracking-[0.08em] text-brand">Clique para ver a luta</div>}
+      {(detail || eventName) && <div className="mt-2 truncate text-center text-[12px] text-fg-3">{[detail, eventName].filter(Boolean).join(' · ')}</div>}
+      {clickHint && <div className="mt-2 text-center text-[12px] font-semibold text-brand">Clique para ver a luta</div>}
     </div>
   );
 }
@@ -431,7 +415,7 @@ export function HistoryBadge({ h, size = 'md', me }: { h: HistoryFight; size?: '
   const when = [h.round ? `R${h.round} ${h.clock ?? ''}`.trim() : '', new Date(h.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/\./g, '').replace(/ de /g, ' ')].filter(Boolean).join(' · ');
   return (
     <OutcomeBadge outcome={h.outcome} size={size} href={h.outcome !== 'pending' ? `/eventos/${h.eventId}/lutas/${h.fightId}` : undefined} tip={
-      <div className="space-y-0.5">
+      <div className="space-y-1">
         <div className="text-[13px] font-semibold">{VERB[h.outcome]} {h.opponent.name}</div>
         {how && <div className="text-[13px] opacity-80">{how}</div>}
         <div className="text-[13px] opacity-60">{when}</div>
@@ -464,11 +448,11 @@ export function RankBadge({ rankLabel, division, women, className }: { rankLabel
   return (
     <span className={clsx('inline-flex h-7 max-w-full items-stretch overflow-hidden rounded-md text-[13px] font-semibold ring-1', champ ? 'ring-gold' : 'ring-fg/15', className)}>
       {champ ? (
-        <span className="flex items-center gap-1.5 bg-gold px-2 font-display text-[16px] font-bold uppercase tracking-[0.02em] text-[#14183e]">
+        <span className="flex items-center gap-2 bg-gold px-2 font-display text-[16px] font-bold text-[#14183e]">
           <BeltIcon className="h-3.5 w-5 text-[#14183e]" />{women ? 'Campeã' : 'Campeão'}
         </span>
       ) : (
-        <span className="flex items-baseline gap-0.5 bg-fg px-2 pt-[3px] font-display text-bg">
+        <span className="flex items-baseline gap-1 bg-fg px-2 pt-[3px] font-display text-bg">
           <span className="text-[12px] font-semibold">Nº</span><span className="text-[18px] font-bold leading-none">{rankLabel.replace('#', '')}</span>
         </span>
       )}
@@ -483,7 +467,7 @@ export const METHOD_META = {
   sub: { label: 'Finalização', Icon: HandGrabbing, color: 'var(--color-sub-fill)' },
   dec: { label: 'Decisão', Icon: Scales, color: 'var(--color-dec-fill)' },
 } as const;
-export const methodOf = (m?: string): keyof typeof METHOD_META | undefined =>
+const methodOf = (m?: string): keyof typeof METHOD_META | undefined =>
   /KO/i.test(m ?? '') ? 'ko' : /Finaliza/i.test(m ?? '') ? 'sub' : /Decis/i.test(m ?? '') ? 'dec' : undefined;
 
 /** Etiqueta do método ("KO/TKO", "Decisão dividida"…) na cor dele; métodos raros (DQ, sem resultado) ficam neutros. */
@@ -492,8 +476,8 @@ export function MethodTag({ method, size = 'sm', className }: { method?: string;
   const k = methodOf(method);
   const meta = k && METHOD_META[k];
   return (
-    <span title={glossaryFor(method)?.text} className={clsx('inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md font-display font-bold uppercase tracking-[0.04em]',
-      size === 'md' ? 'h-7 px-2.5 text-[13px]' : 'h-6 px-2 text-[12px]', meta ? 'text-white' : 'bg-surface-2 text-fg-2', className)}
+    <span title={glossaryFor(method)?.text} className={clsx('inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md font-sans font-semibold',
+      size === 'md' ? 'h-7 px-3 text-[13px]' : 'h-6 px-2 text-[12px]', meta ? 'text-white' : 'bg-surface-2 text-fg-2', className)}
       style={meta ? { background: meta.color } : undefined}>
       {meta && <meta.Icon weight="fill" className={size === 'md' ? 'h-4 w-4' : 'h-3.5 w-3.5'} />}{method}
     </span>
@@ -501,20 +485,21 @@ export function MethodTag({ method, size = 'sm', className }: { method?: string;
 }
 
 export function Tag({ children, tone = 'neutral', className }: { children: ReactNode; tone?: 'neutral' | 'gold' | 'orange' | 'brand' | 'blue' | 'dark'; className?: string }) {
+  // texto com cor, sem caixinha: a maioria das etiquetas é informação, não alerta. Só zebra e vitória viram selo.
   const tones = {
-    neutral: 'bg-surface-2 text-fg-2',
-    gold: 'bg-gold-soft text-gold-ink',   // só cinturão e títulos
-    orange: 'bg-orange/15 text-orange-ink', // zebras
-    brand: 'bg-brand-soft text-brand',
-    blue: 'bg-blue/10 text-blue-ink',
-    dark: 'bg-fg text-bg',
+    neutral: 'text-fg-2',
+    gold: 'text-gold-ink',
+    orange: 'rounded-sm bg-orange/15 px-2 text-orange-ink',
+    brand: 'text-brand',
+    blue: 'text-blue-ink',
+    dark: 'rounded-sm bg-fg px-2 text-bg',
   };
-  return <span className={clsx('inline-flex h-7 items-center gap-1.5 rounded-md px-2.5 font-display text-[13px] font-semibold uppercase tracking-[0.04em]', tones[tone], className)}>{children}</span>;
+  return <span className={clsx('inline-flex h-6 items-center gap-1 text-[13px] font-semibold', tones[tone], className)}>{children}</span>;
 }
 
 export function LiveTag() {
   return (
-    <span className="inline-flex h-6 items-center gap-1.5 rounded-full bg-brand px-2.5 text-[13px] font-bold uppercase tracking-wider text-white">
+    <span className="inline-flex h-6 items-center gap-2 rounded-full bg-brand px-3 text-[13px] font-bold text-white">
       <span className="live-dot h-1.5 w-1.5 rounded-full bg-white" /> Ao vivo
     </span>
   );
@@ -528,7 +513,7 @@ export function Stat({ label, value, sub, className, footer }: { label: ReactNod
       <div className="label truncate">{typeof label === 'string' ? <Term label={label} /> : label}</div>
       <div className="display mt-2 text-[32px] text-fg">{value}</div>
       {sub && <div className="mt-1 text-[14px] text-fg-3">{sub}</div>}
-      {footer && <div className="mt-1.5">{footer}</div>}
+      {footer && <div className="mt-2">{footer}</div>}
     </div>
   );
 }
@@ -551,8 +536,8 @@ export function Meter({ label, value, display, color = 'var(--color-blue)', hint
           initial={{ width: 0 }} whileInView={{ width: `${v}%` }} viewport={{ once: true }} transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }} />
         {mark && <span aria-hidden className="absolute -top-1 h-4 w-[3px] -translate-x-1/2 rounded-full bg-fg ring-2 ring-bg" style={{ left: `${Math.min(100, mark.value)}%` }} />}
       </div>
-      {detail && <div className="num mt-1.5 text-[13px] text-fg-3">{detail}</div>}
-      {footer && <div className="mt-1.5">{footer}</div>}
+      {detail && <div className="num mt-2 text-[13px] text-fg-3">{detail}</div>}
+      {footer && <div className="mt-2">{footer}</div>}
     </div></MaybeTip>
   );
 }
@@ -566,7 +551,7 @@ export function VsAvg({ value, avg, lowerIsBetter, fmt }: { value?: number; avg?
   const Icon = above ? ArrowUp : ArrowDown;
   return (
     <span className="block leading-snug">
-      <span className={clsx('inline-flex items-center gap-0.5 whitespace-nowrap font-semibold', good ? 'text-win' : 'text-loss')}>
+      <span className={clsx('inline-flex items-center gap-1 whitespace-nowrap font-semibold', good ? 'text-win' : 'text-loss')}>
         <Icon weight="bold" className="h-3 w-3" />{Math.round(Math.abs(diff) * 100)}% {above ? 'acima' : 'abaixo'}
       </span>
       <span className="block whitespace-nowrap text-[13px] text-fg-3">média {fmt(avg)}</span>
@@ -576,7 +561,12 @@ export function VsAvg({ value, avg, lowerIsBetter, fmt }: { value?: number; avg?
 
 /* ---------- Estados ---------- */
 
-export const Skeleton = ({ className }: { className?: string }) => <div className={clsx('skeleton', className)} />;
+/** Bloco de carregamento. Com `label`, também avisa leitores de tela ("Carregando…") enquanto os dados chegam. */
+export const Skeleton = ({ className, label }: { className?: string; label?: string }) =>
+  label ? <div role="status" aria-busy="true" aria-label={label} className={clsx('skeleton', className)} /> : <div className={clsx('skeleton', className)} />;
+/** Grupo de blocos de carregamento anunciado uma vez só. */
+export const Loading = ({ label, className, children }: { label: string; className?: string; children: React.ReactNode }) =>
+  <div role="status" aria-busy="true" aria-label={label} className={className}>{children}</div>;
 
 export function ErrorState({ message, onRetry, className, title = 'Nocaute técnico na fonte de dados' }: { message?: string; onRetry?: () => void; className?: string; title?: string }) {
   return (
@@ -586,7 +576,7 @@ export function ErrorState({ message, onRetry, className, title = 'Nocaute técn
         <p className="font-display text-[20px] font-bold text-fg">{title}</p>
         <p className="mt-1 text-[13px] text-fg-3">{message ?? 'O UFC.com ou a ESPN não responderam agora. Tente de novo em instantes.'}</p>
       </div>
-      {onRetry && <button className="btn" onClick={onRetry}><ArrowClockwise className="h-4 w-4" /> Tentar de novo</button>}
+      {onRetry && <button type="button" className="btn" onClick={onRetry}><ArrowClockwise className="h-4 w-4" /> Tentar de novo</button>}
     </div>
   );
 }
@@ -603,7 +593,7 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
   return (
     <div role="tablist" className={clsx('relative inline-flex rounded-full bg-surface p-1 shadow-[var(--shadow-soft)] ring-1 ring-fg/[0.05]', className)}>
       {options.map(o => (
-        <button key={o.value} role="tab" aria-selected={o.value === value} onClick={() => onChange(o.value)}
+        <button type="button" key={o.value} role="tab" aria-selected={o.value === value} onClick={() => onChange(o.value)}
           className={clsx('relative h-8 whitespace-nowrap rounded-full px-3 text-[14px] font-semibold transition-colors sm:px-4', o.value === value ? 'text-bg' : 'text-fg-2 hover:bg-surface-2 hover:text-fg')}>
           {o.value === value && <motion.span layoutId={`seg-${options.map(x => x.value).join()}`} className="absolute inset-0 rounded-full bg-fg" transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }} />}
           <span className="relative">{o.label}</span>

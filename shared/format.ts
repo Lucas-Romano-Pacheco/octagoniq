@@ -59,8 +59,6 @@ export function methodPt(name?: string, display?: string): string {
   return display ?? name ?? '';
 }
 
-export const methodShort = (m?: string) =>
-  !m ? '' : m.startsWith('Decisão') ? 'DEC' : m === 'Finalização' ? 'FIN' : m === 'KO/TKO' ? 'KO' : m === 'Empate' ? 'EMP' : m === 'Sem resultado' ? 'NC' : m;
 
 const STANCE: Record<string, string> = { orthodox: 'Ortodoxa', southpaw: 'Canhota', switch: 'Alterna', 'open stance': 'Aberta' };
 export const stancePt = (s?: string) => (s ? STANCE[s.toLowerCase()] ?? s : undefined);

@@ -10,7 +10,7 @@ const C = {
   red: '#e34948', blue: '#3987e5', brand: '#d62839', gold: '#f1a501', win: '#45d08a', loss: '#ff6b72',
   method: { ko: '#d03a7c', sub: '#0c7a55', dec: '#7445d6' } as Record<string, string>,
 };
-const DISPLAY = '"Saira Variable", "Arial Narrow", sans-serif';
+const DISPLAY = '"Archivo Narrow", "Arial Narrow", sans-serif';
 const SANS = '"IBM Plex Sans Variable", system-ui, sans-serif';
 const last = (n: string) => n.split(' ').slice(-1)[0];
 
@@ -46,7 +46,7 @@ export interface ShareOpts {
   points?: number; hits?: number; scored?: number; position?: { pos: number; of: number };
 }
 
-export async function drawPicksCard(o: ShareOpts): Promise<Blob> {
+async function drawPicksCard(o: ShareOpts): Promise<Blob> {
   await document.fonts.ready;
   const list = [...o.fights].sort((a, b) => a.order - b.order).filter(f => o.picks[f.id]);
   const W = 1080, ROW = 92, TOP = o.points !== undefined ? 430 : 330, H = TOP + list.length * ROW + 150;

@@ -6,7 +6,7 @@
 
 /* =========================================================
    OctagonIQ · identidade editorial
-   Papel branco levemente azulado (do mesmo matiz da tinta), creme só nos destaques, tinta azul-marinho, Saira nos títulos e IBM Plex Sans no texto.
+   Papel branco levemente azulado (do mesmo matiz da tinta), creme só nos destaques, tinta azul-marinho, Archivo Narrow nos títulos e IBM Plex Sans no texto.
    Vermelho UFC como acento; dourado só no cinturão. Papéis de cada cor em design.md.
    Tokens em OKLCH (luminosidade %, croma, matiz): para clarear ou escurecer, mexa só no primeiro número.
    Cores de dados validadas na superfície branca:
@@ -59,8 +59,8 @@
   --loss-soft: oklch(94.2% 0.023 14.3);
   --draw: oklch(55.4% 0.117 75.0);
   --draw-soft: oklch(96.2% 0.051 91.4);
-  --shadow-soft: 0 1px 2px rgb(20 24 62 / 0.04), 0 18px 48px -22px rgb(20 24 62 / 0.18);
-  --shadow-lift: 0 2px 4px rgb(20 24 62 / 0.05), 0 30px 70px -28px rgb(20 24 62 / 0.30);
+  --shadow-soft: 0 0 0 1px rgb(20 24 62 / 0.08), 0 2px 0 rgb(20 24 62 / 0.06);
+  --shadow-lift: 0 0 0 1px rgb(20 24 62 / 0.10), 0 3px 0 rgb(20 24 62 / 0.10);
   --shadow-pop: 0 24px 64px -16px rgb(20 24 62 / 0.28), 0 0 0 1px rgb(20 24 62 / 0.06);
   --shadow-cta: 0 10px 24px -10px rgb(20 24 62 / 0.45);
   --cutout-shadow: rgb(20 24 62 / 0.25);
@@ -108,8 +108,8 @@
   --loss-soft: oklch(71.3% 0.181 20.1 / 0.14);
   --draw: oklch(84.4% 0.151 87.9);
   --draw-soft: oklch(84.4% 0.151 87.9 / 0.15);
-  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.25), 0 18px 48px -22px rgb(0 0 0 / 0.6);
-  --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.3), 0 30px 70px -28px rgb(0 0 0 / 0.75);
+  --shadow-soft: 0 0 0 1px rgb(255 255 255 / 0.08), 0 2px 0 rgb(0 0 0 / 0.4);
+  --shadow-lift: 0 0 0 1px rgb(255 255 255 / 0.10), 0 3px 0 rgb(0 0 0 / 0.5);
   --shadow-pop: 0 24px 64px -16px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(255 255 255 / 0.06);
   --shadow-cta: 0 10px 24px -10px rgb(0 0 0 / 0.6);
   --cutout-shadow: rgb(0 0 0 / 0.55);
@@ -158,9 +158,9 @@
 
 @theme {
   --font-sans: "IBM Plex Sans Variable", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Saira Variable", "Arial Narrow", ui-sans-serif, sans-serif;
-  --font-mono: "IBM Plex Sans Variable", ui-sans-serif, system-ui, sans-serif;
-  --radius-card: 12px;
+  --font-display: "Archivo Narrow", "Arial Narrow", ui-sans-serif, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --radius-card: 6px;
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -189,7 +189,7 @@
   --chart-3: var(--aqua);
   --chart-4: var(--red);
   --chart-5: var(--gold);
-  --radius: 0.875rem;
+  --radius: 0.5rem;
 }
 
 @theme inline {
@@ -252,14 +252,14 @@
      onde não há suporte (Firefox, Safari), o canto continua arredondado. `.cut` aplica o mesmo a outros cartões. */
   @supports (corner-shape: bevel) {
     .panel, .cut { corner-shape: bevel; }
-    .panel { border-radius: 12px; }
+    .panel { border-radius: 6px; }
   }
   /* Seção editorial, sem card: régua grossa no topo e conteúdo direto no fundo (como página de jornal esportivo).
      Card fica reservado para o que é clicável ou para os duelos. */
   .rule { @apply border-t-[3px] border-fg pt-4; }
   .rule-header { @apply flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 pb-3; }
   .panel-header { @apply flex flex-wrap items-center justify-between gap-3 px-6 pb-2 pt-5; }
-  .panel-title { @apply font-display text-[20px] font-bold uppercase leading-tight tracking-[0.02em] text-fg; }
+  .panel-title { @apply font-display text-[22px] font-bold leading-tight text-fg; }
   /* Spotlight: brilho que segue o cursor (posição em --mx/--my, cor em --spot).
      Fica atrás do conteúdo: isolation cria o contexto e o z-index -1 pinta sobre o fundo do card. */
   .spotlight { position: relative; isolation: isolate; }
@@ -287,20 +287,24 @@
   /* Eyebrow: caixa-alta vermelha, como nas seções do layout de referência */
   /* rótulo acima do título, com um traço fino depois (como nas artes de luta) */
   .eyebrow { @apply flex w-fit items-center gap-3 font-display text-[13px] font-semibold uppercase tracking-[0.16em] text-brand after:h-px after:w-10 after:bg-current after:opacity-60 after:content-['']; }
-  .label { @apply font-display text-[12px] font-semibold uppercase tracking-[0.1em] text-fg-3; }
+  .label { @apply font-sans text-[13px] font-semibold text-fg-3; }
 
   /* Títulos serifados */
   .display { @apply font-display font-bold uppercase leading-[0.95] tracking-[0.01em]; }
 
   .num { font-variant-numeric: tabular-nums; }
+  /* números de dados em fonte de largura fixa (os números grandes de título continuam na Archivo Narrow) */
+  .num:not(.display):not(.font-display) { font-family: "IBM Plex Mono", ui-monospace, monospace; letter-spacing: -0.01em; }
+  /* datas e contagens no letreiro e no menu continuam na fonte de texto (em fonte fixa pareciam código) */
+  .ticker .num:not(.display):not(.font-display), header .num:not(.display):not(.font-display) { font-family: inherit; letter-spacing: normal; }
 
   /* Botões: ao passar o mouse sobem 1px, ganham sombra (relevo) e a cor muda de leve; ao clicar, "afundam". */
-  .btn { @apply inline-flex h-10 items-center gap-2 rounded-full border border-line-2 bg-surface px-5 font-display text-[13px] font-bold uppercase tracking-[0.06em] text-fg shadow-[0_1px_0_var(--color-line-2)] transition-all duration-150 hover:-translate-y-px hover:border-fg/25 hover:bg-surface-2 hover:shadow-[var(--shadow-soft)] active:translate-y-0 active:scale-[0.96] active:shadow-none disabled:pointer-events-none disabled:opacity-50; }
-  .btn-primary { @apply inline-flex h-12 items-center gap-2 rounded-full bg-fg px-7 font-display text-[13px] font-bold uppercase tracking-[0.06em] text-bg transition-all duration-150 hover:-translate-y-px hover:bg-fg/90 active:translate-y-0 active:scale-[0.96] ; }
-  .btn-dark { @apply inline-flex h-11 items-center gap-2 rounded-full bg-fg px-6 font-display text-[13px] font-bold uppercase tracking-[0.06em] text-bg transition-all duration-150 hover:-translate-y-px hover:bg-fg/90 hover:shadow-[var(--shadow-lift)] active:translate-y-0 active:scale-[0.96] active:shadow-none; }
-  .btn-ghost { @apply inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 font-display text-[13px] font-bold uppercase tracking-[0.06em] text-fg-2 transition-all duration-150 hover:-translate-y-px hover:bg-surface-2 hover:text-fg hover:shadow-[0_1px_0_var(--color-line-2),var(--shadow-soft)] active:translate-y-0 active:scale-[0.96] active:shadow-none disabled:pointer-events-none disabled:opacity-40; }
+  .btn { @apply inline-flex h-10 items-center gap-2 rounded-md border border-line-2 bg-surface px-5 font-sans text-[14px] font-semibold text-fg shadow-[0_1px_0_var(--color-line-2)] transition duration-150 hover:-translate-y-px hover:border-fg/25 hover:bg-surface-2 hover:shadow-[var(--shadow-soft)] active:translate-y-0 active:scale-[0.96] active:shadow-none disabled:pointer-events-none disabled:opacity-50; }
+  .btn-primary { @apply inline-flex h-12 items-center gap-2 rounded-md bg-fg px-7 font-sans text-[14px] font-semibold text-bg transition duration-150 hover:-translate-y-px hover:bg-fg/90 active:translate-y-0 active:scale-[0.96] ; }
+  .btn-dark { @apply inline-flex h-11 items-center gap-2 rounded-md bg-fg px-6 font-sans text-[14px] font-semibold text-bg transition duration-150 hover:-translate-y-px hover:bg-fg/90 hover:shadow-[var(--shadow-lift)] active:translate-y-0 active:scale-[0.96] active:shadow-none; }
+  .btn-ghost { @apply inline-flex h-9 items-center gap-2 rounded-md px-4 font-sans text-[14px] font-semibold text-fg-2 transition duration-150 hover:-translate-y-px hover:bg-surface-2 hover:text-fg hover:shadow-[0_1px_0_var(--color-line-2),var(--shadow-soft)] active:translate-y-0 active:scale-[0.96] active:shadow-none disabled:pointer-events-none disabled:opacity-40; }
   /* relevo para botões avulsos (ícones redondos, setas de carrossel) */
-  .lift { @apply transition-all duration-150 hover:-translate-y-px hover:brightness-[1.06] active:translate-y-0 active:scale-[0.96] active:brightness-100; }
+  .lift { @apply transition duration-150 hover:-translate-y-px hover:brightness-[1.06] active:translate-y-0 active:scale-[0.96] active:brightness-100; }
   /* Item de lista interativo (rankings, lutadores, eventos): linha fina entre os itens, tom de cor (--item-accent) e um leve
      deslize ao passar o mouse, e "afundar" ao clicar (sem barra lateral: é um sinal típico de interface gerada). `.is-active` = item atual. */
   .item-fx { --item-accent: var(--color-gold); position: relative; transition: transform .15s var(--ease-out-soft, ease), background-color .15s, color .15s; }
@@ -316,7 +320,7 @@
   .row-fx:active td { background-image: linear-gradient(90deg, color-mix(in oklab, var(--item-accent, var(--color-gold)) 22%, transparent), transparent); }
   @media (prefers-reduced-motion: reduce) { .item-fx, .item-fx::before { transition: none; } .item-fx:hover { transform: none; } }
   /* tecla de atalho com relevo (borda inferior mais grossa, como uma tecla física) */
-  .kbd { @apply inline-flex h-6 min-w-6 items-center justify-center rounded-md border border-line-2 border-b-[3px] bg-surface px-1.5 font-sans text-[12px] font-semibold leading-none text-fg-2 shadow-[0_1px_2px_rgb(0_0_0/0.08)]; }
+  .kbd { @apply inline-flex h-6 min-w-6 items-center justify-center rounded-md border border-line-2 border-b-[3px] bg-surface px-2 font-sans text-[12px] font-semibold leading-none text-fg-2 shadow-[0_1px_2px_rgb(0_0_0/0.08)]; }
 
   .link { @apply text-fg underline decoration-fg/20 underline-offset-4 hover:decoration-brand; }
 
@@ -338,11 +342,10 @@
 .ticker-track { animation: ticker var(--ticker-duration, 60s) linear infinite; }
 .ticker:hover .ticker-track, .ticker:focus-within .ticker-track { animation-play-state: paused; }
 
+/* Única animação em laço do site, de propósito: o ponto pulsando é a convenção de "transmissão ao vivo" e só existe
+   enquanto há luta acontecendo (não é chamariz permanente). Só opacidade; some com "reduzir movimento". */
 @keyframes pulse-dot { 0%, 100% { opacity: 1 } 50% { opacity: 0.35 } }
-.live-dot { animation: pulse-dot 1.4s ease-in-out infinite; }
-
-@keyframes float-y { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-8px) } }
-.float { animation: float-y 6s ease-in-out infinite; }
+.live-dot { animation: pulse-dot 1.4s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
 
 @keyframes shimmer { from { background-position: -200% 0 } to { background-position: 200% 0 } }
 .skeleton {
@@ -354,7 +357,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .live-dot, .skeleton, .float, .ticker-track { animation: none; }
+  .live-dot, .skeleton, .ticker-track { animation: none; }
   .ticker { overflow-x: auto; scrollbar-width: none; }
   .ticker-copy { display: none; }
   * { transition-duration: 0ms !important; }
@@ -368,6 +371,51 @@
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }
+
+/* Movimento (regras em design.md, seção "Movimento"): só transform/opacity/filter, curva própria, saída mais
+   discreta que a entrada e nada em loop chamando atenção (a exceção é o ponto "ao vivo", abaixo). */
+
+/* Entrada de página: cada filho direto de <main> que monta (página nova, ou o conteúdo trocando o esqueleto)
+   sobe 6px saindo de um leve desfoque. Curto (280 ms): orienta sem atrasar a leitura. */
+@keyframes page-in { from { opacity: 0; transform: translateY(6px); filter: blur(2px); } }
+.page-stage > * { animation: page-in 0.28s var(--ease-out-soft) backwards; }
+
+/* Entrada do site depois da abertura (src/lib/splash.ts): faixa de eventos, cabeçalho e conteúdo, em sequência. */
+@keyframes site-down { from { opacity: 0; transform: translateY(-10px); } }
+html.entering .ticker { animation: site-down 0.45s var(--ease-out-soft) backwards; }
+html.entering header { animation: site-down 0.45s var(--ease-out-soft) 0.06s backwards; }
+html.entering .page-stage { animation: page-in 0.5s var(--ease-out-soft) 0.12s backwards; }
+
+/* Barra de carregamento no topo (TopProgress.tsx). Avança rápido e desacelera até 85% enquanto espera;
+   ao terminar completa e some. Transições por estado, então uma nova carga no meio retoma sem salto. */
+.top-progress {
+  position: fixed; inset: 0 0 auto 0; z-index: 70; height: 2px; pointer-events: none;
+  background: var(--color-brand); transform-origin: left; transform: scaleX(0); opacity: 0;
+}
+.top-progress[data-state='run'] { opacity: 1; transform: scaleX(0.85); transition: transform 8s cubic-bezier(0.08, 0.82, 0.17, 1), opacity 0.15s; }
+.top-progress[data-state='done'] { opacity: 0; transform: scaleX(1); transition: transform 0.2s var(--ease-out-soft), opacity 0.25s 0.15s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .page-stage > * { animation: none; }
+  /* sem o avanço: a barra aparece parada e some ao terminar */
+  .top-progress[data-state='run'] { transform: scaleX(1); opacity: 0.6; }
+  /* tooltips, diálogos e a busca abrem e fecham sem zoom nem deslize */
+  /* biome-ignore lint/complexity/noImportantStyles: precisa vencer as classes utilitárias de animação */
+  .animate-in, .animate-out { animation: none !important; }
+}
+
+/* Carrossel dos campeões (Home.tsx, Champions): o do centro em cor e inteiro; os outros menores, apagados e em
+   cinza. Os lados do trilho esmaecem no computador. A troca acompanha a rolagem (transição por estado). */
+.champ-track { --card: 72vw; padding-inline: calc(50% - var(--card) / 2); }
+@media (min-width: 640px) {
+  .champ-track { --card: 300px; mask-image: linear-gradient(to right, transparent, #000 9%, #000 91%, transparent); }
+}
+.champ-card {
+  width: var(--card); transform: scale(0.9); opacity: 0.5; filter: grayscale(1);
+  transition: transform 0.45s var(--ease-out-soft), opacity 0.45s var(--ease-out-soft), filter 0.45s var(--ease-out-soft), box-shadow 0.3s;
+}
+.champ-card[data-active='true'] { transform: none; opacity: 1; filter: none; box-shadow: var(--shadow-lift); }
+.champ-card:not([data-active='true']):hover { opacity: 0.75; }
 
 /* Calendário: células entram em cascata */
 @keyframes cell-in { from { opacity: 0; transform: translateY(10px) scale(0.97); } to { opacity: 1; transform: none; } }

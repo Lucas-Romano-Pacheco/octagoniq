@@ -43,17 +43,17 @@ export function BeltTimeline({ division }: { division: string }) {
             <Tip key={`${r.n}-${r.start}`} title={`${r.n}º · ${r.name}`}
               content={<>{fullDate(r.start)} → {r.incumbent ? 'hoje' : fullDate(new Date(endOf(r)).toISOString())}<br />{span(daysOf(r))} · {r.defenses} {r.defenses === 1 ? 'defesa' : 'defesas'}{r.event ? ` · conquistou no ${r.event}` : ''}</>}>
               <motion.div tabIndex={0} onClick={() => setFocus(keyOf(r))} onKeyDown={e => e.key === 'Enter' && setFocus(keyOf(r))}
-                className="absolute inset-y-0 flex cursor-pointer items-center overflow-hidden border-r-2 border-surface-2 px-1.5 outline-none hover:brightness-110 focus-visible:brightness-110"
+                className="absolute inset-y-0 flex cursor-pointer items-center overflow-hidden border-r-2 border-surface-2 px-2 outline-none hover:brightness-110 focus-visible:brightness-110"
                 style={{ left: `${left}%`, width: `${width}%`, background: bg, transformOrigin: 'left' }}
                 initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 0.45, delay: Math.min(i, 30) * 0.03, ease: [0.22, 1, 0.36, 1] }}>
-                {width > 7 && <span className={`hidden truncate font-display sm:block text-[12px] font-bold uppercase ${r.incumbent ? 'text-[#14183e]' : 'text-bg'}`}>{surname(r.name)}</span>}
+                {width > 7 && <span className={`hidden truncate font-display sm:block text-[12px] font-bold ${r.incumbent ? 'text-[#14183e]' : 'text-bg'}`}>{surname(r.name)}</span>}
               </motion.div>
             </Tip>
           );
         })}
       </div>
-      <div className="relative mt-1.5 h-5 text-[12px] text-fg-3">
-        <span className="absolute right-0 -bottom-5 flex items-center gap-1.5"><span className="h-2.5 w-4 rounded-sm border border-dashed border-line-2 bg-surface-2" />vago</span>
+      <div className="relative mt-2 h-5 text-[12px] text-fg-3">
+        <span className="absolute right-0 -bottom-5 flex items-center gap-2"><span className="h-2.5 w-4 rounded-sm border border-dashed border-line-2 bg-surface-2" />vago</span>
         <span className="absolute left-0">{y0}</span>
         {ticks.map(y => <span key={y} className="num absolute -translate-x-1/2" style={{ left: `${pos(Date.UTC(y, 0, 1))}%` }}>{y}</span>)}
       </div>
@@ -61,15 +61,15 @@ export function BeltTimeline({ division }: { division: string }) {
       {/* recordes e os últimos reinados */}
       <div className="mt-8 grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
         <dl className="space-y-3">
-          <div><dt className="label">Reinado mais longo</dt><dd className="mt-0.5 text-[16px] font-semibold text-fg">{longest.name} <span className="font-normal text-fg-3">· {span(daysOf(longest))}</span></dd></div>
-          <div><dt className="label">Mais defesas</dt><dd className="mt-0.5 text-[16px] font-semibold text-fg">{mostDef.name} <span className="font-normal text-fg-3">· {mostDef.defenses} defesas</span></dd></div>
+          <div><dt className="label">Reinado mais longo</dt><dd className="mt-1 text-[16px] font-semibold text-fg">{longest.name} <span className="font-normal text-fg-3">· {span(daysOf(longest))}</span></dd></div>
+          <div><dt className="label">Mais defesas</dt><dd className="mt-1 text-[16px] font-semibold text-fg">{mostDef.name} <span className="font-normal text-fg-3">· {mostDef.defenses} defesas</span></dd></div>
         </dl>
         <div>
         <div className="label mb-1">{recent.length === ordered.length ? `Todos os ${ordered.length} reinados` : 'Últimos 6 reinados'}</div>
         <ol className="divide-y divide-line/70">
           {recent.map(r => (
             <li key={keyOf(r)} className={`flex items-baseline justify-between gap-3 rounded-md py-2 text-[14px] transition-colors ${focus === keyOf(r) ? 'bg-gold-soft px-2' : ''}`}>
-              <span className="flex min-w-0 items-center gap-1.5 font-semibold text-fg">
+              <span className="flex min-w-0 items-center gap-2 font-semibold text-fg">
                 {r.incumbent && <Crown weight="fill" className="h-3.5 w-3.5 shrink-0 text-gold" />}<span className="truncate">{r.name}</span>
               </span>
               <span className="num shrink-0 text-fg-3">{new Date(r.start).getUTCFullYear()}{r.incumbent ? '–hoje' : ''} · {span(daysOf(r))} · {r.defenses} def.</span>

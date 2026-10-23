@@ -25,7 +25,7 @@ export interface FighterRef {
   slug: string;          // slug de ufc.com (derivado do nome)
 }
 
-export interface FightResult {
+interface FightResult {
   winnerId: string | null;   // espnId; null = empate/NC
   method: string;            // "Decisão unânime", "KO/TKO", "Finalização"
   detail?: string;           // "Kimura", "Socos"
@@ -194,7 +194,7 @@ export interface SearchHit {
 }
 
 /** Média das estatísticas oficiais dos ranqueados de uma divisão (campeão + top 15), para dar referência aos números. */
-export type AvgKey = 'slpm' | 'sapm' | 'strAcc' | 'strDef' | 'tdAvg' | 'tdAcc' | 'tdDef' | 'subAvg' | 'kdAvg';
+type AvgKey = 'slpm' | 'sapm' | 'strAcc' | 'strDef' | 'tdAvg' | 'tdAcc' | 'tdDef' | 'subAvg' | 'kdAvg';
 export interface DivisionAverages {
   division: string;
   n: number;
@@ -208,7 +208,7 @@ export interface BookedFight { eventId: string; fightId: string; eventName: stri
 export type BookedMap = Record<string, BookedFight>;
 
 /** Dados extras de cada ranqueado (bandeira e cartel), indexados pelo slug do UFC.com. */
-export interface RankMeta { espnId?: string; record?: string; country?: string; countryCode?: string }
+interface RankMeta { espnId?: string; record?: string; country?: string; countryCode?: string }
 export type RankingsMeta = Record<string, RankMeta>;
 
 /** Linha de aposta (americana) de cada canto. */
@@ -263,5 +263,3 @@ export interface FightDetail {
   /** estatísticas round a round (UFC Fight Tracker), para o gráfico de domínio */
   rounds?: RoundStat[];
 }
-
-export interface ApiError { error: string; detail?: string }

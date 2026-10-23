@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { clsx } from 'clsx';
-import { ArrowLeft, ArrowsClockwise, CaretDown, Crown, MapPin, Target } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowsClockwise, CaretDown, MapPin, Target } from '@phosphor-icons/react';
 import type { CardSegment, EventDetail, Fight, FighterRef } from '@shared/types';
 import { fighterHref, useEvent } from '@/lib/api';
 import { longDate, mmss, SEGMENT_LABEL, splitEventName, time } from '@/lib/format';
@@ -10,7 +10,7 @@ import { FightRow } from '@/components/FightRow';
 import { NightStories } from '@/components/NightStories';
 import { LiveBar, useFightNotices, useLiveTitle } from '@/components/LiveBar';
 import { EventSkeleton } from '@/components/Skeletons';
-import { Defer, ErrorState, FlagBackdrop, LiveTag, OctagonFrame, Panel, Tag, usePageTitle } from '@/components/kit';
+import { BeltIcon, Defer, ErrorState, FlagBackdrop, LiveTag, OctagonFrame, Panel, Tag, usePageTitle } from '@/components/kit';
 import { proxy } from '@/lib/img';
 
 /* ---------- Resumo da noite (faixa de placar) ---------- */
@@ -64,7 +64,7 @@ function Poster({ e, live }: { e: EventDetail; live?: React.ReactNode }) {
       <div className="min-w-0 pb-4">
         {(e.status === 'in' || e.status === 'post') && <div className="mb-4 flex flex-wrap items-center gap-2">{e.status === 'in' ? <LiveTag /> : <Tag>Encerrado</Tag>}</div>}
         <h1 className="display text-[44px] text-fg sm:text-[72px]">{title || series}</h1>
-        {main?.title && <div className="mt-4"><Tag tone="gold"><Crown weight="fill" className="h-3.5 w-3.5" /> Disputa de cinturão · {main.weightClass}</Tag></div>}
+        {main?.title && <div className="mt-4"><Tag tone="gold"><BeltIcon className="h-3.5 w-6" /> Disputa de cinturão · {main.weightClass}</Tag></div>}
         <p className="mt-4 flex flex-wrap gap-x-3 gap-y-1 text-[16px] text-fg-2">
           <span className="first-letter:uppercase"><b className="font-semibold text-fg">{series}</b> · {longDate(e.date)} · card principal às {time(e.date)} (Brasília)</span>
           {e.venue && <span className="inline-flex items-center gap-1 text-fg-3"><MapPin className="h-3.5 w-3.5" />{e.venue} · {e.city}{e.country ? `, ${e.country}` : ''}</span>}
@@ -94,7 +94,7 @@ function SegmentNav({ e }: { e: EventDetail }) {
   const segs = ORDER.filter(s => e.fights.some(f => f.segment === s));
   if (segs.length < 2) return null;
   return (
-    <nav aria-label="Partes do card" className="sticky top-[76px] z-20 -mx-5 flex gap-2 overflow-x-auto bg-bg/85 px-5 py-2.5 backdrop-blur-md no-scrollbar sm:-mx-8 sm:px-8">
+    <nav aria-label="Partes do card" className="sticky top-[76px] z-20 -mx-5 flex gap-2 overflow-x-auto bg-bg/85 px-5 py-3 backdrop-blur-md no-scrollbar sm:-mx-8 sm:px-8">
       {segs.map(s => (
         <a key={s} href={`#${s}`} className="lift inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-surface px-4 text-[14px] font-semibold text-fg ring-1 ring-fg/[0.08]">
           {SEGMENT_LABEL[s]}
@@ -111,11 +111,11 @@ function Segment({ e, seg }: { e: EventDetail; seg: CardSegment }) {
   if (!fights.length) return null;
   return (
     <Panel key={seg} bodyClass={clsx('divide-y divide-line/70 px-2 pb-2', !open && 'hidden')}
-      title={<h2 className="panel-title">{SEGMENT_LABEL[seg]} <span className="ml-1.5 align-middle font-sans text-[14px] font-semibold text-fg-3">{fights.length} lutas</span></h2>}
+      title={<h2 className="panel-title">{SEGMENT_LABEL[seg]} <span className="ml-2 align-middle font-sans text-[14px] font-semibold text-fg-3">{fights.length} lutas</span></h2>}
       action={
         <div className="flex items-center gap-2">
-          <span className="num rounded-md bg-surface-2 px-2.5 py-1 text-[13px] font-semibold text-fg-2">{[e.segmentStart[seg] && time(e.segmentStart[seg]!), fights[0].broadcast].filter(Boolean).join(' · ')}</span>
-          <button onClick={() => setOpen(o => !o)} aria-expanded={open} className="btn-ghost">
+          <span className="num rounded-md bg-surface-2 px-3 py-1 text-[13px] font-semibold text-fg-2">{[e.segmentStart[seg] && time(e.segmentStart[seg]!), fights[0].broadcast].filter(Boolean).join(' · ')}</span>
+          <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} className="btn-ghost">
             {open ? 'Recolher' : 'Mostrar'} <CaretDown weight="bold" className={clsx('h-3.5 w-3.5 transition-transform', !open && '-rotate-90')} />
           </button>
         </div>
@@ -140,7 +140,7 @@ export default function Event() {
 
   return (
     <div className="space-y-6">
-      <Link to="/eventos" className="btn-ghost -ml-2.5"><ArrowLeft className="h-3.5 w-3.5" /> Eventos</Link>
+      <Link to="/eventos" className="btn-ghost -ml-3"><ArrowLeft className="h-3.5 w-3.5" /> Eventos</Link>
       <Poster e={e} live={e.status === 'in' && (
         <div className="mt-4 flex items-center gap-2 text-[13px] text-fg-3">
           <ArrowsClockwise className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />

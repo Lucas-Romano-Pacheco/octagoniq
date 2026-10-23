@@ -18,7 +18,7 @@ function Change({ e }: { e: RankEntry }) {
   const up = e.change > 0;
   return (
     <Tip content={`${up ? 'Subiu' : 'Caiu'} ${Math.abs(e.change)} ${Math.abs(e.change) === 1 ? 'posição' : 'posições'} desde a última atualização do ranking`}>
-      <span tabIndex={0} className={clsx('inline-flex cursor-help items-center gap-0.5 font-mono text-[13px]', up ? 'text-win' : 'text-loss')}>
+      <span tabIndex={0} className={clsx('inline-flex cursor-help items-center gap-1 font-mono text-[13px]', up ? 'text-win' : 'text-loss')}>
         {up ? <ArrowUp weight="bold" className="h-3 w-3" /> : <ArrowDown weight="bold" className="h-3 w-3" />}{Math.abs(e.change)}
       </span>
     </Tip>
@@ -37,7 +37,7 @@ function DivisionNav({ divisions, active }: { divisions: RankingDivision[]; acti
   return (
     <>
       {/* celular: faixa rolável */}
-      <div className="no-scrollbar -mx-4 mb-4 flex gap-1.5 overflow-x-auto px-4 lg:hidden">
+      <div className="no-scrollbar -mx-4 mb-4 flex gap-2 overflow-x-auto px-4 lg:hidden">
         {divisions.map(d => (
           <Link key={d.id} to={`/rankings/${d.id}`}
             className={clsx('lift h-9 shrink-0 rounded-full px-4 text-[14px] font-semibold leading-9 transition-colors', d.id === active ? 'bg-fg text-bg' : 'bg-surface text-fg-2 shadow-[var(--shadow-soft)] hover:bg-surface-2 hover:text-fg')}>{d.name}</Link>
@@ -128,10 +128,10 @@ function LeaderCard({ division, divisions, meta, booked }: { division: RankingDi
         </div>
         <Link to={fighterHref({ slug: leader.slug, espnId: m?.espnId })} className="display mt-4 block text-[44px] text-fg after:absolute after:inset-0 sm:text-[64px]">{leader.name}</Link>
         {m && <div className="mt-3"><NationRecord className="justify-start" code={m.countryCode} country={m.country} record={m.record} /></div>}
-        <div className="mt-3 inline-flex items-center gap-1.5 text-[14px] font-semibold text-fg-2 group-hover:text-brand">Ver perfil e histórico <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></div>
+        <div className="mt-3 inline-flex items-center gap-2 text-[14px] font-semibold text-fg-2 group-hover:text-brand">Ver perfil e histórico <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></div>
       </div>
       {image
-        ? <img src={proxy(image, 560)} alt="" decoding="async" className="relative -mb-px h-44 w-auto object-contain transition-transform duration-500 group-hover:scale-[1.03] sm:h-56" />
+        ? <img src={proxy(image, 560)} alt="" loading="lazy" decoding="async" className="relative -mb-px h-44 w-auto object-contain transition-transform duration-500 group-hover:scale-[1.03] sm:h-56" />
         : <Avatar src={headshot(m?.espnId)} name={leader.name} size={160} className="relative mb-6 hidden sm:block" />}
     </div>
   );
@@ -150,7 +150,7 @@ export default function Rankings() {
     <div>
       <PageHeader title="Quem manda em cada divisão" meta={data && <>Fonte: <a className="link" href={data.source} target="_blank" rel="noreferrer">UFC.com</a> · consultado às {new Date(data.updatedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</>} />
       {isError && <Panel><ErrorState onRetry={() => refetch()} /></Panel>}
-      {isLoading && <div className="grid min-h-[1200px] gap-6 lg:grid-cols-[220px_1fr]"><Skeleton className="hidden h-96 lg:block" /><Skeleton className="h-[1100px]" /></div>}
+      {isLoading && <div role="status" aria-busy="true" aria-label="Carregando os rankings" className="grid min-h-[1200px] gap-6 lg:grid-cols-[220px_1fr]"><Skeleton className="hidden h-96 lg:block" /><Skeleton className="h-[1100px]" /></div>}
       {data && division && (
         <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
           <DivisionNav divisions={data.divisions} active={division.id} />

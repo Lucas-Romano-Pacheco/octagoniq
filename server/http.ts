@@ -89,7 +89,7 @@ function trimHttp() {
   for (const k of httpCache.keys()) { httpCache.delete(k); if (--n <= 0) break; }
 }
 
-export function cached<T>(url: string, ttl: number, as: 'json' | 'text' = 'json'): Promise<T> {
+function cached<T>(url: string, ttl: number, as: 'json' | 'text' = 'json'): Promise<T> {
   return swr(httpCache, httpInflight, `${as}:${url}`, ttl, () => raw(url, as) as Promise<T>, trimHttp);
 }
 export const getJson = <T>(url: string, ttl: number) => cached<T>(url, ttl, 'json');
@@ -130,8 +130,6 @@ export function remember<T>(key: string, ttl: number, fn: () => Promise<T>): Pro
   return swr(memo, memoInflight, key, ttl, fn, scheduleSave);
 }
 
-/** Idade do valor em cache (ms), para a interface mostrar "atualizado há X". */
-export const ageOf = (key: string) => { const e = memo.get(key); return e ? Date.now() - e.stored : undefined; };
 
 /** Promise.allSettled que devolve só os valores resolvidos (com nulos no lugar dos erros). */
 export async function settle<T>(items: Promise<T>[]): Promise<(T | null)[]> {

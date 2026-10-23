@@ -24,8 +24,8 @@ export function AccountButton() {
   if (!auth.ready) return <span aria-hidden className="h-10 w-10 rounded-full bg-surface-2" />;
   if (auth.user) return (
     <Link to="/conta" aria-label={`Sua conta (${auth.name})`} title={auth.name}
-      className={clsx('lift grid h-10 w-10 place-items-center rounded-full font-display text-[16px] font-bold uppercase', pathname === '/conta' ? 'bg-brand text-white' : 'bg-fg text-bg')}>
-      {auth.name.slice(0, 1) || <UserCircle className="h-5 w-5" />}
+      className={clsx('lift grid h-10 w-10 place-items-center rounded-full font-display text-[16px] font-bold', pathname === '/conta' ? 'bg-brand text-white' : 'bg-fg text-bg')}>
+      {auth.name.slice(0, 1).toUpperCase() || <UserCircle className="h-5 w-5" />}
     </Link>
   );
   if (pathname === '/entrar') return null;

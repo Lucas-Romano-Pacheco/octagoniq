@@ -26,7 +26,7 @@ function Big({ children, className }: { children: ReactNode; className?: string 
   return <div className={`display text-[44px] leading-[0.95] text-white sm:text-[56px] ${className ?? ''}`}>{children}</div>;
 }
 const Kicker = ({ icon, children }: { icon: ReactNode; children: ReactNode }) => (
-  <div className="flex items-center gap-2 font-display text-[14px] font-bold uppercase tracking-[0.12em] text-white/80">{icon}{children}</div>
+  <div className="flex items-center gap-2 font-display text-[14px] font-bold text-white/80">{icon}{children}</div>
 );
 const Face = ({ f, size = 150, dim }: { f: FighterRef; size?: number; dim?: boolean }) => (
   <Avatar src={f.headshot} name={f.name} size={size} ring="#fff" className={dim ? 'opacity-60 grayscale' : undefined} />
@@ -123,7 +123,7 @@ function Card({ s, ev }: { s: Story; ev: EventDetail }) {
         <Kicker icon={<OctagonMark className="h-5 w-5" stroke="#fff" />}>OctagonIQ</Kicker>
         <Big className="mt-8">E o próximo card?</Big>
         <p className="mt-3 text-[18px] text-white/80">Palpite em vencedor, método e round, e dispute o ranking com a galera.</p>
-        <Link to="/palpites" className="relative z-20 mt-8 inline-flex h-12 w-fit items-center gap-2 rounded-full bg-white px-6 font-display text-[14px] font-bold uppercase tracking-[0.06em] text-[#14183e]" onClick={e => e.stopPropagation()}>
+        <Link to="/palpites" className="relative z-20 mt-8 inline-flex h-12 w-fit items-center gap-2 rounded-full bg-white px-6 font-display text-[14px] font-bold text-[#14183e]" onClick={e => e.stopPropagation()}>
           <Target weight="bold" className="h-5 w-5" /> Fazer meus palpites
         </Link>
       </>
@@ -221,7 +221,7 @@ export function NightStories({ ev, autoOpen }: { ev: EventDetail; autoOpen?: boo
           <span className="grid h-full w-full place-items-center rounded-full bg-band"><OctagonMark className="h-6 w-6" stroke="#fff" /></span>
         </span>
         <span>
-          <span className="block font-display text-[16px] font-bold uppercase tracking-[0.04em]">Resumo da noite</span>
+          <span className="block font-display text-[16px] font-bold">Resumo da noite</span>
           <span className="block text-[13px] text-white/70">{stories.length} cartões: zebra, a mais rápida, bônus{stories.some(s => s.kind === 'you') ? ' e seus pontos' : ''}</span>
         </span>
       </motion.button>

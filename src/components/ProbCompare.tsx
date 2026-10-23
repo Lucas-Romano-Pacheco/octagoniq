@@ -15,9 +15,9 @@ function Split({ label, sub, red, i }: { label: string; sub?: string; red: numbe
   return (
     <div>
       <div className="flex items-baseline justify-between gap-3">
-        <span className="text-[14px] font-semibold text-fg">{label}{sub && <span className="ml-1.5 text-[13px] font-normal text-fg-3">{sub}</span>}</span>
+        <span className="text-[14px] font-semibold text-fg">{label}{sub && <span className="ml-2 text-[13px] font-normal text-fg-3">{sub}</span>}</span>
       </div>
-      <div className="mt-1.5 flex items-center gap-2">
+      <div className="mt-2 flex items-center gap-2">
         <span className="num w-10 text-right font-display text-[18px] font-bold" style={{ color: CORNER_INK.a }}>{pct}%</span>
         <div className="flex h-3 flex-1 overflow-hidden rounded-full bg-surface-2">
           <motion.div style={{ background: CORNER.a }} initial={{ width: '50%' }} animate={{ width: `${pct}%` }} transition={{ duration: 0.8, delay: 0.15 + i * 0.12, ease: [0.22, 1, 0.36, 1] }} />
@@ -50,8 +50,8 @@ export function ProbCompare({ f, eventId, provider }: { f: Fight; eventId: strin
   return (
     <Panel title="Quem leva, segundo quem" eyebrow="Casas de aposta, nota Elo e palpites da galera" bodyClass="px-6 pb-6">
       <div className="mt-2 flex justify-between text-[13px] font-semibold">
-        <span className="flex items-center gap-1.5 text-fg-2"><span className="h-2 w-2 rounded-full" style={{ background: CORNER.a }} />{a}</span>
-        <span className="flex items-center gap-1.5 text-fg-2">{b}<span className="h-2 w-2 rounded-full" style={{ background: CORNER.b }} /></span>
+        <span className="flex items-center gap-2 text-fg-2"><span className="h-2 w-2 rounded-full" style={{ background: CORNER.a }} />{a}</span>
+        <span className="flex items-center gap-2 text-fg-2">{b}<span className="h-2 w-2 rounded-full" style={{ background: CORNER.b }} /></span>
       </div>
       <div className="mt-3 space-y-4">
         {book && <Split i={0} label="Casas de aposta" sub={provider ? `${provider}, sem a margem` : 'sem a margem'} red={book[0]} />}

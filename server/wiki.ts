@@ -8,7 +8,7 @@ const API = 'https://en.wikipedia.org/w/api.php?format=json&formatversion=2&acti
 type J = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 /** Nome da divisão no site (pt-BR) → título da seção na Wikipédia. */
-export const WIKI_SECTION: Record<string, string> = {
+const WIKI_SECTION: Record<string, string> = {
   'Pesado': 'Heavyweight Championship', 'Meio-pesado': 'Light Heavyweight Championship', 'Médio': 'Middleweight Championship',
   'Meio-médio': 'Welterweight Championship', 'Leve': 'Lightweight Championship', 'Pena': 'Featherweight Championship',
   'Galo': 'Bantamweight Championship', 'Mosca': 'Flyweight Championship',

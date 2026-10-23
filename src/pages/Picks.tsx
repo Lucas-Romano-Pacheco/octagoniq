@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { clsx } from 'clsx';
-import { ArrowCounterClockwise, CaretLeft, CaretRight, Check, Crown, FloppyDisk, ShareNetwork, HandGrabbing, Lightning, LockSimple, Scales, SignIn, Star, Trophy, X } from '@phosphor-icons/react';
+import { ArrowCounterClockwise, CaretLeft, CaretRight, Check, FloppyDisk, ShareNetwork, HandGrabbing, Lightning, LockSimple, Scales, SignIn, Star, Trophy, X } from '@phosphor-icons/react';
 import type { CardSegment, Fight, FighterRef } from '@shared/types';
 import { fightHref, useBonuses, useEvent, useSchedule, useUpcoming } from '@/lib/api';
 import { fotnAwarded } from '@/lib/fights';
@@ -15,7 +15,7 @@ import { PicksHistory } from '@/components/PicksHistory';
 import { PicksRanking, useEventBoard } from '@/components/PicksRanking';
 import { sharePicksCard } from '@/lib/share-card';
 import { supabaseEnabled, useAuth } from '@/lib/supabase';
-import { Avatar, Empty, ErrorState, Flag, PageHeader, Panel, Segmented, Skeleton, Tag, usePageTitle } from '@/components/kit';
+import { Avatar, BeltIcon, Empty, ErrorState, Flag, PageHeader, Panel, Segmented, Loading, Skeleton, Tag, usePageTitle } from '@/components/kit';
 
 /* Palpites: o usuário escolhe vencedor, método e round de cada luta do card; quando os resultados saem, a página
    calcula os acertos e os pontos (regras em src/lib/picks.ts). O rascunho fica no navegador; o que é salvo vai para a
@@ -101,20 +101,20 @@ function FighterButton({ f, side, picked, locked, result, onPick, odds }: {
       {fx > 0 && <><Burst key={`b${fx}`} color={color} n={14} reach={70} /><Float key={`f${fx}`} text={`+${POINTS.winner}`} color={color} /></>}
       {!picked && <span aria-hidden className="absolute inset-x-0 top-0 h-1" style={{ background: color }} />}
       {picked && <span aria-hidden className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10" />}
-      <motion.span className="relative" animate={picked ? { scale: [1, 1.22, 0.96, 1], rotate: [0, -7, 5, 0] } : { scale: 1, rotate: 0 }} transition={{ duration: 0.55 }} key={picked ? 'on' : 'off'}>
-        <Avatar src={f.headshot} name={f.name} size={picked ? 88 : 68} ring={picked ? '#fff' : color} className={clsx('transition-all duration-300', result === 'lost' && 'grayscale')} />
+      <motion.span className="relative" animate={picked ? { scale: [1, 1.22, 0.96, 1], rotate: [0, -7, 5, 0] } : { scale: 1, rotate: 0 }} transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }} key={picked ? 'on' : 'off'}>
+        <Avatar src={f.headshot} name={f.name} size={picked ? 88 : 68} ring={picked ? '#fff' : color} className={clsx('transition duration-300', result === 'lost' && 'grayscale')} />
         {result === 'won' && <span className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full bg-gold text-[#14183e] ring-2 ring-surface"><Trophy weight="fill" className="h-4 w-4" /></span>}
       </motion.span>
       <span className="relative min-w-0 max-w-full">
-        <span className="line-clamp-2 block break-words font-display text-[16px] font-bold uppercase leading-tight tracking-[0.02em] sm:text-[18px]">{f.name}</span>
-        <span className={clsx('mt-0.5 flex items-center justify-center gap-1.5 text-[13px]', picked ? 'text-white/85' : 'text-fg-2')}><Flag code={f.countryCode} src={f.flag} title={f.country} size={16} /><span className="num font-semibold">{f.record ?? '—'}</span></span>
+        <span className="line-clamp-2 block break-words font-display text-[16px] font-bold leading-tight sm:text-[18px]">{f.name}</span>
+        <span className={clsx('mt-1 flex items-center justify-center gap-2 text-[13px]', picked ? 'text-white/85' : 'text-fg-2')}><Flag code={f.countryCode} src={f.flag} title={f.country} size={16} /><span className="num font-semibold">{f.record ?? '—'}</span></span>
       </span>
-      <span className="relative flex flex-col items-center gap-1.5">
+      <span className="relative flex flex-col items-center gap-2">
         {odds}
         <AnimatePresence mode="wait" initial={false}>
           {picked
-            ? <motion.span key="on" initial={{ scale: 0, rotate: -12 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 18 }}
-                className="inline-flex h-6 items-center gap-1 rounded-md bg-white px-2 font-display text-[12px] font-bold uppercase tracking-[0.08em] text-[#14183e]"><Check weight="bold" className="h-3.5 w-3.5" /> Seu palpite</motion.span>
+            ? <motion.span key="on" initial={{ scale: 0.6, rotate: -12, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 18 }}
+                className="inline-flex h-6 items-center gap-1 rounded-md bg-white px-2 font-display text-[12px] font-bold text-[#14183e]"><Check weight="bold" className="h-3.5 w-3.5" /> Seu palpite</motion.span>
             : <span key="off" className="inline-flex h-6" />}
         </AnimatePresence>
       </span>
@@ -129,7 +129,7 @@ function MethodTile({ m, on, disabled, onClick }: { m: { key: MethodKey; label: 
   return (
     <motion.button type="button" disabled={disabled} aria-pressed={on} onClick={() => { if (!on) hit(); onClick(); }}
       whileHover={disabled ? undefined : { y: -4, scale: 1.04 }} whileTap={disabled ? undefined : { scale: 0.9, rotate: -2 }} transition={{ type: 'spring', stiffness: 460, damping: 20 }}
-      className={clsx('cut relative flex flex-col items-center gap-1 rounded-xl px-2 py-3 font-display text-[13px] font-bold uppercase tracking-[0.05em] transition-[background-color,box-shadow,color] duration-200', !on && 'bg-surface-2/60')}
+      className={clsx('cut relative flex flex-col items-center gap-1 rounded-xl px-2 py-3 font-display text-[13px] font-bold transition-[background-color,box-shadow,color] duration-200', !on && 'bg-surface-2/60')}
       style={on ? { background: `linear-gradient(160deg, ${c}, color-mix(in oklab, ${c} 70%, #0d0f22))`, color: ink, boxShadow: `0 10px 22px -10px ${c}, 0 0 0 3px color-mix(in oklab, ${c} 28%, transparent)` } : { color: 'var(--color-fg-2)' }}>
       {fx > 0 && <><Burst key={`b${fx}`} color={c} /><Float key={`f${fx}`} text={`+${POINTS.method}`} color={c} /></>}
       {/* a cor do método aparece mesmo sem escolher: ícone colorido e uma barra embaixo */}
@@ -171,13 +171,13 @@ function ComboBar({ pick, accent }: { pick?: Pick; accent: string }) {
   const pts = steps.reduce((n, x) => n + (x.ok ? x.pts : 0), 0) + (perfect ? POINTS.perfect : 0);
   return (
     <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-      <div className="flex min-w-[190px] flex-1 items-center gap-1.5" role="img" aria-label={`Combo: ${done} de ${steps.length}`}>
+      <div className="flex min-w-[190px] flex-1 items-center gap-2" role="img" aria-label={`Combo: ${done} de ${steps.length}`}>
         {steps.map((x, i) => (
           <div key={x.label} className="flex-1">
             <div className="h-2.5 overflow-hidden rounded-full bg-surface-2">
               <motion.div className="h-full rounded-full" style={{ background: x.color }} initial={false} animate={{ width: x.ok ? '100%' : '0%' }} transition={{ type: 'spring', stiffness: 220, damping: 22, delay: x.ok ? i * 0.08 : 0 }} />
             </div>
-            <div className={clsx('mt-1 text-center font-display text-[12px] font-bold uppercase tracking-[0.06em] transition-colors', x.ok ? 'text-fg' : 'text-fg-2')}>{x.label}</div>
+            <div className={clsx('mt-1 text-center font-display text-[12px] font-bold transition-colors', x.ok ? 'text-fg' : 'text-fg-2')}>{x.label}</div>
           </div>
         ))}
       </div>
@@ -185,10 +185,10 @@ function ComboBar({ pick, accent }: { pick?: Pick; accent: string }) {
         <AnimatePresence mode="wait" initial={false}>
           {perfect
             ? <motion.span key="perfect" initial={{ scale: 0.4, rotate: -8, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }} exit={{ scale: 0.6, opacity: 0 }} transition={{ type: 'spring', stiffness: 420, damping: 14 }}
-                className="rounded-md bg-gold px-2.5 py-1 font-display text-[12px] font-extrabold uppercase tracking-[0.08em] text-[#14183e]">★ Combo perfeito</motion.span>
+                className="rounded-md bg-gold px-3 py-1 font-display text-[12px] font-extrabold text-[#14183e]"><Star weight="fill" className="mr-1 inline h-3 w-3 align-[-1px]" />Combo perfeito</motion.span>
             : <motion.span key="n" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-[13px] text-fg-3">{pick ? `${done}/${steps.length} do combo` : 'sem palpite'}</motion.span>}
         </AnimatePresence>
-        <motion.span key={pts} initial={{ scale: 1.5, y: -3 }} animate={{ scale: 1, y: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 14 }} className="num font-display text-[24px] font-extrabold leading-none text-fg">{pts}<span className="ml-1 text-[12px] font-bold text-fg-3">PTS EM JOGO</span></motion.span>
+        <motion.span key={pts} initial={{ scale: 1.5, y: -3 }} animate={{ scale: 1, y: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 14 }} className="num font-display text-[24px] font-extrabold leading-none text-fg">{pts}<span className="ml-1 font-sans text-[12px] font-semibold text-fg-3">pts em jogo</span></motion.span>
       </div>
     </div>
   );
@@ -202,7 +202,7 @@ type FotnProps = { on: boolean; locked: boolean; awarded?: boolean; onToggle: ()
 function FotnToggle({ on, locked, awarded, onToggle }: FotnProps) {
   const [fx, hit] = useFx();
   if (awarded) return (
-    <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-gold px-3 font-display text-[12px] font-extrabold uppercase tracking-[0.08em] text-[#14183e]">
+    <span className="inline-flex h-8 items-center gap-2 rounded-full bg-gold px-3 font-display text-[12px] font-extrabold text-[#14183e]">
       <Trophy weight="fill" className="h-3.5 w-3.5" /> Luta da noite
     </span>
   );
@@ -211,7 +211,7 @@ function FotnToggle({ on, locked, awarded, onToggle }: FotnProps) {
     <motion.button type="button" disabled={locked} aria-pressed={on} onClick={() => { if (!on) hit(); onToggle(); }}
       title={on ? 'Tirar o voto de luta da noite' : `Votar como luta da noite (+${POINTS.fotn} se levar o bônus)`}
       whileHover={locked ? undefined : { scale: 1.06 }} whileTap={locked ? undefined : { scale: 0.92 }} transition={{ type: 'spring', stiffness: 460, damping: 18 }}
-      className={clsx('relative inline-flex h-8 items-center gap-1.5 rounded-full px-3 font-display text-[12px] font-bold uppercase tracking-[0.08em] transition-colors',
+      className={clsx('relative inline-flex h-8 items-center gap-2 rounded-full px-3 font-display text-[12px] font-bold transition-colors',
         on ? 'bg-gold text-[#14183e]' : 'text-fg-2 ring-1 ring-line enabled:hover:text-fg enabled:hover:ring-gold/60')}>
       {fx > 0 && <><Burst key={`b${fx}`} color="var(--color-gold)" n={12} reach={40} /><Float key={`f${fx}`} text={`+${POINTS.fotn}`} color="var(--color-gold)" /></>}
       <Star weight={on ? 'fill' : 'bold'} className="h-3.5 w-3.5" />{on ? 'Sua luta da noite' : 'Luta da noite?'}
@@ -247,7 +247,7 @@ function FotnPicker({ fights, vote, locked, awarded, onVote }: { fights: Fight[]
         </div>
         <AnimatePresence mode="wait" initial={false}>
           <motion.div key={(vote ?? '') + (result ?? '')} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-            className={clsx('w-full rounded-xl px-4 py-2.5 text-[14px] ring-1 sm:w-auto', result === 'hit' ? 'bg-win-soft text-win ring-win/30' : result === 'miss' ? 'bg-loss-soft text-loss ring-loss/20' : 'bg-surface text-fg-2 ring-line')}>
+            className={clsx('w-full rounded-xl px-4 py-3 text-[14px] ring-1 sm:w-auto', result === 'hit' ? 'bg-win-soft text-win ring-win/30' : result === 'miss' ? 'bg-loss-soft text-loss ring-loss/20' : 'bg-surface text-fg-2 ring-line')}>
             {result === 'hit' ? <b>Acertou! +{POINTS.fotn} pts</b>
               : result === 'miss' ? <b>Não foi dessa vez</b>
               : result === 'void' ? 'Evento sem bônus de luta da noite'
@@ -259,7 +259,7 @@ function FotnPicker({ fights, vote, locked, awarded, onVote }: { fights: Fight[]
 
       {/* no computador, todas as lutas à vista (quebram em linhas); no celular, desliza para o lado, com setas */}
       <div className="relative mt-5">
-      <div className="mb-2 flex justify-end gap-1.5 sm:hidden">
+      <div className="mb-2 flex justify-end gap-2 sm:hidden">
         <button type="button" onClick={() => slide(-1)} aria-label="Lutas anteriores" className="grid h-8 w-8 place-items-center rounded-full bg-surface text-fg-2 ring-1 ring-line"><CaretLeft weight="bold" className="h-3.5 w-3.5" /></button>
         <button type="button" onClick={() => slide(1)} aria-label="Próximas lutas" className="grid h-8 w-8 place-items-center rounded-full bg-fg text-bg"><CaretRight weight="bold" className="h-3.5 w-3.5" /></button>
       </div>
@@ -271,15 +271,15 @@ function FotnPicker({ fights, vote, locked, awarded, onVote }: { fights: Fight[]
             <motion.button key={f.id} type="button" role="radio" aria-checked={on} disabled={locked}
               onClick={() => { if (!on) setFx({ id: f.id, n: (fx?.n ?? 0) + 1 }); onVote(on ? null : f.id); }}
               whileHover={locked ? undefined : { y: -3 }} whileTap={locked ? undefined : { scale: 0.95 }} transition={{ type: 'spring', stiffness: 460, damping: 20 }}
-              className={clsx('relative flex shrink-0 items-center gap-2.5 rounded-full py-1.5 pl-1.5 pr-4 text-left ring-1 transition-colors',
+              className={clsx('relative flex shrink-0 items-center gap-3 rounded-full py-2 pl-2 pr-4 text-left ring-1 transition-colors',
                 on ? 'bg-gold text-[#14183e] ring-gold shadow-[var(--shadow-cta)]' : won ? 'bg-surface text-fg ring-2 ring-gold' : 'bg-surface text-fg ring-line enabled:hover:ring-gold/60',
                 locked && !on && !won && 'opacity-60')}>
               {fx?.id === f.id && <><Burst key={`b${fx.n}`} color="var(--color-gold)" n={12} reach={50} /><Float key={`f${fx.n}`} text={`+${POINTS.fotn}`} color="var(--color-gold)" /></>}
-              <span className="flex -space-x-2.5">
+              <span className="flex -space-x-3">
                 <Avatar src={f.red.headshot} name={f.red.name} size={30} />
                 <Avatar src={f.blue.headshot} name={f.blue.name} size={30} />
               </span>
-              <span className="font-display text-[13px] font-bold uppercase tracking-[0.03em]">{lastName(f.red.name)} × {lastName(f.blue.name)}</span>
+              <span className="font-display text-[13px] font-bold">{lastName(f.red.name)} × {lastName(f.blue.name)}</span>
               {(on || won) && <span>{won ? <Trophy weight="fill" className="h-4 w-4 text-gold" /> : <Star weight="fill" className="h-4 w-4" />}</span>}
             </motion.button>
           );
@@ -320,8 +320,8 @@ function FightPick({ eventId, f, draft, saved, onChange, fotn, crowd }: {
     <div className="relative overflow-x-clip py-5">
       {party > 0 && <Confetti key={party} />}
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        <span className="font-display text-[13px] font-semibold uppercase tracking-[0.1em] text-fg-3">{f.weightClass} · {f.rounds} rounds</span>
-        {f.title && <Tag tone="gold"><Crown weight="fill" className="h-3 w-3" /> Título</Tag>}
+        <span className="font-display text-[13px] font-semibold text-fg-3">{f.weightClass} · {f.rounds} rounds</span>
+        {f.title && <Tag tone="gold"><BeltIcon className="h-3.5 w-6" /> Título</Tag>}
         {locked && !r && <Tag><LockSimple weight="bold" className="h-3 w-3" /> {f.status === 'in' ? 'Ao vivo' : 'Palpites encerrados'}</Tag>}
         <span className="ml-auto flex items-center gap-3">
           <FotnToggle {...fotn} />
@@ -351,7 +351,7 @@ function FightPick({ eventId, f, draft, saved, onChange, fotn, crowd }: {
           {finish && (
             <motion.div key="round" role="group" aria-label="Round" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} transition={{ type: 'spring', stiffness: 300, damping: 26 }}>
               <div className="label mb-2">Em que round</div>
-              <div className="relative px-4 pb-1 pt-1.5">
+              <div className="relative px-4 pb-1 pt-2">
                 <span aria-hidden className="absolute left-4 right-4 top-[22px] h-1.5 rounded-full bg-surface-2" />
                 <motion.span aria-hidden className="absolute left-4 top-[22px] h-1.5 rounded-full" style={{ background: METHOD_COLOR[pick!.method!].c }} initial={false}
                   animate={{ width: pick?.round ? `calc((100% - 2rem) * ${(pick.round - 1) / Math.max(f.rounds - 1, 1)})` : 0 }} transition={{ type: 'spring', stiffness: 160, damping: 20 }} />
@@ -368,14 +368,14 @@ function FightPick({ eventId, f, draft, saved, onChange, fotn, crowd }: {
       </div>
       {!locked && <ComboBar pick={pick} accent={accent} />}
       {pick && crowd && (
-        <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="mt-2 flex flex-wrap items-center gap-x-1.5 text-[13px] text-fg-3">
+        <motion.p initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className="mt-2 flex flex-wrap items-center gap-x-2 text-[13px] text-fg-3">
           A galera: <b className="num font-semibold" style={{ color: CORNER.a }}>{Math.round(crowd.red * 100)}% {lastName(f.red.name)}</b> ·
           <b className="num font-semibold" style={{ color: CORNER.b }}>{100 - Math.round(crowd.red * 100)}% {lastName(f.blue.name)}</b>
           <span>({crowd.votes} {crowd.votes === 1 ? 'palpite' : 'palpites'})</span>
         </motion.p>
       )}
       {pick && !locked && (
-        <div className="mt-1.5 flex items-center justify-between">
+        <div className="mt-2 flex items-center justify-between">
           <span />
           <button type="button" onClick={() => onChange(null)} className="text-[13px] font-semibold text-fg-3 hover:text-fg">Limpar</button>
         </div>
@@ -393,17 +393,17 @@ function Result({ f, pick, sc }: { f: Fight; pick: Pick; sc: ReturnType<typeof s
   const r = f.result!;
   const real = r.winnerId === f.red.espnId ? f.red : f.blue;
   return (
-    <div className={clsx('mt-4 rounded-xl p-3.5', sc.winner ? 'bg-win-soft' : 'bg-loss-soft')}>
+    <div className={clsx('mt-4 rounded-xl p-4', sc.winner ? 'bg-win-soft' : 'bg-loss-soft')}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2 font-display text-[16px] font-bold uppercase tracking-[0.03em] text-fg">
+        <div className="flex items-center gap-2 font-display text-[16px] font-bold text-fg">
           {sc.winner ? <Check weight="bold" className="h-4 w-4 text-win" /> : <X weight="bold" className="h-4 w-4 text-loss" />}
           {sc.winner ? 'Você acertou' : 'Você errou'} · {lastName(real.name)} venceu por {r.method}{r.round ? `, R${r.round}` : ''}
         </div>
         <div className="num font-display text-[20px] font-bold text-fg">+{sc.points} pts</div>
       </div>
       {sc.parts.length > 0 && (
-        <ul className="mt-2 flex flex-wrap gap-1.5">
-          {sc.parts.map(p => <li key={p.label} className="rounded-md bg-surface px-2 py-0.5 text-[13px] font-semibold text-fg-2">{p.label} <span className="num text-fg">+{p.pts}</span></li>)}
+        <ul className="mt-2 flex flex-wrap gap-2">
+          {sc.parts.map(p => <li key={p.label} className="rounded-md bg-surface px-2 py-1 text-[13px] font-semibold text-fg-2">{p.label} <span className="num text-fg">+{p.pts}</span></li>)}
         </ul>
       )}
       {sc.winner && <p className="mt-2 text-[13px] text-fg-3">Seu palpite: {METHODS.find(m => m.key === pick.method)?.label ?? 'sem método'}{pick.round ? `, round ${pick.round}` : ''}.</p>}
@@ -424,7 +424,7 @@ function SavePanel({ eventId, fights, draft, savedAt, dirty, justSaved, onSave, 
   const made = open.filter(f => draft[f.id]).length;
   const fotnMissing = !draft[FOTN] && !fotnLocked(fights);
   const perfect = open.filter(f => { const p = draft[f.id]; return !!p?.method && (p.method === 'dec' || !!p.round); }).length;
-  const pts = open.reduce((n, f) => { const p = draft[f.id]; if (!p) return n; const fin = p.method === 'ko' || p.method === 'sub'; return n + POINTS.winner + (p.method ? POINTS.method : 0) + (fin && p.round ? POINTS.round : 0) + (!!p.method && (p.method === 'dec' || !!p.round) ? POINTS.perfect : 0); }, 0);
+  const pts = open.reduce((n, f) => { const p = draft[f.id]; if (!p) return n; const fin = p.method === 'ko' || p.method === 'sub'; return n + POINTS.winner + (p.method ? POINTS.method : 0) + (fin && p.round ? POINTS.round : 0) + (p.method && (p.method === 'dec' || !!p.round) ? POINTS.perfect : 0); }, 0);
   const hhmm = (t: number) => new Date(t).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const done = !dirty && !!savedAt;
   // depois de salvar, continua grudado no pé da tela por alguns segundos para a confirmação ser vista
@@ -445,7 +445,7 @@ function SavePanel({ eventId, fights, draft, savedAt, dirty, justSaved, onSave, 
             <AnimatePresence mode="wait" initial={false}>
               {done ? (
                 <motion.div key="done" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-start gap-3 text-fg">
-                  <motion.span initial={{ scale: 0, rotate: -40 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 380, damping: 14 }} className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-full bg-win text-white"><Check weight="bold" className="h-5 w-5" /></motion.span>
+                  <motion.span initial={{ scale: 0.6, rotate: -25, opacity: 0 }} animate={{ scale: 1, rotate: 0, opacity: 1 }} transition={{ type: "spring", stiffness: 380, damping: 18 }} className="mt-1 grid h-10 w-10 shrink-0 place-items-center rounded-full bg-win text-white"><Check weight="bold" className="h-5 w-5" /></motion.span>
                   <div>
                     <div className="font-display text-[20px] font-bold uppercase leading-tight tracking-[0.02em]">{justSaved ? 'Palpites salvos e computados!' : 'Tudo salvo'}</div>
                     <p className="mt-1 text-[14px] text-fg-2">{made} {made === 1 ? 'palpite contabilizado' : 'palpites contabilizados'} · salvo às {hhmm(savedAt!)}. Os pontos saem quando as lutas terminarem.</p>
@@ -462,13 +462,13 @@ function SavePanel({ eventId, fights, draft, savedAt, dirty, justSaved, onSave, 
           <div className="flex shrink-0 items-center gap-2">
             {dirty && savedAt && <button type="button" onClick={onDiscard} className="btn-ghost text-bg/80 hover:bg-bg/10 hover:text-bg">Descartar</button>}
             {login ? (
-              <Link to={login} className="inline-flex h-12 items-center gap-2 rounded-full bg-gold px-7 font-display text-[14px] font-bold uppercase tracking-[0.06em] text-[#14183e] shadow-[var(--shadow-cta)] transition-transform duration-150 hover:-translate-y-0.5 active:scale-[0.96]">
+              <Link to={login} className="inline-flex h-12 items-center gap-2 rounded-full bg-gold px-7 font-display text-[14px] font-bold text-[#14183e] shadow-[var(--shadow-cta)] transition-transform duration-150 hover:-translate-y-0.5 active:scale-[0.96]">
                 <SignIn weight="bold" className="h-5 w-5" /> Entrar para salvar
               </Link>
             ) : (
             <motion.button type="button" onClick={onSave} disabled={!dirty || (made === 0 && !savedAt)} whileHover={dirty ? { y: -2, scale: 1.03 } : undefined} whileTap={dirty ? { scale: 0.94 } : undefined}
               transition={{ type: 'spring', stiffness: 460, damping: 20 }}
-              className={clsx('inline-flex h-12 items-center gap-2 rounded-full px-7 font-display text-[14px] font-bold uppercase tracking-[0.06em] disabled:cursor-default',
+              className={clsx('inline-flex h-12 items-center gap-2 rounded-full px-7 font-display text-[14px] font-bold disabled:cursor-default',
                 dirty ? 'bg-gold text-[#14183e] shadow-[var(--shadow-cta)]' : 'bg-win/15 text-win')}>
               {dirty ? <><FloppyDisk weight="bold" className="h-5 w-5" /> Salvar palpites</> : <><Check weight="bold" className="h-5 w-5" /> Salvo</>}
             </motion.button>
@@ -514,7 +514,7 @@ function Rules() {
     <Panel plain title="Como funciona a pontuação" action={<span className="text-[13px] text-fg-3">até {MAX_POINTS} pontos por luta</span>}>
       <dl className="divide-y divide-line/70">
         {rows.map(([k, v, d]) => (
-          <div key={k} className="grid grid-cols-[120px_44px_1fr] items-baseline gap-3 py-2.5 sm:grid-cols-[150px_52px_1fr]">
+          <div key={k} className="grid grid-cols-[120px_44px_1fr] items-baseline gap-3 py-3 sm:grid-cols-[150px_52px_1fr]">
             <dt className="font-semibold text-fg">{k}</dt><dd className="num font-display text-[18px] font-bold text-brand">{v}</dd><dd className="text-[14px] text-fg-3">{d}</dd>
           </div>
         ))}
@@ -604,16 +604,16 @@ export default function Picks() {
           const { series, title } = splitEventName(c.name);
           const on = c.id === id;
           return (
-            <button key={c.id} role="tab" aria-selected={on} onClick={() => navigate(`/palpites/${c.id}${qs}`)}
-              className={clsx('lift flex shrink-0 flex-col items-start rounded-xl px-4 py-2.5 text-left ring-1', on ? 'bg-fg text-bg ring-fg' : 'bg-surface text-fg ring-fg/[0.08]')}>
-              <span className="font-display text-[13px] font-bold uppercase tracking-[0.06em]">{title || series}</span>
+            <button type="button" key={c.id} role="tab" aria-selected={on} onClick={() => navigate(`/palpites/${c.id}${qs}`)}
+              className={clsx('lift flex shrink-0 flex-col items-start rounded-xl px-4 py-3 text-left ring-1', on ? 'bg-fg text-bg ring-fg' : 'bg-surface text-fg ring-fg/[0.08]')}>
+              <span className="font-display text-[13px] font-bold">{title || series}</span>
               <span className={clsx('num text-[13px]', on ? 'text-bg/70' : 'text-fg-3')}>{series} · {dayMonth(c.date)}{fightCount(saved[c.id]?.picks) ? ` · ${fightCount(saved[c.id]?.picks)} salvos` : ''}</span>
             </button>
           );
         })}
       </div>
 
-      {(isPending && !!id || upcoming.isPending) && <div className="space-y-4"><Skeleton className="h-28" /><Skeleton className="h-[640px]" /></div>}
+      {(isPending && !!id || upcoming.isPending) && <Loading label="Carregando o card" className="space-y-4"><Skeleton className="h-28" /><Skeleton className="h-[640px]" /></Loading>}
       {isError && <Panel><ErrorState message={error?.message} onRetry={() => refetch()} /></Panel>}
       {!upcoming.isPending && !id && <Panel><Empty>Nenhum evento disponível para palpites por enquanto.</Empty></Panel>}
 
@@ -636,9 +636,9 @@ export default function Picks() {
             {(fightCount(mine) > 0 || summary.made > 0) && open > 0 && (
               confirm
                 ? <span className="flex items-center gap-2 text-[13px]">Apagar os palpites das lutas que ainda não começaram?
-                    <button className="btn-ghost text-loss" onClick={() => { clearEvent(e.id, fights); setConfirm(false); }}>Apagar</button>
-                    <button className="btn-ghost" onClick={() => setConfirm(false)}>Cancelar</button></span>
-                : <button className="btn-ghost" onClick={() => setConfirm(true)}><ArrowCounterClockwise className="h-4 w-4" /> Recomeçar</button>
+                    <button type="button" className="btn-ghost text-loss" onClick={() => { clearEvent(e.id, fights); setConfirm(false); }}>Apagar</button>
+                    <button type="button" className="btn-ghost" onClick={() => setConfirm(false)}>Cancelar</button></span>
+                : <button type="button" className="btn-ghost" onClick={() => setConfirm(true)}><ArrowCounterClockwise className="h-4 w-4" /> Recomeçar</button>
             )}
             </div>
           </div>
@@ -654,7 +654,7 @@ export default function Picks() {
                 if (!list.length) return null;
                 return (
                   <Panel key={seg} plain
-                    title={<h2 className="panel-title">{SEGMENT_LABEL[seg]} <span className="ml-1.5 align-middle font-sans text-[14px] font-semibold text-fg-3">{list.length} lutas</span></h2>}
+                    title={<h2 className="panel-title">{SEGMENT_LABEL[seg]} <span className="ml-2 align-middle font-sans text-[14px] font-semibold text-fg-3">{list.length} lutas</span></h2>}
                     action={e.segmentStart[seg] && <span className="num text-[13px] text-fg-3">{time(e.segmentStart[seg]!)}</span>}
                     bodyClass="divide-y divide-line/70">
                     {list.map(f => (

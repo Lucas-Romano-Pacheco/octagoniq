@@ -12,7 +12,7 @@ const txt = (el?: HTMLElement | null) => (el?.textContent ?? '').replace(/\s+/g,
 const num = (s?: string) => { const v = parseFloat((s ?? '').replace(',', '.').replace(/[^\d.]/g, '')); return Number.isFinite(v) ? v : undefined; };
 const pctOf = (l?: number, a?: number) => (l !== undefined && a ? Math.round((l / a) * 100) : undefined);
 /** Remove o estilo de redimensionamento do Drupal do UFC.com e devolve o arquivo original. */
-export const originalImage = (u?: string) => u?.replace(/\/images\/styles\/[^/]+\/s3\//, '/images/').replace(/\?itok=.*$/, '');
+const originalImage = (u?: string) => u?.replace(/\/images\/styles\/[^/]+\/s3\//, '/images/').replace(/\?itok=.*$/, '');
 
 const slugFromHref = (href?: string) => href?.match(/\/athlete\/([^/?#]+)/)?.[1];
 

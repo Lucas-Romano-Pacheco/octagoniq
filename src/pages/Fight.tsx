@@ -1,7 +1,7 @@
 import { lazy, Suspense, useId, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { ArrowDown, ArrowLeft, ArrowUp, ArrowsLeftRight, Crown, Lightning, Trophy } from '@phosphor-icons/react';
+import { ArrowDown, ArrowLeft, ArrowUp, ArrowsLeftRight, Lightning, Trophy } from '@phosphor-icons/react';
 import type { FightDetail, FightSideStats, FighterRef, MethodOdds } from '@shared/types';
 import { fmtMoneyline, impliedProb } from '@shared/format';
 import { fighterHref, useFight } from '@/lib/api';
@@ -10,7 +10,7 @@ import { CORNER, CORNER_FILL, DuelHead, DuelRow, OddsChip, oddsView } from '@/co
 import { RoundFlow } from '@/components/RoundFlow';
 import { ProbCompare } from '@/components/ProbCompare';
 import { FanJudge } from '@/components/FanJudge';
-import { Avatar, Empty, ErrorState, Flag, LiveTag, MethodTag, Panel, Term, Reveal, Segmented, Tag, Tip, trackSpotlight, usePageTitle } from '@/components/kit';
+import { Avatar, BeltIcon, Empty, ErrorState, Flag, LiveTag, MethodTag, Panel, Reveal, Segmented, Tag, Term, Tip, trackSpotlight, usePageTitle } from '@/components/kit';
 import silhueta from '@/assets/silhueta.png';
 import { FightPreview } from '@/components/FightPreview';
 import { FightSkeleton } from '@/components/Skeletons';
@@ -37,9 +37,9 @@ function Corner({ f, side, won, odds }: { f: FighterRef; side: 'a' | 'b'; won: b
       <div className={`mt-2 flex items-center gap-2 text-[14px] text-fg-2 ${right ? 'flex-row-reverse' : ''}`}>
         <Flag code={f.countryCode} src={f.flag} title={f.country} size={20} /><span className="hidden sm:inline">{f.country}</span><span className="hidden text-fg-3 sm:inline">·</span><span className="num whitespace-nowrap font-semibold">{f.record}</span>
       </div>
-      {odds && <div className="mt-2.5">{odds}</div>}
+      {odds && <div className="mt-3">{odds}</div>}
       <div className="relative mt-4 h-[230px] w-full sm:h-[420px]" style={{ viewTransitionName: `fight-${side}` }}>
-        {won && <span className={`absolute top-2 z-10 ${right ? 'right-0' : 'left-0'}`}><Tag tone="dark" className="h-7 px-2.5 text-[13px] sm:h-8 sm:px-3.5 sm:text-[14px]"><Trophy weight="fill" className="h-4 w-4 text-gold" /> Vitória</Tag></span>}
+        {won && <span className={`absolute top-2 z-10 ${right ? 'right-0' : 'left-0'}`}><Tag tone="dark" className="h-7 px-3 text-[13px] sm:h-8 sm:px-4 sm:text-[14px]"><Trophy weight="fill" className="h-4 w-4 text-gold" /> Vitória</Tag></span>}
         {f.bodyImage && !failed ? (
           <img src={proxy(f.bodyImage, 640)} alt={f.name} fetchPriority="high" decoding="async" onError={() => setFailed(true)}
             className={`absolute bottom-0 h-full w-auto object-contain drop-shadow-[0_30px_40px_var(--cutout-shadow)] [mask-image:linear-gradient(to_bottom,black_82%,transparent)] ${right ? 'right-0 -scale-x-100' : 'left-0'}`} />
@@ -59,7 +59,7 @@ function ResultBox({ d }: { d: FightDetail }) {
   return (
     <div className="flex flex-col items-center gap-4 text-center">
       <div className="flex flex-wrap items-center justify-center gap-2">
-        {f.title && <Tag tone="gold"><Crown weight="fill" className="h-3.5 w-3.5" /> Disputa de cinturão</Tag>}
+        {f.title && <Tag tone="gold"><BeltIcon className="h-3.5 w-6" /> Disputa de cinturão</Tag>}
         <Tag>{f.weightClass}</Tag>
         {f.status === 'in' && <LiveTag />}
       </div>
@@ -68,8 +68,8 @@ function ResultBox({ d }: { d: FightDetail }) {
           <div key={c.k} className={`px-3 py-4 ${i ? 'border-l border-line' : ''}`}>
             <div className="label">{c.k}</div>
             {r && c.k === 'Método'
-              ? <div className="mt-1.5 flex justify-center"><MethodTag method={r.method} size="md" className="max-w-full" /></div>
-              : <div className={`num mt-1.5 font-display font-bold leading-tight text-fg ${String(c.v).length > 8 ? 'text-[16px] break-words' : 'text-[20px]'}`}>{c.v}</div>}
+              ? <div className="mt-2 flex justify-center"><MethodTag method={r.method} size="md" className="max-w-full" /></div>
+              : <div className={`num mt-2 font-display font-bold leading-tight text-fg ${String(c.v).length > 8 ? 'text-[16px] break-words' : 'text-[20px]'}`}>{c.v}</div>}
           </div>
         ))}
       </div>
@@ -98,7 +98,7 @@ function KeyNumbers({ a, b }: { a: FightSideStats; b: FightSideStats }) {
               <span className="label text-center">{label}</span>
               <span className={`display text-[32px] leading-none ${y > x ? 'text-fg' : 'text-fg-3'}`}>{y}</span>
             </div>
-            <div className="mt-1.5 grid grid-cols-2 gap-[2px]">
+            <div className="mt-2 grid grid-cols-2 gap-[2px]">
               <div className="flex h-1.5 justify-end rounded-l-full bg-surface-2"><div className="h-full rounded-l-full" style={{ width: `${(x / max) * 100}%`, background: CORNER.a }} /></div>
               <div className="flex h-1.5 rounded-r-full bg-surface-2"><div className="h-full rounded-r-full" style={{ width: `${(y / max) * 100}%`, background: CORNER.b }} /></div>
             </div>
@@ -173,8 +173,8 @@ function Silhouette({ s, side }: { s: FightSideStats; side: 'a' | 'b' }) {
           : figure2d}
         {rows.map(r => (
           <div key={r.k} className="pointer-events-none absolute inset-x-0 flex items-center justify-between" style={{ top: `${r.y}%`, transform: 'translateY(-50%)' }}>
-            <span className="w-[86px] font-display text-[13px] font-bold uppercase tracking-[0.06em] text-fg">{r.k}</span>
-            <span className="pointer-events-auto flex w-[100px] items-baseline justify-end gap-2.5">
+            <span className="w-[86px] font-display text-[13px] font-bold text-fg">{r.k}</span>
+            <span className="pointer-events-auto flex w-[100px] items-baseline justify-end gap-3">
               <Tip content={`${r.v[0]} conectados de ${r.v[1]} tentados`}><span tabIndex={0} className="num cursor-help text-[18px] font-bold text-fg">{r.v[0]}</span></Tip>
               <span className="num w-[42px] text-right text-[14px] font-bold" style={{ color }}>{pctOf(r.v[0], total || 1)}%</span>
             </span>
@@ -206,7 +206,7 @@ function MethodTable({ red, blue, names }: { red?: MethodOdds; blue?: MethodOdds
   if (!red && !blue) return null;
   const rows: [string, keyof MethodOdds][] = [['Por KO/TKO', 'ko'], ['Por finalização', 'sub'], ['Por decisão', 'dec']];
   const cell = (v?: number) => (
-    <td className="text-center"><span className="num font-semibold text-fg">{fmtMoneyline(v)}</span>{v !== undefined && <span className="block text-[13px] text-fg-3 sm:ml-1.5 sm:inline">{Math.round((impliedProb(v) ?? 0) * 100)}%</span>}</td>
+    <td className="text-center"><span className="num font-semibold text-fg">{fmtMoneyline(v)}</span>{v !== undefined && <span className="block text-[13px] text-fg-3 sm:ml-2 sm:inline">{Math.round((impliedProb(v) ?? 0) * 100)}%</span>}</td>
   );
   return (
     <table className="table mt-2 w-full table-fixed sm:table-auto">
@@ -224,11 +224,11 @@ function LineMove({ open, close, right }: { open?: number; close?: number; right
   const Icon = delta > 0 ? ArrowUp : ArrowDown;
   return (
     <div className={`mt-2 text-[13px] ${right ? 'text-right' : ''}`}>
-      <div className="text-[12px] uppercase tracking-[0.06em] text-fg-3">Abertura → fechamento</div>
+      <div className="text-[12px] text-fg-3">Abertura → fechamento</div>
       <div className="num whitespace-nowrap font-semibold text-fg-2">{fmtMoneyline(open)} → {fmtMoneyline(close)}</div>
       {delta !== 0 && (
         <Tip content={`Chance implícita foi de ${Math.round(p0 * 100)}% para ${Math.round(p1 * 100)}% entre a abertura e o fechamento (com a margem da casa).`}>
-          <span tabIndex={0} className={`inline-flex cursor-help items-center gap-0.5 font-semibold ${delta > 0 ? 'text-win' : 'text-loss'}`}>
+          <span tabIndex={0} className={`inline-flex cursor-help items-center gap-1 font-semibold ${delta > 0 ? 'text-win' : 'text-loss'}`}>
             <Icon weight="bold" className="h-3 w-3" />{delta > 0 ? 'ganhou' : 'perdeu'} força ({delta > 0 ? '+' : ''}{delta} pts)
           </span>
         </Tip>
@@ -261,8 +261,8 @@ function ScorecardsPanel({ d }: { d: FightDetail }) {
   return (
     <Panel eyebrow={decision ? sc.source : `Até a interrupção no ${r?.round}º round · ${sc.source}`} title="Cartões dos juízes" bodyClass="px-6 pb-6">
       <div className="mt-2 flex items-center gap-4 text-[13px] text-fg-2">
-        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-md" style={{ background: CORNER.a }} />{last(d.red.name)}</span>
-        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-md" style={{ background: CORNER.b }} />{last(d.blue.name)}</span>
+        <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-md" style={{ background: CORNER.a }} />{last(d.red.name)}</span>
+        <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-md" style={{ background: CORNER.b }} />{last(d.blue.name)}</span>
       </div>
       <div className="mt-4 space-y-4">
         {sc.judges.map(j => (
@@ -280,8 +280,8 @@ function ScorecardsPanel({ d }: { d: FightDetail }) {
                 const w = r.red > r.blue ? 'a' : r.blue > r.red ? 'b' : null;
                 return (
                   <Tip key={r.n} content={`Round ${r.n}: ${last(d.red.name)} ${r.red} × ${r.blue} ${last(d.blue.name)}`}>
-                    <div tabIndex={0} className={`rounded-md px-1 py-1.5 text-center ${w ? 'text-white' : 'text-fg'}`} style={{ background: w ? CORNER_FILL[w] : 'var(--color-surface-3)' }}>
-                      <div className="text-[12px] font-semibold uppercase">R{r.n}</div>
+                    <div tabIndex={0} className={`rounded-md px-1 py-2 text-center ${w ? 'text-white' : 'text-fg'}`} style={{ background: w ? CORNER_FILL[w] : 'var(--color-surface-3)' }}>
+                      <div className="text-[12px] font-semibold">R{r.n}</div>
                       <div className="num text-[13px] font-bold">{r.red}-{r.blue}</div>
                     </div>
                   </Tip>
@@ -317,13 +317,13 @@ function OddsPanel({ d }: { d: FightDetail }) {
     <Panel eyebrow={o.provider} title="Odds e probabilidades"
       action={verdict && <Tag tone={verdict.startsWith('Zebra') ? 'orange' : 'neutral'}>{verdict.startsWith('Zebra') && <Lightning weight="fill" className="h-3.5 w-3.5" />}{verdict}</Tag>}
       bodyClass="px-6 pb-6">
-      <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-end gap-4">
+      <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-end gap-3 sm:gap-4">
         <div>
           <div className="num font-display text-[32px] font-semibold text-fg">{Math.round(v.red.p * 100)}%</div>
           <OddsChip {...v.red} />
           <LineMove open={o.redOpen} close={o.red} />
         </div>
-        <div className="pb-2 text-[13px] text-fg-3"><Term label="chance implícita" /></div>
+        <div className="hidden pb-2 text-[13px] text-fg-3 sm:block"><Term label="chance implícita" /></div>
         <div className="text-right">
           <div className="num font-display text-[32px] font-semibold text-fg">{Math.round(v.blue.p * 100)}%</div>
           <OddsChip {...v.blue} />
@@ -361,14 +361,14 @@ export default function Fight() {
   return (
     <div className="space-y-8">
       <div>
-        <Link to={`/eventos/${d.eventId}`} className="btn-ghost -ml-3.5"><ArrowLeft className="h-4 w-4" /> {d.eventName}</Link>
+        <Link to={`/eventos/${d.eventId}`} className="btn-ghost -ml-4"><ArrowLeft className="h-4 w-4" /> {d.eventName}</Link>
         <div className="mt-3 text-[14px] text-fg-3">{series} · {fullDate(f.date ?? '')}</div>
       </div>
 
       {/* a caixa (degradê + brilho) cresce para fora com margem interna: o conteúdo fica alinhado à página
           e a borda não encosta mais nos nomes */}
       <section data-duel onPointerMove={trackSpotlight}
-        className="spotlight relative -mx-3 grid grid-cols-2 items-start gap-x-3 gap-y-6 rounded-xl px-3 pt-6 sm:-mx-8 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:gap-8 sm:px-8 sm:pt-8">
+        className="spotlight relative -mx-3 grid grid-cols-2 items-start overflow-x-clip gap-x-3 gap-y-6 rounded-xl px-3 pt-6 sm:-mx-8 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:gap-8 sm:px-8 sm:pt-8">
         <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2 rounded-xl bg-gradient-to-t from-cream/70 to-transparent" />
         {/* assinatura: a grade do octógono, em linhas finas, atrás do placar */}
         <svg aria-hidden viewBox="0 0 100 100" className="pointer-events-none absolute left-1/2 top-1/2 hidden h-[118%] -translate-x-1/2 -translate-y-1/2 text-fg/[0.07] sm:block" preserveAspectRatio="xMidYMid meet">
@@ -397,7 +397,7 @@ export default function Fight() {
             <Panel title="Estatísticas da luta" action={
               <Segmented value={tab} onChange={setTab} options={[{ value: 'geral', label: 'Visão geral' }, { value: 'alvo', label: 'Por alvo' }, { value: 'posicao', label: 'Por posição' }]} />}>
               <AnimatePresence mode="wait" initial={false}>
-                <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }}>
+                <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
                 {tab === 'geral' && (
                   <div className="divide-y divide-line/70 pb-2">
                     <DuelHead a={lastName(d.red.name)} b={lastName(d.blue.name)} />

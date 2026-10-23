@@ -37,14 +37,14 @@ function Poster({ mode, name }: { mode: Mode; name: string }) {
     <div className="relative isolate flex min-h-[260px] flex-col justify-between overflow-hidden bg-band p-6 text-white sm:p-10 lg:min-h-[560px]">
       <Cage className="pointer-events-none absolute -bottom-[30%] -right-[25%] -z-10 h-[120%] text-white/[0.11] lg:-bottom-[12%] lg:-right-[30%] lg:h-[105%]" />
 
-      <div className="flex items-center gap-2.5 font-display text-[13px] font-semibold uppercase tracking-[0.12em] text-white/70">
+      <div className="flex items-center gap-3 font-display text-[13px] font-semibold text-white/70">
         <OctagonMark className="h-5 w-5" /> Palpites OctagonIQ
       </div>
 
       <div className="py-8 lg:py-0">
         <AnimatePresence mode="wait" initial={false}>
-          <motion.p key={mode} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }}
-            className="font-display text-[14px] font-semibold uppercase tracking-[0.12em] text-white/70">
+          <motion.p key={mode} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="font-display text-[14px] font-semibold text-white/70">
             {mode === 'criar' ? 'Estreia no card' : 'De volta ao octógono'}
           </motion.p>
         </AnimatePresence>
@@ -67,7 +67,7 @@ function Poster({ mode, name }: { mode: Mode; name: string }) {
 
       <ul className="flex flex-wrap gap-2 text-[13px]">
         {[[`+${POINTS.winner}`, 'vencedor'], [`+${POINTS.method}`, 'método'], [`+${POINTS.round}`, 'round'], [`+${POINTS.bigZebra}`, 'grande zebra']].map(([pts, l]) => (
-          <li key={l} className="flex items-baseline gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-white/80">
+          <li key={l} className="flex items-baseline gap-2 rounded-full bg-white/10 px-3 py-2 text-white/80">
             <b className="num font-display text-[14px] font-bold text-white">{pts}</b>{l}
           </li>
         ))}
@@ -89,9 +89,9 @@ function Field({ label, icon, aside, hint, right, ...input }: { label: string; i
       <div className="relative mt-2">
         <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-fg-3">{icon}</span>
         <input id={id} className={clsx(INPUT, right ? 'pr-12' : 'pr-4')} {...input} />
-        {right && <span className="absolute right-1.5 top-1/2 -translate-y-1/2">{right}</span>}
+        {right && <span className="absolute right-2 top-1/2 -translate-y-1/2">{right}</span>}
       </div>
-      {hint && <div className="mt-1.5 text-[13px] text-fg-3">{hint}</div>}
+      {hint && <div className="mt-2 text-[13px] text-fg-3">{hint}</div>}
     </div>
   );
 }
@@ -169,9 +169,9 @@ export default function Login() {
 
   const availHint = mode === 'criar' && ({
     idle: <>Aparece no ranking e é o seu login. De 3 a 20 letras, números ou _.</>,
-    checking: <span className="inline-flex items-center gap-1.5"><CircleNotch className="h-3.5 w-3.5 animate-spin" /> Conferindo…</span>,
-    free: <span className="inline-flex items-center gap-1.5 font-semibold text-win"><Check weight="bold" className="h-3.5 w-3.5" /> Disponível</span>,
-    taken: <span className="inline-flex items-center gap-1.5 font-semibold text-loss"><X weight="bold" className="h-3.5 w-3.5" /> Já está em uso</span>,
+    checking: <span className="inline-flex items-center gap-2"><CircleNotch className="h-3.5 w-3.5 animate-spin" /> Conferindo…</span>,
+    free: <span className="inline-flex items-center gap-2 font-semibold text-win"><Check weight="bold" className="h-3.5 w-3.5" /> Disponível</span>,
+    taken: <span className="inline-flex items-center gap-2 font-semibold text-loss"><X weight="bold" className="h-3.5 w-3.5" /> Já está em uso</span>,
     invalid: <>Só letras, números ou _, de 3 a 20 caracteres.</>,
   } satisfies Record<Avail, ReactNode>)[avail];
 
@@ -191,7 +191,7 @@ export default function Login() {
                 options={[{ value: 'entrar', label: 'Entrar' }, { value: 'criar', label: 'Criar conta' }]} />
 
               <AnimatePresence mode="wait" initial={false}>
-                <motion.h1 key={mode} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}
+                <motion.h1 key={mode} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                   className="display mt-8 text-[32px] text-fg">
                   {mode === 'criar' ? 'Crie seu login' : 'Bem-vindo de volta'}
                 </motion.h1>
@@ -202,7 +202,7 @@ export default function Login() {
                 {error && (
                   <motion.p role="alert" initial={{ opacity: 0, height: 0, marginTop: 0 }} animate={{ opacity: 1, height: 'auto', marginTop: 24 }} exit={{ opacity: 0, height: 0, marginTop: 0 }}
                     className="flex items-start gap-2 overflow-hidden rounded-md bg-loss-soft px-4 py-3 text-[14px] text-loss">
-                    <WarningCircle weight="bold" className="mt-0.5 h-4 w-4 shrink-0" />{error}
+                    <WarningCircle weight="bold" className="mt-1 h-4 w-4 shrink-0" />{error}
                   </motion.p>
                 )}
               </AnimatePresence>
@@ -216,7 +216,7 @@ export default function Login() {
                   right={<ShowPassword show={show} onToggle={() => setShow(v => !v)} />}
                   aside={mode === 'criar' && password && <span className="text-[13px] font-semibold text-fg-2">{level ? `Senha ${STRENGTH[level][0]}` : `mín. ${MIN_PASSWORD} caracteres`}</span>}
                   hint={mode === 'criar' && (
-                    <span aria-hidden className="mt-1 grid grid-cols-3 gap-1.5">
+                    <span aria-hidden className="mt-1 grid grid-cols-3 gap-2">
                       {[1, 2, 3].map(n => <span key={n} className={clsx('h-1.5 rounded-full transition-colors duration-300', level >= n ? STRENGTH[level][1] : 'bg-surface-3')} />)}
                     </span>
                   )} />

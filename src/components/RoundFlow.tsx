@@ -35,9 +35,9 @@ export function RoundFlow({ d }: { d: FightDetail }) {
   return (
     <Panel title="Domínio por round" eyebrow="Golpes, quedas, knockdowns e controle · UFC Fight Tracker" bodyClass="px-6 pb-6">
       <div className="mt-2 flex flex-wrap items-center gap-4 text-[13px] text-fg-2">
-        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-md" style={{ background: CORNER.a }} />{a} (para cima)</span>
-        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-md" style={{ background: CORNER.b }} />{b} (para baixo)</span>
-        <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 rounded bg-fg" />Vantagem acumulada</span>
+        <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-md" style={{ background: CORNER.a }} />{a} (para cima)</span>
+        <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-md" style={{ background: CORNER.b }} />{b} (para baixo)</span>
+        <span className="flex items-center gap-2"><span className="h-0.5 w-4 rounded bg-fg" />Vantagem acumulada</span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 w-full" role="img"
         aria-label={`Domínio por round: ${rounds.map((r, i) => `round ${r.n} ${edges[i] > 0 ? a : edges[i] < 0 ? b : 'equilibrado'}`).join(', ')}`}>
