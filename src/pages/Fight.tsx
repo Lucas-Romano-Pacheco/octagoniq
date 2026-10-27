@@ -1,7 +1,10 @@
-import { lazy, Suspense, useId, useState } from 'react';
+import { useId, useState } from 'react';
+import { StrikeMap } from '@/components/StrikeMap';
+import { FlagOctagon } from '@/components/FaceOff';
+import { MirrorStats, NickBackdrop, RecordMark, SlantResult, WinVs } from '@/components/FightExtras';
 import { Link, useParams } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { ArrowDown, ArrowLeft, ArrowUp, ArrowsLeftRight, Lightning, Trophy } from '@phosphor-icons/react';
+import { ArrowDown, ArrowLeft, ArrowUp, ArrowsLeftRight, Lightning } from '@/components/icons';
 import type { FightDetail, FightSideStats, FighterRef, MethodOdds } from '@shared/types';
 import { fmtMoneyline, impliedProb } from '@shared/format';
 import { fighterHref, useFight } from '@/lib/api';
@@ -22,7 +25,7 @@ const of = (landed: number, attempted: number) => (attempted ? `de ${attempted} 
 
 /* ---------- Topo: recortes, nomes e resultado ---------- */
 
-function Corner({ f, side, won, odds }: { f: FighterRef; side: 'a' | 'b'; won: boolean; odds?: React.ReactNode }) {
+function Corner({ f, side, won, lost, odds }: { f: FighterRef; side: 'a' | 'b'; won: boolean; lost: boolean; odds?: React.ReactNode }) {
   const [failed, setFailed] = useState(false);
   const right = side === 'b';
   const reduce = useReducedMotion();
@@ -31,21 +34,24 @@ function Corner({ f, side, won, odds }: { f: FighterRef; side: 'a' | 'b'; won: b
       className={`flex min-w-0 flex-col ${right ? 'items-end text-right' : 'items-start'}`}>
       <Link to={fighterHref(f)} className="group min-w-0">
         <div className="h-1 w-10 rounded-full" style={{ background: CORNER[side], marginLeft: right ? 'auto' : 0 }} />
-        <div className="display mt-3 break-words text-[24px] text-fg group-hover:text-brand sm:text-[44px]">{f.name}</div>
+        {/* nome numa cápsula; a do vencedor tem borda dourada */}
+        <div className={`display mt-3 break-words text-[24px] text-fg group-hover:text-brand sm:text-[44px] ${won ? `w-fit rounded-[24px] px-3 py-1 ring-2 ring-gold/70 sm:px-4 ${right ? '-mr-3 ml-auto sm:-mr-4' : '-ml-3 sm:-ml-4'}` : ''}`}>{f.name}</div>
       </Link>
       {/* no celular o nome do país sai: bandeira + cartel cabem em meia tela */}
       <div className={`mt-2 flex items-center gap-2 text-[14px] text-fg-2 ${right ? 'flex-row-reverse' : ''}`}>
-        <Flag code={f.countryCode} src={f.flag} title={f.country} size={20} /><span className="hidden sm:inline">{f.country}</span><span className="hidden text-fg-3 sm:inline">·</span><span className="num whitespace-nowrap font-semibold">{f.record}</span>
+        <Flag code={f.countryCode} src={f.flag} title={f.country} size={20} /><span className="hidden sm:inline">{f.country}</span><span className="hidden text-fg-3 sm:inline">·</span><RecordMark record={f.record} won={won} lost={lost} />
       </div>
       {odds && <div className="mt-3">{odds}</div>}
       <div className="relative mt-4 h-[230px] w-full sm:h-[420px]" style={{ viewTransitionName: `fight-${side}` }}>
-        {won && <span className={`absolute top-2 z-10 ${right ? 'right-0' : 'left-0'}`}><Tag tone="dark" className="h-7 px-3 text-[13px] sm:h-8 sm:px-4 sm:text-[14px]"><Trophy weight="fill" className="h-4 w-4 text-gold" /> Vitória</Tag></span>}
+        <NickBackdrop f={f} right={right} won={won} />
+        {f.bodyImage && !failed && <FlagOctagon code={f.countryCode} className={`top-[4%] w-[110%] max-w-[420px] ${right ? 'right-[-6%]' : 'left-[-6%]'}`} />}
         {f.bodyImage && !failed ? (
           <img src={proxy(f.bodyImage, 640)} alt={f.name} fetchPriority="high" decoding="async" onError={() => setFailed(true)}
             className={`absolute bottom-0 h-full w-auto object-contain drop-shadow-[0_30px_40px_var(--cutout-shadow)] [mask-image:linear-gradient(to_bottom,black_82%,transparent)] ${right ? 'right-0 -scale-x-100' : 'left-0'}`} />
         ) : (
           <div className={`absolute bottom-6 ${right ? 'right-0 sm:right-4' : 'left-0 sm:left-4'}`}><Avatar src={f.headshot} name={f.name} size={120} /></div>
         )}
+        {(won || lost) && <SlantResult won={won} right={right} />}
       </div>
     </motion.div>
   );
@@ -123,10 +129,8 @@ const ZONES = {
 };
 // centro vertical de cada região, em % da altura (silhueta 2D e boneco 3D, que tem outro enquadramento)
 const ROW_Y = { head: 8, body: 36, legs: 78 };
-const BODY3D_ROWS = { head: 10.8, body: 34, legs: 73.7 };
 
 // boneco 3D: three.js só é baixado quando a aba "Por alvo" abre; sem WebGL, fica a silhueta 2D
-const Body3D = lazy(() => import('@/components/Body3D'));
 
 function Figure({ color, op }: { color: string; op: { head: number; body: number; legs: number } }) {
   const id = useId().replace(/:/g, '');
@@ -150,13 +154,8 @@ function Silhouette({ s, side }: { s: FightSideStats; side: 'a' | 'b' }) {
   const color = side === 'a' ? 'var(--color-red)' : 'var(--color-blue)';
   const total = s.head[0] + s.body[0] + s.leg[0];
   const op = (n: number) => 0.24 + 0.76 * (total ? n / total : 0);
-  // 3D: a região mais atingida fica com a cor plena e as outras proporcionais a ela (contraste legível no volume)
-  const top = Math.max(s.head[0], s.body[0], s.leg[0]) || 1;
-  const rel = (n: number) => 0.08 + 0.92 * (n / top) ** 1.5; // curva: diferenças médias ficam visíveis
-  const intensity = { head: rel(s.head[0]), body: rel(s.body[0]), legs: rel(s.leg[0]) };
   const flat = { head: op(s.head[0]), body: op(s.body[0]), legs: op(s.leg[0]) };
-  const [use3d, setUse3d] = useState(true);
-  const Y = use3d ? BODY3D_ROWS : ROW_Y;
+  const Y = ROW_Y;
   const figure2d = <Figure color={color} op={flat} />;
   const rows = [
     { k: 'Cabeça', y: Y.head, v: s.head },
@@ -168,9 +167,7 @@ function Silhouette({ s, side }: { s: FightSideStats; side: 'a' | 'b' }) {
       <div className="relative mx-auto h-[320px] w-full max-w-[360px]">
         {/* linhas de referência atravessando cada região, como no UFC */}
         {rows.map(r => <div key={r.k} className="pointer-events-none absolute inset-x-0 border-t border-line/80" style={{ top: `calc(${r.y}% + 16px)` }} />)}
-        {use3d
-          ? <Suspense fallback={figure2d}><Body3D side={side} intensity={intensity} onFail={() => setUse3d(false)} /></Suspense>
-          : figure2d}
+        {figure2d}
         {rows.map(r => (
           <div key={r.k} className="pointer-events-none absolute inset-x-0 flex items-center justify-between" style={{ top: `${r.y}%`, transform: 'translateY(-50%)' }}>
             <span className="w-[86px] font-display text-[13px] font-bold text-fg">{r.k}</span>
@@ -181,7 +178,6 @@ function Silhouette({ s, side }: { s: FightSideStats; side: 'a' | 'b' }) {
           </div>
         ))}
       </div>
-      {use3d && <p className="mt-2 text-center text-[13px] text-fg-3">Arraste para girar</p>}
     </div>
   );
 }
@@ -206,7 +202,7 @@ function MethodTable({ red, blue, names }: { red?: MethodOdds; blue?: MethodOdds
   if (!red && !blue) return null;
   const rows: [string, keyof MethodOdds][] = [['Por KO/TKO', 'ko'], ['Por finalização', 'sub'], ['Por decisão', 'dec']];
   const cell = (v?: number) => (
-    <td className="text-center"><span className="num font-semibold text-fg">{fmtMoneyline(v)}</span>{v !== undefined && <span className="block text-[13px] text-fg-3 sm:ml-2 sm:inline">{Math.round((impliedProb(v) ?? 0) * 100)}%</span>}</td>
+    <td className="text-center"><span className="num odds font-semibold text-fg">{fmtMoneyline(v)}</span>{v !== undefined && <span className="block text-[13px] text-fg-3 sm:ml-2 sm:inline">{Math.round((impliedProb(v) ?? 0) * 100)}%</span>}</td>
   );
   return (
     <table className="table mt-2 w-full table-fixed sm:table-auto">
@@ -225,7 +221,7 @@ function LineMove({ open, close, right }: { open?: number; close?: number; right
   return (
     <div className={`mt-2 text-[13px] ${right ? 'text-right' : ''}`}>
       <div className="text-[12px] text-fg-3">Abertura → fechamento</div>
-      <div className="num whitespace-nowrap font-semibold text-fg-2">{fmtMoneyline(open)} → {fmtMoneyline(close)}</div>
+      <div className="num odds whitespace-nowrap font-semibold text-fg-2">{fmtMoneyline(open)} → {fmtMoneyline(close)}</div>
       {delta !== 0 && (
         <Tip content={`Chance implícita foi de ${Math.round(p0 * 100)}% para ${Math.round(p1 * 100)}% entre a abertura e o fechamento (com a margem da casa).`}>
           <span tabIndex={0} className={`inline-flex cursor-help items-center gap-1 font-semibold ${delta > 0 ? 'text-win' : 'text-loss'}`}>
@@ -347,7 +343,7 @@ function OddsPanel({ d }: { d: FightDetail }) {
 export default function Fight() {
   const { id, fight } = useParams();
   const { data: d, isPending: isLoading, isError, error, refetch } = useFight(id, fight);
-  const [tab, setTab] = useState<'geral' | 'alvo' | 'posicao'>('geral');
+  const [tab, setTab] = useState<'geral' | 'barras' | 'alvo' | 'posicao'>('geral');
   usePageTitle(d && `${d.red.name} × ${d.blue.name}`);
 
   if (isLoading) return <FightSkeleton />;
@@ -382,20 +378,21 @@ export default function Fight() {
             return <line key={n} x1="50" y1="50" x2={50 + Math.cos(a) * r} y2={50 + Math.sin(a) * r} stroke="currentColor" strokeWidth="0.25" vectorEffect="non-scaling-stroke" />;
           })}
         </svg>
-        <Corner f={d.red} side="a" won={f.result?.winnerId === d.red.espnId} odds={v && <OddsChip {...v.red} />} />
+        <Corner f={d.red} side="a" won={f.result?.winnerId === d.red.espnId} lost={!!f.result?.winnerId && f.result.winnerId !== d.red.espnId} odds={v && <OddsChip {...v.red} />} />
         {/* centro: no celular vai para baixo das fotos, em largura total */}
         <div className="relative order-last col-span-2 sm:order-none sm:col-span-1 sm:w-[380px] sm:pt-24">
+          <WinVs d={d} />
           <ResultBox d={d} />
           {d.red.stats && d.blue.stats && <KeyNumbers a={d.red.stats} b={d.blue.stats} />}
         </div>
-        <Corner f={d.blue} side="b" won={f.result?.winnerId === d.blue.espnId} odds={v && <OddsChip {...v.blue} />} />
+        <Corner f={d.blue} side="b" won={f.result?.winnerId === d.blue.espnId} lost={!!f.result?.winnerId && f.result.winnerId !== d.blue.espnId} odds={v && <OddsChip {...v.blue} />} />
       </section>
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <Reveal>
           {a && b ? (
             <Panel title="Estatísticas da luta" action={
-              <Segmented value={tab} onChange={setTab} options={[{ value: 'geral', label: 'Visão geral' }, { value: 'alvo', label: 'Por alvo' }, { value: 'posicao', label: 'Por posição' }]} />}>
+              <Segmented value={tab} onChange={setTab} className="no-scrollbar max-w-full overflow-x-auto" options={[{ value: 'geral', label: 'Visão geral' }, { value: 'barras', label: 'Em barras' }, { value: 'alvo', label: 'Por alvo' }, { value: 'posicao', label: 'Por posição' }]} />}>
               <AnimatePresence mode="wait" initial={false}>
                 <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
                 {tab === 'geral' && (
@@ -412,11 +409,23 @@ export default function Fight() {
                   </div>
                 )}
                 {tab === 'alvo' && (
-                  <div className="grid gap-10 px-6 pb-6 pt-4 sm:grid-cols-2">
-                    <Silhouette s={a} side="a" />
-                    <Silhouette s={b} side="b" />
-                  </div>
+                  d.red.bodyImage && d.blue.bodyImage ? (
+                    // estilo ESPN: cada um na própria foto, pintado onde foi atingido (na cor de quem bateu)
+                    <div className="px-6 pb-6 pt-4">
+                      <p className="mb-4 text-[14px] text-fg-2">Onde cada um foi atingido: quanto mais forte a cor, mais golpes naquela região.</p>
+                      <div className="grid gap-10 sm:grid-cols-2">
+                        <StrikeMap f={d.red} hits={b} by={d.blue} color="var(--color-blue)" />
+                        <StrikeMap f={d.blue} hits={a} by={d.red} color="var(--color-red)" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid gap-10 px-6 pb-6 pt-4 sm:grid-cols-2">
+                      <Silhouette s={a} side="a" />
+                      <Silhouette s={b} side="b" />
+                    </div>
+                  )
                 )}
+                {tab === 'barras' && <MirrorStats a={a} b={b} />}
                 {tab === 'posicao' && <PositionBars a={a} b={b} names={[lastName(d.red.name), lastName(d.blue.name)]} />}
                 </motion.div>
               </AnimatePresence>

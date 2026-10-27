@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { fairProbs, fmtMoneyline, impliedProb, oddsTier, slugify, fold } from './format.ts';
+import { fairProbs, fmtMoneyline, impliedProb, oddsTier, slugify, fold, inLiveWindow } from './format.ts';
 
 describe('odds', () => {
   it('converte linha americana em probabilidade implícita', () => {
@@ -32,5 +32,19 @@ describe('nomes', () => {
   it('ignora acentos e caixa', () => {
     expect(fold('Jéssica Andrade')).toBe('jessica andrade');
     expect(slugify('Alexandre Pantoja')).toBe('alexandre-pantoja');
+  });
+});
+
+describe('inLiveWindow', () => {
+  const start = '2026-10-24T18:00:00Z', t = Date.parse(start), H = 3600_000;
+  it('abre 3 h antes do início e fecha 14 h depois', () => {
+    expect(inLiveWindow(start, t - 3 * H - 1)).toBe(false);
+    expect(inLiveWindow(start, t - 3 * H)).toBe(true);
+    expect(inLiveWindow(start, t + 14 * H)).toBe(true);
+    expect(inLiveWindow(start, t + 14 * H + 1)).toBe(false);
+  });
+  it('data ausente ou inválida nunca é ao vivo', () => {
+    expect(inLiveWindow(undefined, t)).toBe(false);
+    expect(inLiveWindow('não é data', t)).toBe(false);
   });
 });

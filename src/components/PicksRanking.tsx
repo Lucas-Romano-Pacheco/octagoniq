@@ -1,16 +1,17 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { clsx } from 'clsx';
-import { motion } from 'motion/react';
+import { AnimatePresence, motion } from 'motion/react';
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { Check, Crown, LockSimple, Star, Trophy, Users, X } from '@phosphor-icons/react';
+import { CaretDown, Check, Crown, LockSimple, Star, Trophy, Users, X } from '@/components/icons';
 import type { EventDetail, Fight } from '@shared/types';
 import { bonusQuery, eventQuery, useBonuses } from '@/lib/api';
 import { fotnAwarded } from '@/lib/fights';
 import { lastName, splitEventName, time } from '@/lib/format';
-import { cardStart, FOTN, fotnLocked, isLocked, METHODS, POINTS } from '@/lib/picks';
+import { cardStart, FOTN, fotnLocked, isLocked, methodKey, METHODS, POINTS, type Scored } from '@/lib/picks';
 import { leaderboard, scoreRow, type EventInfo, type PickRow, type RankRow } from '@/lib/picks-ranking';
 import { getSupabase, supabaseEnabled, useAuth } from '@/lib/supabase';
-import { CORNER, CORNER_INK } from './Duel';
+import { CORNER, CORNER_FILL, CORNER_INK } from './Duel';
+import { METHOD_COLOR, METHOD_ICON } from './pick-style';
 import { Avatar, CountUp, Empty, Panel, Segmented, Skeleton, Tag, Tip } from './kit';
 
 /* Aba "Ranking" dos palpites: pódio e classificação (do evento ou geral) e o quadro de quem está palpitando.
@@ -176,9 +177,99 @@ function Voter({ id, name, me, tip, state }: { id: string; name: string; me?: bo
   );
 }
 
+/** Selo de acerto/erro no canto de cada parte do palpite (só depois de a luta acabar). */
+const Mark = ({ hit }: { hit: boolean }) => (
+  <motion.span initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 500, damping: 18, delay: 0.25 }}
+    className={clsx('absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full text-white ring-2 ring-surface', hit ? 'bg-win' : 'bg-loss')}>
+    {hit ? <Check weight="bold" className="h-2.5 w-2.5" /> : <X weight="bold" className="h-2.5 w-2.5" />}
+  </motion.span>
+);
+
+/** Palpite de uma pessoa em miniatura, no mesmo desenho da tela de palpites: os dois lutadores lado a lado (o escolhido
+    pintado com a cor do canto e um pouco maior), o ícone do método e o round. Depois da luta, cada parte ganha um selo. */
+function PickLine({ row, f, name, me, i }: { row: PickRow; f: Fight; name: string; me?: boolean; i: number }) {
+  const sc: Scored | null = scoreRow(row, f);
+  const done = sc?.state === 'done', winnerHit = !!sc?.winner;
+  const finish = (() => { const k = f.result ? methodKey(f.result.method) : undefined; return k === 'ko' || k === 'sub'; })();
+  const got = (label: string) => !!sc?.parts.some(p => p.label === label);
+  const pickSide: 'a' | 'b' = row.winner === f.red.espnId ? 'a' : 'b';
+  const Icon = row.method ? METHOD_ICON[row.method] : null;
+  const fighter = (s: 'a' | 'b') => {
+    const fr = s === 'a' ? f.red : f.blue, on = s === pickSide;
+    return (
+      <motion.span transition={{ type: 'spring', stiffness: 420, damping: 26 }}
+        className={clsx('relative flex min-w-0 items-center gap-1.5 rounded-lg px-2 py-1', on ? 'flex-[1.4] text-white' : 'flex-1 bg-surface-2/70 text-fg-3')}
+        style={on ? { background: `linear-gradient(${s === 'a' ? '135deg' : '225deg'}, ${CORNER_FILL[s]}, color-mix(in oklab, ${CORNER_FILL[s]} 60%, #0d0f22))` } : undefined}>
+        <Avatar src={fr.headshot} name={fr.name} size={22} ring={on ? '#fff' : undefined} className={clsx(!on && 'opacity-60 grayscale')} />
+        <span className="truncate text-[13px] font-semibold">{lastName(fr.name)}</span>
+        {on && done && <Mark hit={winnerHit} />}
+      </motion.span>
+    );
+  };
+  return (
+    <motion.li initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25, delay: Math.min(i, 8) * 0.04, ease: [0.22, 1, 0.36, 1] }}
+      className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2">
+      <span className="flex w-36 min-w-0 items-center gap-2">
+        <Face id={row.user_id} name={name} me={me} size={24} />
+        <b className="truncate text-[13px] font-semibold text-fg">{name}{me && <span className="ml-1 font-normal text-fg-3">(você)</span>}</b>
+      </span>
+      {/* vencedor: os dois cantos, o escolhido pintado */}
+      <span className="flex w-56 min-w-0 gap-1">{fighter('a')}{fighter('b')}</span>
+      {/* método: o ícone com a cor dele */}
+      {Icon && row.method ? (
+        <Tip title={METHOD_LABEL[row.method]} content={done ? (got('Método') ? 'Acertou o método' : 'Errou o método') : 'Método do palpite'}>
+          <span tabIndex={0} className="relative grid h-8 w-8 place-items-center rounded-lg text-white outline-none"
+            style={{ background: METHOD_COLOR[row.method].c, opacity: done && winnerHit && !got('Método') ? 0.55 : 1 }}>
+            <Icon weight="fill" className="h-4 w-4" />
+            {done && winnerHit && <Mark hit={got('Método')} />}
+          </span>
+        </Tip>
+      ) : <span className="grid h-8 w-8 place-items-center rounded-lg bg-surface-2/70 text-[12px] text-fg-3" title="Só o vencedor">—</span>}
+      {/* round: no mesmo padrão do método (quadrado na cor do método). Decisão = luta completa: mostra o último round */}
+      {row.method && (row.round || row.method === 'dec') ? (() => {
+        const n = row.round ?? f.rounds, isDec = row.method === 'dec';
+        const judged = done && winnerHit && finish && got('Método') && !isDec;
+        return (
+          <Tip title={isDec ? `Até o fim: ${f.rounds} rounds` : `Round ${n}`} content={judged ? (got('Round') ? 'Acertou o round' : 'Errou o round') : isDec ? 'Palpite de decisão: a luta vai até o último round' : 'Round do palpite'}>
+            <span tabIndex={0} className="num relative grid h-8 w-8 place-items-center rounded-lg font-display text-[13px] font-bold text-white outline-none"
+              style={{ background: METHOD_COLOR[row.method].c, opacity: judged && !got('Round') ? 0.55 : 1 }}>
+              R{n}
+              {judged && <Mark hit={got('Round')} />}
+            </span>
+          </Tip>
+        );
+      })() : <span className="grid h-8 w-8 place-items-center rounded-lg bg-surface-2/70 text-[12px] text-fg-3" title="Sem round">—</span>}
+      <span className="num ml-auto text-[13px] font-semibold">
+        {!sc ? <span className="text-fg-3">fora do prazo</span>
+          : sc.state === 'void' ? <span className="text-fg-3">anulada</span>
+          : !done ? <span className="text-fg-3">aguardando</span>
+          : winnerHit ? <span className="text-win">+{sc.points}{sc.perfect ? ' · perfeito' : ''}</span>
+          : <span className="text-loss">0</span>}
+      </span>
+    </motion.li>
+  );
+}
+
+/** Todos os palpites de uma luta, em linhas compactas, com o resultado oficial no topo. */
+function PickDetails({ f, revealed, names, me }: { f: Fight; revealed: PickRow[]; names: Map<string, string>; me?: string }) {
+  const r = f.result;
+  const winnerSide = r?.winnerId === f.red.espnId ? f.red : r?.winnerId === f.blue.espnId ? f.blue : null;
+  // quem acertou primeiro, depois por pontos
+  const rows = [...revealed].sort((x, y) => (scoreRow(y, f)?.points ?? -1) - (scoreRow(x, f)?.points ?? -1));
+  return (
+    <div className="mt-3 rounded-lg bg-surface-2/50 px-3 py-2 sm:px-4">
+      <p className="py-1 text-[13px] text-fg-3">
+        {r ? <>Resultado: <b className="font-semibold text-fg">{winnerSide ? `${lastName(winnerSide.name)} venceu` : 'sem vencedor'}</b> · {r.method}{r.round && !/decis/i.test(r.method) ? `, R${r.round} ${r.clock ?? ''}` : ''}</>
+          : 'Os pontos saem quando a luta terminar.'}
+      </p>
+      <ul className="divide-y divide-line/60">{rows.map((row, i) => <PickLine key={row.user_id} i={i} row={row} f={f} name={names.get(row.user_id) ?? '…'} me={row.user_id === me} />)}</ul>
+    </div>
+  );
+}
+
 /** Uma luta no quadro: antes de começar, quem palpitou (sem revelar); depois, de que lado cada um ficou. */
-function FightBoard({ f, voters, revealed, names, me, fotnVotes, awarded, i }: {
-  f: Fight; voters: string[]; revealed: PickRow[]; names: Map<string, string>; me?: string; fotnVotes: string[]; awarded: boolean; i: number;
+function FightBoard({ f, voters, revealed, names, me, fotnVotes, awarded, i, open, onToggle }: {
+  f: Fight; voters: string[]; revealed: PickRow[]; names: Map<string, string>; me?: string; fotnVotes: string[]; awarded: boolean; i: number; open: boolean; onToggle: () => void;
 }) {
   const locked = isLocked(f), r = f.result;
   const nameOf = (id: string) => names.get(id) ?? '…';
@@ -234,6 +325,18 @@ function FightBoard({ f, voters, revealed, names, me, fotnVotes, awarded, i }: {
             <motion.div style={{ background: CORNER.b }} className={clsx('flex-1', won === 'a' && 'opacity-40')} />
           </div>
           <div className="mt-3 grid grid-cols-2 gap-3">{column('a')}{column('b')}</div>
+          <button type="button" onClick={onToggle} aria-expanded={open} aria-controls={`palpites-${f.id}`}
+            className="mt-3 inline-flex items-center gap-1.5 rounded-md py-1 text-[14px] font-semibold text-fg-2 hover:text-fg">
+            <CaretDown weight="bold" className={clsx('h-4 w-4 transition-transform duration-200', open && 'rotate-180')} />
+            {open ? 'Esconder palpites' : `Ver os ${total} ${total === 1 ? 'palpite' : 'palpites'} e o resultado de cada um`}
+          </button>
+          <AnimatePresence initial={false}>
+            {open && (
+              <motion.div id={`palpites-${f.id}`} initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}>
+                <PickDetails f={f} revealed={revealed} names={names} me={me} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       ) : <p className="mt-3 text-[14px] text-fg-3">Ninguém palpitou nesta luta.</p>}
 
@@ -290,6 +393,11 @@ export function PicksRanking({ event }: { event: EventDetail }) {
   const revealed = new Map<string, PickRow[]>();
   for (const r of eventRows.data ?? []) revealed.set(r.fight_id, [...(revealed.get(r.fight_id) ?? []), r]);
   const fotnOpen = !fotnLocked(event.fights);
+  // lutas com o detalhe dos palpites aberto ("Expandir todas" abre as que já têm palpites revelados)
+  const [openIds, setOpenIds] = useState<Set<string>>(new Set());
+  const expandable = ordered.filter(f => isLocked(f) && (revealed.get(f.id)?.length ?? 0) > 0).map(f => f.id);
+  const allOpen = expandable.length > 0 && expandable.every(id => openIds.has(id));
+  const toggle = (id: string) => setOpenIds(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const awarded = events.get(event.id)?.awarded ?? [];
   const names = useNames([...board.map(b => b.userId), ...people]);
   const nameOf = (id: string) => names.data?.get(id) ?? '…';
@@ -313,7 +421,11 @@ export function PicksRanking({ event }: { event: EventDetail }) {
         </Panel>
       </div>
 
-      <Panel plain title="Quem está palpitando" action={<span className="text-[13px] text-fg-3">{title || series}</span>} bodyClass="space-y-4">
+      <Panel plain title="Quem está palpitando" bodyClass="space-y-4" action={
+        <span className="flex items-center gap-4 text-[13px] text-fg-3">
+          {title || series}
+          {expandable.length > 0 && <button type="button" onClick={() => setOpenIds(allOpen ? new Set() : new Set(expandable))} className="font-semibold text-fg-2 hover:text-fg">{allOpen ? 'Recolher todas' : 'Expandir todas'}</button>}
+        </span>}>
         {/* participantes: rosto, apelido e quantas lutas do card já palpitou */}
         {people.length > 0 && (
           <div className="flex flex-wrap items-center gap-4 rounded-xl bg-cream px-4 py-4 ring-1 ring-line sm:px-5">
@@ -336,7 +448,7 @@ export function PicksRanking({ event }: { event: EventDetail }) {
         {part.isPending && eventRows.isPending ? <Skeleton label="Carregando a participação" className="h-48" />
           : !people.length ? <Empty><Users weight="duotone" className="mx-auto mb-2 h-10 w-10" />Ninguém palpitou neste evento ainda. Seja o primeiro na aba Meus palpites.</Empty>
           : ordered.map((f, i) => (
-              <FightBoard key={f.id} i={i} f={f} voters={voters.get(f.id) ?? []} revealed={revealed.get(f.id) ?? []} names={names.data ?? new Map()} me={me}
+              <FightBoard key={f.id} i={i} f={f} open={openIds.has(f.id)} onToggle={() => toggle(f.id)} voters={voters.get(f.id) ?? []} revealed={revealed.get(f.id) ?? []} names={names.data ?? new Map()} me={me}
                 fotnVotes={fotnOpen ? [] : (eventRows.data ?? []).filter(r => r.fight_id === FOTN && r.winner === f.id).map(r => r.user_id)} awarded={awarded.includes(f.id)} />
             ))}
       </Panel>

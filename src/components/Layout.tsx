@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 're
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { clsx } from 'clsx';
 import { motion, useReducedMotion } from 'motion/react';
-import { ArrowsLeftRight, Crown, MagnifyingGlass, MapPin, Moon, Sun } from '@phosphor-icons/react';
+import { ArrowsLeftRight, Crown, MagnifyingGlass, MapPin, Moon, Sun } from '@/components/icons';
 import { useQueryClient } from '@tanstack/react-query';
 import { prefetchFromHref, useUpcoming, type UpcomingEvent } from '@/lib/api';
 import { countdown, dayMonth, splitEventName, time, weekday } from '@/lib/format';
@@ -77,7 +77,7 @@ function NavCrest() {
 
 function Logo({ light }: { light?: boolean }) {
   return (
-    <Link to="/" className="flex items-center gap-2" aria-label="OctagonIQ, início">
+    <Link to="/" viewTransition className="flex items-center gap-2" aria-label="OctagonIQ, início">
       {/* assinatura: "Octagon" no texto e "IQ" num bloco vermelho com cantos chanfrados (os mesmos 45° do octógono) */}
       <OctagonMark className="h-7 w-7" />
       <span className={clsx('flex items-center font-display text-[24px] font-extrabold uppercase leading-none tracking-[0.01em]', light ? 'text-white' : 'text-fg')}>
@@ -210,14 +210,14 @@ export function Layout() {
   return (
     <div className="flex min-h-dvh flex-col">
       <EventTicker />
-      <header className={clsx('sticky top-0 z-40 transition duration-300', scrolled ? 'bg-bg/85 shadow-[0_1px_0_var(--color-line)] backdrop-blur-xl' : 'bg-bg')}>
+      <header className={clsx('site-header sticky top-0 z-40 transition duration-300', scrolled ? 'bg-bg/85 shadow-[0_1px_0_var(--color-line)] backdrop-blur-xl' : 'bg-bg')}>
         <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-6 px-5 sm:px-8 xl:h-[76px] xl:flex-nowrap">
           <div className="flex h-16 items-center xl:h-auto"><Logo /></div>
           <nav aria-label="Principal" className="no-scrollbar relative order-last -mx-2 flex h-12 w-[calc(100%+1rem)] items-end gap-1 overflow-x-auto xl:order-none xl:mx-auto xl:h-[52px] xl:w-auto">
             {/* linha de base onde a gota escorre (no celular o menu rola de lado e a linha do cabeçalho já faz esse papel) */}
             <span aria-hidden className="absolute inset-x-2 bottom-0 hidden h-px bg-line xl:block" />
             {NAV.map(n => (
-              <NavLink key={n.to} to={n.to} end={n.end}
+              <NavLink key={n.to} to={n.to} end={n.end} viewTransition
                 className={({ isActive }) => clsx('relative whitespace-nowrap px-4 pb-4 pt-2 font-display text-[15px] font-semibold transition-colors duration-300',
                   isActive ? 'text-fg delay-200' : 'text-fg-3 hover:text-fg')}>
                 {n.label}
@@ -259,7 +259,7 @@ export function Layout() {
             <div>
               <p className="max-w-[60ch]">
                 <span className="font-semibold text-white">Dados:</span> UFC.com (rankings e estatísticas oficiais), ESPN (eventos, resultados e histórico),
-                UFC Fight Tracker (juízes e bônus) e BestFightOdds (odds antigas). Horários de Brasília; ao vivo, atualiza a cada 20 segundos.
+                UFC Fight Tracker (juízes e bônus) e BestFightOdds (odds antigas). Horários de Brasília; ao vivo, atualiza a cada 10 segundos.
               </p>
               <FreshnessNote />
             </div>

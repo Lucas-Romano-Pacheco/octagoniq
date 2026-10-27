@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { Check, CircleNotch, SignOut, Target } from '@phosphor-icons/react';
+import { Check, CircleNotch, SignOut, Target } from '@/components/icons';
 import { authError, MIN_PASSWORD, useAuth } from '@/lib/supabase';
 import { usePicks } from '@/lib/picks';
 import { fullDate } from '@/lib/format';

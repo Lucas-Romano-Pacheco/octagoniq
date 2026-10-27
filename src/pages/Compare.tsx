@@ -1,14 +1,15 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { clsx } from 'clsx';
-import { ArrowsLeftRight, Check, Crown, LinkSimple } from '@phosphor-icons/react';
+import { ArrowsLeftRight, Check, Crown, LinkSimple } from '@/components/icons';
 import type { FighterProfile, HistoryFight } from '@shared/types';
 import { fightHref, fighterHref, useFighter, useRankings, useRankingsMeta, useUpcoming } from '@/lib/api';
 import { dayMonth, fullDate, lastName, nf, recordStr, splitEventName } from '@/lib/format';
 import { FighterPicker } from '@/components/FighterPicker';
 import { CORNER as COLOR, DuelHead, DuelRow, better as cmp, type Side } from '@/components/Duel';
-import { Avatar, CountUp, ErrorState, Flag, HistoryBadge, MethodTag, OutcomeBadge, PageHeader, Panel, RankBadge, Skeleton, Tip, usePageTitle } from '@/components/kit';
+import { Avatar, CountUp, Spotlight, ErrorState, Flag, HistoryBadge, MethodTag, OutcomeBadge, PageHeader, Panel, RankBadge, Skeleton, Tip, usePageTitle } from '@/components/kit';
 import { StyleTags } from '@/components/StyleTags';
+import { withHistoryWins } from '@/lib/style';
 import { strikeDiff } from '@/lib/style';
 import { AttrRadar, hasRadar, RADAR_NOTE } from '@/components/Radar';
 
@@ -28,7 +29,7 @@ function Card({ p, side }: { p: FighterProfile; side: Side }) {
           <Flag code={b.countryCode} src={b.flag} title={b.country} size={18} /><span>{b.country}</span>
           <span className="num font-mono">{recordStr(b.record)}</span>
         </div>
-        <StyleTags stats={p.stats} className="mt-2 hidden sm:flex" align={right ? 'end' : 'start'} />
+        <StyleTags stats={withHistoryWins(p.stats, p.history)} className="mt-2 hidden sm:flex" align={right ? 'end' : 'start'} />
       </div>
     </Link>
   );
@@ -277,11 +278,11 @@ export default function Compare() {
       {a && b ? (
         <>
           <Toolbar onSwap={swap} />
-          <div className="panel flex items-center gap-2 px-4 py-6 sm:gap-6 sm:px-5">
+          <Spotlight duel className="panel flex items-center gap-2 px-4 py-6 sm:gap-6 sm:px-5">
             <Card p={a} side="a" />
             <span className="display shrink-0 text-[18px] text-fg-3 sm:text-[24px]">VS</span>
             <Card p={b} side="b" />
-          </div>
+          </Spotlight>
 
           <div className={clsx('grid items-start gap-6', hasRadar(sa) && hasRadar(sb) && 'lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]')}>
             <EdgeBoard a={a} b={b} />

@@ -2,15 +2,20 @@ import { useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { clsx } from 'clsx';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { ArrowLeft, ArrowSquareOut, ArrowsLeftRight, CaretLeft, CaretRight, Crown, Flag as FlagIcon, Hand, Lightning, Newspaper, Scales, Trophy } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowRight, Target, ArrowSquareOut, ArrowsLeftRight, CaretLeft, CaretRight, Crown, Flag as FlagIcon, Hand, Lightning, Newspaper, Scales, Trophy } from '@/components/icons';
 import type { DivisionAverages, FighterProfile, HistoryFight, OfficialStats } from '@shared/types';
-import { fightHref, fighterHref, useDivisionAvg, useFighter } from '@/lib/api';
+import { fightHref, fighterHref, useDivisionAvg, useEloFighter, useFighter } from '@/lib/api';
 import { fullDate, lastName, mmss, nf, pct, ratio, shortEvent } from '@/lib/format';
 import { EChart } from '@/components/LazyChart';
+import { ChartTable } from '@/components/ChartTable';
 import { SERIES, axisBase, tooltipBase, useInk } from '@/components/chart-theme';
 import { Avatar, Brush, CountUp, Defer, Empty, ErrorState, Flag, FlagBackdrop, HistoryBadge, Meter, MethodTag, OctagonFrame, Panel, RankBadge, RecordCount, Segmented, SortTh, Stat, Tag, Tip, usePageTitle, useSort, VsAvg } from '@/components/kit';
 import { StrikingPanel, StyleTags } from '@/components/StyleTags';
+import { withHistoryWins } from '@/lib/style';
+import { FighterCardButton } from '@/components/FighterCard';
 import { EloPanel } from '@/components/EloPanel';
+import { CareerBoard } from '@/components/CareerBoard';
+import { DataStrip, EloBackdrop, RankBoxes } from '@/components/FighterHeroExtras';
 import { AttrRadar, hasRadar, RADAR_NOTE } from '@/components/Radar';
 import { FighterSkeleton } from '@/components/Skeletons';
 import { proxy } from '@/lib/img';
@@ -36,7 +41,14 @@ function Header({ p }: { p: FighterProfile }) {
   const women = b.division?.includes('(F)');
   const fade = (d: number) => (reduce ? {} : { initial: { opacity: 0, y: 22 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.65, delay: d, ease: [0.22, 1, 0.36, 1] as const } });
   return (
-    <section className="relative grid items-center gap-8 pb-6 pt-2 lg:grid-cols-[1.1fr_1fr]">
+    <section className="relative isolate grid items-center gap-8 overflow-x-clip pb-6 pt-2 lg:grid-cols-[1.1fr_1fr]">
+      {/* fundo de cartaz: o sobrenome gigante, só o contorno, deslizando devagar (duas cópias = laço sem emenda) */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-[38%] -z-10 overflow-hidden">
+        <div className="fighter-name-marquee flex w-max whitespace-nowrap font-display text-[160px] font-black uppercase leading-none text-transparent sm:text-[240px]"
+          style={{ WebkitTextStroke: '1.5px color-mix(in oklab, var(--color-fg) 9%, transparent)' }}>
+          {[0, 1].map(k => <span key={k} className="pr-[0.4em]">{b.name.split(' ').slice(-1)[0]} · {b.name.split(' ').slice(-1)[0]} · </span>)}
+        </div>
+      </div>
       <div className="relative min-w-0">
         <motion.div {...fade(0)} className="flex flex-wrap items-center gap-2">
           <RankBadge rankLabel={b.rankLabel} division={b.division} women={women} />
@@ -44,7 +56,7 @@ function Header({ p }: { p: FighterProfile }) {
           {b.status && <span className="text-[14px] text-fg-3">{b.status}</span>}
         </motion.div>
         <motion.h1 {...fade(0.06)} className="display mt-5 text-[44px] text-fg min-[440px]:text-[64px] sm:text-[72px]">
-          {b.name.split(' ').slice(0, -1).join(' ')}{' '}
+          {b.name.split(' ').length > 1 && <><span className="name-bar">{b.name.split(' ').slice(0, -1).join(' ')}</span>{' '}</>}
           <span className="relative inline-block whitespace-nowrap">{b.name.split(' ').slice(-1)[0]}<Brush className="absolute -bottom-2 left-[6%] h-4 w-[92%]" /></span>
         </motion.h1>
         <motion.div {...fade(0.12)} className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-[16px] text-fg-2">
@@ -53,9 +65,18 @@ function Header({ p }: { p: FighterProfile }) {
           {b.hometown && <span className="text-fg-3">Natural de {b.hometown}</span>}
           {b.team && <span className="text-fg-3">{b.team}</span>}
         </motion.div>
-        <StyleTags stats={p.stats} className="mt-4" />
+        <StyleTags stats={withHistoryWins(p.stats, p.history)} className="mt-4" />
+        <RankBoxes b={b} />
         <motion.div {...fade(0.18)} className="mt-9">
-          <Link to={`/comparar?a=${b.slug}${b.espnId ? `&ae=${b.espnId}` : ''}`} className="btn-primary"><ArrowsLeftRight className="h-4 w-4" /> Comparar com outro lutador</Link>
+          <div className="flex flex-wrap gap-3">
+            <Link to={`/comparar?a=${b.slug}${b.espnId ? `&ae=${b.espnId}` : ''}`} className="btn-primary"><ArrowsLeftRight className="h-4 w-4" /> Comparar com outro lutador</Link>
+            {p.nextFight && p.nextFight.date && Date.parse(p.nextFight.date) > Date.now() && (
+              <Link to={`/palpites/${p.nextFight.eventId}#luta-${p.nextFight.fightId}`} viewTransition className="btn">
+                <Target className="h-4 w-4" /> Palpitar a próxima luta
+              </Link>
+            )}
+            <FighterCardButton p={p} />
+          </div>
           {/* perfis externos numa linha discreta. Tapology e Sherdog não têm API e os termos não permitem reaproveitar os dados:
               o link leva direto à busca de cada site */}
           <div className="mt-6 flex flex-wrap items-center gap-x-1 gap-y-1 text-[14px]">
@@ -77,16 +98,27 @@ function Header({ p }: { p: FighterProfile }) {
         </motion.div>
       </div>
 
-      <div className="relative mx-auto h-[440px] w-full max-w-[520px] sm:h-[520px]">
+      <div className="relative mx-auto h-[440px] w-full max-w-[520px] max-sm:overflow-x-clip sm:h-[520px]">
+        {/* a grade do octógono: dois contornos que se desenham ao abrir e giram devagar em sentidos opostos */}
+        <div aria-hidden className="pointer-events-none absolute bottom-[-4%] left-1/2 aspect-square h-[96%] -translate-x-1/2">
+          {[{ cls: 'octagon-spin', inset: '0%', o: 0.16 }, { cls: 'octagon-spin-rev', inset: '7%', o: 0.1 }].map((r, k) => (
+            <svg key={k} viewBox="0 0 100 100" className={`absolute ${r.cls}`} style={{ inset: r.inset }}>
+              <motion.path d="M29.3 1h41.4L99 29.3v41.4L70.7 99H29.3L1 70.7V29.3z" fill="none" stroke="var(--color-fg)" strokeOpacity={r.o} strokeWidth="0.4"
+                strokeDasharray={k ? '1.2 1.6' : undefined} vectorEffect="non-scaling-stroke"
+                initial={reduce ? false : { pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.4, delay: 0.2 + k * 0.2, ease: [0.65, 0, 0.35, 1] }} />
+            </svg>
+          ))}
+        </div>
         <OctagonFrame className="bottom-0 left-1/2 h-[86%] -translate-x-1/2">
           <div className="absolute inset-0 bg-cream" />
           <FlagBackdrop code={b.countryCode} shape="rect" className="inset-0 opacity-45 dark:opacity-35" />
         </OctagonFrame>
+        <EloBackdrop espnId={b.espnId} />
         {b.bodyImage && !imgFailed ? (
           <motion.img initial={reduce ? false : { opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
             src={proxy(b.bodyImage, 760)} fetchPriority="high" decoding="async" alt={b.name} onError={() => setImgFailed(true)}
             style={{ viewTransitionName: 'fighter-photo' }}
-            className="absolute bottom-0 left-1/2 h-[96%] w-auto -translate-x-1/2 object-contain drop-shadow-[0_30px_40px_var(--cutout-shadow)] [mask-image:linear-gradient(to_bottom,black_82%,transparent)]" />
+            className="pointer-events-none absolute bottom-0 left-1/2 h-[96%] w-auto -translate-x-1/2 object-contain drop-shadow-[0_30px_40px_var(--cutout-shadow)] [mask-image:linear-gradient(to_bottom,black_82%,transparent)]" />
         ) : (
           <div className="absolute inset-0 grid place-items-center" style={{ viewTransitionName: 'fighter-photo' }}><Avatar src={b.headshot} name={b.name} size={220} flag={b.countryCode} /></div>
         )}
@@ -103,6 +135,7 @@ function Header({ p }: { p: FighterProfile }) {
           </motion.div>
         )}
       </div>
+      <div className="lg:col-span-2"><DataStrip b={b} /></div>
     </section>
   );
 }
@@ -454,9 +487,18 @@ function PerFightChart({ history }: { history: HistoryFight[] }) {
         <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-md bg-blue" />Conectados</span>
         <span className="flex items-center gap-2"><span className="h-2 w-2 rounded-md bg-blue/25" />Desferidos</span>
       </div>}>
-      <div className="-mx-2 pt-1">
-        <EChart option={option} height={260} ariaLabel={`Golpes significativos conectados e desferidos nas últimas ${rows.length} lutas`} />
-      </div>
+      <ChartTable className="pt-1" chart={
+        <div className="-mx-2">
+          <EChart option={option} height={260} ariaLabel={`Golpes significativos conectados e desferidos nas últimas ${rows.length} lutas`} />
+        </div>
+      } table={{
+        caption: `Golpes significativos nas últimas ${rows.length} lutas, da mais antiga para a mais recente`,
+        head: ['Luta', 'Conectados', 'Desferidos', 'Precisão', 'Por minuto'],
+        rows: rows.map(h => ({
+          label: <>{h.outcome === 'W' ? 'Vitória' : h.outcome === 'L' ? 'Derrota' : h.outcome} contra {lastName(h.opponent.name)}</>,
+          cells: [h.stats!.sigLanded, h.stats!.sigAttempted, h.stats!.sigAttempted ? `${Math.round((h.stats!.sigLanded / h.stats!.sigAttempted) * 100)}%` : '—', nf(perMin(h), 1)],
+        })),
+      }} />
     </Panel>
   );
 }
@@ -569,6 +611,11 @@ function NextFight({ h }: { h: HistoryFight }) {
           <div className="truncate text-[13px] text-fg-3">{shortEvent(h.eventName)} · {fullDate(h.date)}</div>
         </div>
       </Link>
+      {Date.parse(h.date) > Date.now() && (
+        <Link to={`/palpites/${h.eventId}#luta-${h.fightId}`} viewTransition className="flex items-center gap-2 border-t border-line/70 px-4 py-3 text-[14px] font-semibold text-brand hover:bg-surface-2/60">
+          <Target className="h-4 w-4" /> Palpitar nesta luta <ArrowRight className="ml-auto h-4 w-4" />
+        </Link>
+      )}
     </Panel>
   );
 }
@@ -576,10 +623,12 @@ function NextFight({ h }: { h: HistoryFight }) {
 /* ---------- Radar ---------- */
 
 function RadarPanel({ p }: { p: FighterProfile }) {
+  const { data: elo } = useEloFighter(p.bio.espnId);
   if (!hasRadar(p.stats)) return null;
+  const center = elo ? { value: String(Math.round(elo.rating)), label: 'nota Elo' } : p.bio.rankLabel ? { value: p.bio.rankLabel === 'Campeão' ? 'C' : p.bio.rankLabel, label: 'posição na divisão' } : undefined;
   return (
     <Panel plain title="Perfil de luta" action={<span className="text-[13px] text-fg-3">{p.stats.source === 'espn' ? 'ESPN' : 'UFC.com'}</span>}>
-      <AttrRadar series={[{ name: p.bio.name, color: 'blue', stats: p.stats }]} height={280} />
+      <AttrRadar series={[{ name: p.bio.name, color: 'blue', stats: p.stats }]} height={280} center={center} />
       <p className="text-[13px] leading-relaxed text-fg-3">{RADAR_NOTE}</p>
     </Panel>
   );
@@ -738,7 +787,7 @@ export default function Fighter() {
             </div>
           )}
           {tab === 'historico' && <History history={p.history} me={p.bio} />}
-          {tab === 'carreira' && <Timeline history={p.history} me={p.bio} />}
+          {tab === 'carreira' && <div className="space-y-6"><CareerBoard history={p.history} /><Timeline history={p.history} me={p.bio} /></div>}
         </motion.div>
       </AnimatePresence>
       </Defer>

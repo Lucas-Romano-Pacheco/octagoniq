@@ -4,7 +4,7 @@
    web.api    → bio, estatísticas luta a luta, notícias */
 
 import type { CardSegment, EventDetail, EventListItem, EventStatus, Fight, FightDetail, FightOdds, FightSideStats, FighterRef, HistoryFight, HistoryStats, MethodOdds, NewsItem, OfficialStats, SearchHit } from '../shared/types.ts';
-import { detailPt, feetInchesToCm, fold, methodPt, slugify, stancePt, toSeconds, weightClassPt } from '../shared/format.ts';
+import { detailPt, feetInchesToCm, fold, inLiveWindow, methodPt, slugify, stancePt, toSeconds, weightClassPt } from '../shared/format.ts';
 import { HOUR, MIN, getJson, https, remember, settle } from './http.ts';
 import { countryInfo } from './countries.ts';
 
@@ -30,6 +30,22 @@ function yearBoard(year: number) {
   // ano corrente muda durante eventos ao vivo; anos passados são estáveis
   const ttl = year >= current ? 5 * MIN : 24 * HOUR;
   return getJson<J>(`${SITE}/scoreboard?dates=${year}&limit=200`, ttl);
+}
+
+export { inLiveWindow };
+
+/** Placar só dos dias do evento (35 KB, 10 s de cache). O do ano inteiro tem 1,5 MB e vale 5 min, então
+    o resultado de uma luta demorava até 5 min para aparecer. */
+function dayBoard(date: string) {
+  const day = (ms: number) => new Date(ms).toISOString().slice(0, 10).replaceAll('-', '');
+  const t = Date.parse(date);
+  return getJson<J>(`${SITE}/scoreboard?dates=${day(t - 24 * HOUR)}-${day(t + 24 * HOUR)}&limit=50`, 10_000);
+}
+
+/** Há algum evento na janela ao vivo? Decide a rapidez com que os agregados (/api/upcoming) se renovam. */
+export async function liveNow(): Promise<boolean> {
+  const board = await yearBoard(new Date().getUTCFullYear());
+  return (board.events ?? []).some((e: J) => e.status?.type?.state === 'in' || inLiveWindow(e.date));
 }
 
 export async function schedule(year: number): Promise<EventListItem[]> {
@@ -75,14 +91,15 @@ const SEGMENT: Record<string, CardSegment> = { main: 'main', prelims1: 'prelims'
 
 /** Status da luta (método, round, tempo). Só existe com detalhe no core.api. */
 function fightStatus(eventId: string, fightId: string, live: boolean) {
-  return getJson<J>(`${CORE}/leagues/ufc/events/${eventId}/competitions/${fightId}/status`, live ? 30_000 : 12 * HOUR);
+  return getJson<J>(`${CORE}/leagues/ufc/events/${eventId}/competitions/${fightId}/status`, live ? 10_000 : 12 * HOUR);
 }
 
 export async function eventDetail(eventId: string): Promise<EventDetail | null> {
   const core = await getJson<J>(`${CORE}/leagues/ufc/events/${eventId}`, 10 * MIN);
   const year = new Date(core.date).getUTCFullYear();
-  const board = await yearBoard(year);
-  const ev: J = board.events?.find((e: J) => e.id === eventId);
+  const live = inLiveWindow(core.date);
+  const board = live ? await dayBoard(core.date).catch(() => yearBoard(year)) : await yearBoard(year);
+  const ev: J = board.events?.find((e: J) => e.id === eventId) ?? (live ? (await yearBoard(year)).events?.find((e: J) => e.id === eventId) : undefined);
   if (!ev) return null;
 
   const status = statusOf(ev.status?.type);
@@ -210,7 +227,7 @@ export async function fightDetail(eventId: string, fightId: string): Promise<Fig
   // a ESPN publica as estatísticas de uma luta encerrada horas depois (antes disso vêm vazias): nos 3 dias
   // seguintes ao evento a resposta vale só 10 min, para uma resposta vazia não ficar guardada por 24 h
   const recent = Date.now() - Date.parse(ev.date) < 72 * HOUR;
-  const ttl = live ? 30_000 : recent ? 10 * MIN : 24 * HOUR;
+  const ttl = live ? 12_000 : recent ? 10 * MIN : 24 * HOUR;
   const stat = (id: string) => getJson<J>(`${CORE}/leagues/ufc/events/${eventId}/competitions/${fightId}/competitors/${id}/statistics`, ttl).catch(() => null);
   const [rs, bs] = fight.status === 'pre' ? [null, null] : await Promise.all([stat(fight.red.espnId), stat(fight.blue.espnId)]);
   return {

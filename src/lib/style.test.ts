@@ -13,6 +13,11 @@ describe('estilo do lutador', () => {
     expect(t.map(x => x.key)).toContain('wrestler');
   });
   it('poucas vitórias não viram etiqueta de método', () => expect(fighterStyle({ winsBy: { ko: 3, sub: 0, dec: 0 } })).toEqual([]));
+  it('sem traço acima da régua, mostra o mais perto dela (todo perfil tem um estilo)', () => {
+    // Korean Zombie: 17 vitórias, 47% por nocaute e 35% por finalização, nenhum acima da régua
+    const t = fighterStyle({ winsBy: { ko: 8, sub: 6, dec: 3 }, slpm: 4.1, tdAvg: 0.6, strDef: 50 });
+    expect(t.map(x => x.key)).toEqual(['ko']);
+  });
   it('diferencial de golpes', () => {
     expect(strikeDiff({ slpm: 2.27, sapm: 1.42 })).toBe(0.85);
     expect(strikeDiff({ slpm: 2 })).toBeUndefined();

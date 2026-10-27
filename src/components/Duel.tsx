@@ -1,6 +1,6 @@
 import { useSyncExternalStore, type ReactNode } from 'react';
 import { clsx } from 'clsx';
-import { ChartBarHorizontal, Table } from '@phosphor-icons/react';
+import { ChartBarHorizontal, Table } from '@/components/icons';
 import type { FightOdds } from '@shared/types';
 import { fairProbs, fmtMoneyline, oddsTier, type OddsTier } from '@shared/format';
 import { Segmented, Term, Tip } from './kit';
@@ -124,7 +124,7 @@ export function OddsChip({ ml, p, tier, label, compact }: { ml?: number; p: numb
     <Tip title={`${label} · ${Math.round(p * 100)}% de chance`}
       content={ml === undefined ? 'Probabilidade implícita, sem a margem da casa.' : `Linha ${fmtMoneyline(ml)}: ${ml < 0 ? `aposta ${-ml} para ganhar 100` : `aposta 100 para ganhar ${ml}`}. Probabilidade sem a margem da casa.`}>
       <span tabIndex={0} className={clsx('inline-flex min-h-8 max-w-full cursor-help flex-wrap items-center gap-x-2 rounded-md px-3 py-1 text-[14px] font-semibold leading-tight', TIER_CLS[tier])}>
-        <span className="num">{fmtMoneyline(ml)}</span>
+        <span className="num odds">{fmtMoneyline(ml)}</span>
         {!compact && <><span className="opacity-40">·</span><span>{label}</span></>}
       </span>
     </Tip>

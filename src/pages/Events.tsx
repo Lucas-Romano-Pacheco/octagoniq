@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowRight, CalendarBlank, CaretLeft, CaretRight, Check } from '@phosphor-icons/react';
+import { ArrowRight, CalendarBlank, CaretLeft, CaretRight, Check } from '@/components/icons';
 import { clsx } from 'clsx';
 import type { EventListItem } from '@shared/types';
-import { useSchedule, useUpcoming } from '@/lib/api';
+import { eventQuery, useSchedule, useUpcoming } from '@/lib/api';
+import { useQuery } from '@tanstack/react-query';
 import { SERIES_LABEL, SERIES_TONE } from '@/lib/series';
 import { countdown, dayMonth, lastName, splitEventName, time, weekday } from '@/lib/format';
 import { Avatar, BeltIcon, Empty, ErrorState, PageHeader, Panel, Segmented, Skeleton, Tag, Tip, usePageTitle } from '@/components/kit';
@@ -18,6 +19,46 @@ const CHIP = SERIES_TONE;
 /** Cor de cada tipo de evento (a mesma da legenda e do resto do site). */
 const TONE: Record<EventListItem['series'], string> = { ppv: 'var(--color-brand)', 'fight-night': 'var(--color-blue)', dwcs: 'var(--color-slate-fill)', other: 'var(--color-fg)' };
 const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+
+/* Meses nos cantos da luta: janeiro a junho no azul, julho a dezembro no vermelho. A cor é mais forte nas pontas
+   (janeiro e dezembro) e perde força perto do meio do ano (junho e julho). */
+function monthStyle(i: number, on: boolean): React.CSSProperties {
+  const blue = i < 6, c = blue ? 'var(--color-blue-fill)' : 'var(--color-red-fill)';
+  const strength = blue ? (6 - i) / 6 : (i - 5) / 6; // jan/dez = 1 … jun/jul = 1/6
+  if (on) return { background: c, ['--tw-ring-color' as string]: c };
+  const mix = Math.round(8 + strength * 26); // 12%…34% de cor sobre a superfície
+  return {
+    background: `color-mix(in oklab, ${c} ${mix}%, var(--color-surface))`,
+    ['--tw-ring-color' as string]: `color-mix(in oklab, ${c} ${Math.round(20 + strength * 40)}%, transparent)`,
+  };
+}
+
+/** Evento no calendário: pílula na cor da série com os rostos da luta principal (o perdedor em cinza depois do card). */
+function EventPill({ e, past }: { e: EventListItem; past: boolean }) {
+  const { data: ev } = useQuery(eventQuery(e.id));
+  const { series, title } = splitEventName(e.name);
+  const main = ev?.fights.find(f => f.order === 1) ?? ev?.fights[0];
+  const lost = (id: string) => past && !!main?.result?.winnerId && main.result.winnerId !== id;
+  return (
+    <Tip title={e.name} content={`${weekday(e.date)} ${dayMonth(e.date)} · ${time(e.date)} · ${SERIES_LABEL[e.series]}${past ? ' · encerrado' : ''}`}>
+      <Link to={`/eventos/${e.id}`} viewTransition
+        className={clsx('cut group/pill relative block overflow-hidden rounded-md px-2 py-2 shadow-[0_1px_0_rgb(0_0_0/0.12)] transition duration-200 hover:-translate-y-0.5 hover:shadow-[var(--shadow-lift)] hover:brightness-110 active:scale-95', CHIP[e.series], past && 'opacity-80')}>
+        {/* reflexo que atravessa a pílula no hover */}
+        <span aria-hidden className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/2 -skew-x-12 bg-white/20 opacity-0 transition-[transform,opacity] duration-500 group-hover/pill:translate-x-[300%] group-hover/pill:opacity-100" />
+        <span className="flex items-center justify-between gap-1 text-[12px] font-semibold"><span className="num">{time(e.date)}</span>{past ? <Check weight="bold" className="h-3 w-3" aria-label="encerrado" /> : null}</span>
+        <span className="mt-1 flex items-center gap-1.5">
+          {main && (
+            <span className="flex shrink-0">
+              <Avatar src={main.red.headshot} name={main.red.name} size={20} className={clsx(lost(main.red.espnId) && 'grayscale opacity-60')} />
+              <Avatar src={main.blue.headshot} name={main.blue.name} size={20} className={clsx('-ml-1.5', lost(main.blue.espnId) && 'grayscale opacity-60')} />
+            </span>
+          )}
+          <span className="block truncate text-[14px] font-bold leading-tight">{title || series}</span>
+        </span>
+      </Link>
+    </Tip>
+  );
+}
 
 export default function Events() {
   const [params, setParams] = useSearchParams();
@@ -60,10 +101,11 @@ export default function Events() {
           const on = i === month, now = i === today.getMonth() && year === today.getFullYear();
           return (
             <button type="button" key={n} role="tab" aria-selected={on} onClick={() => setMonth(year, i)}
-              className={clsx('lift relative inline-flex h-10 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[13px] font-bold ring-1 transition-colors',
-                on ? 'bg-fg text-bg ring-fg' : 'bg-surface text-fg-2 ring-fg/[0.08] hover:bg-surface-2 hover:text-fg')}>
+              className={clsx('lift relative inline-flex h-10 shrink-0 items-center gap-2 rounded-full px-4 font-display text-[13px] font-bold ring-1 transition-[background-color,color,box-shadow] duration-200',
+                on ? 'text-white shadow-[var(--shadow-lift)]' : 'text-fg-2 hover:text-fg')}
+              style={monthStyle(i, on)}>
               {n.slice(0, 3)}
-              {perMonth[i] > 0 && <span className={clsx('num rounded-md px-2 text-[12px]', on ? 'bg-bg/15' : 'bg-surface-2 text-fg-3')}>{perMonth[i]}</span>}
+              {perMonth[i] > 0 && <span className={clsx('num rounded-md px-2 text-[12px]', on ? 'bg-white/20' : 'bg-surface-2/80 text-fg-3')}>{perMonth[i]}</span>}
               {now && !on && <span role="img" aria-label="mês atual" className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-blue ring-2 ring-bg" />}
             </button>
           );
@@ -188,7 +230,11 @@ function MonthGrid({ year, month, events }: { year: number; month: number; event
             <div key={i} onClick={() => setPicked(dayKey(d))} style={{ animationDelay: `${(i % 7) * 25 + Math.floor(i / 7) * 45}ms` }}
               className={clsx('cell-in group/cell relative min-w-0 cursor-pointer border-line p-2 transition-colors duration-200 hover:bg-surface-2/80 sm:cursor-default', i % 7 !== 6 && 'border-r', i < (weeks - 1) * 7 && 'border-b',
                 !inMonth && 'bg-surface-2/50', inMonth && weekend && 'bg-surface-2/25', dayKey(d) === sel && 'max-sm:bg-surface-2', isToday && 'bg-blue/[0.07]')}>
-              {evs.length > 0 && inMonth && <span aria-hidden className="absolute inset-x-0 top-0 h-[3px]" style={{ background: `linear-gradient(90deg, ${TONE[evs[0].series]}, transparent)` }} />}
+              {evs.length > 0 && inMonth && <>
+                <span aria-hidden className="absolute inset-x-0 top-0 h-[3px]" style={{ background: `linear-gradient(90deg, ${TONE[evs[0].series]}, transparent)` }} />
+                {/* dia com evento: um brilho suave da cor da série vindo de baixo */}
+                <span aria-hidden className="pointer-events-none absolute inset-0 opacity-60 transition-opacity duration-300 group-hover/cell:opacity-100" style={{ background: `radial-gradient(120% 80% at 50% 110%, color-mix(in oklab, ${TONE[evs[0].series]} 16%, transparent), transparent 70%)` }} />
+              </>}
               <div className="mb-2 flex items-center justify-between">
                 <span className={clsx('num grid h-9 min-w-9 place-items-center rounded-full px-2 font-display text-[18px] font-bold transition-transform duration-200 group-hover/cell:scale-110',
                   isToday ? 'bg-blue-fill text-white' : inMonth ? 'text-fg' : 'text-fg-3')}>
@@ -201,19 +247,7 @@ function MonthGrid({ year, month, events }: { year: number; month: number; event
                 {evs.map(e => <span key={e.id} className={clsx('h-2.5 w-2.5 rounded-full', CHIP[e.series].split(' ')[0])} />)}
               </div>
               <div className="hidden space-y-2 sm:block">
-                {evs.map(e => {
-                  const { series, title } = splitEventName(e.name);
-                  const past = new Date(e.date).getTime() < now - 8 * 3600_000;
-                  return (
-                    <Tip key={e.id} title={e.name} content={`${weekday(e.date)} ${dayMonth(e.date)} · ${time(e.date)} · ${SERIES_LABEL[e.series]}${past ? ' · encerrado' : ''}`}>
-                      <Link to={`/eventos/${e.id}`}
-                        className={clsx('cut block rounded-md px-2 py-2 shadow-[0_1px_0_rgb(0_0_0/0.12)] transition duration-200 hover:-translate-y-0.5 hover:scale-[1.04] hover:shadow-[var(--shadow-lift)] hover:brightness-110 active:scale-95', CHIP[e.series], (!inMonth || past) && 'opacity-70')}>
-                        <span className="flex items-center justify-between gap-1 text-[12px] font-semibold"><span className="num">{time(e.date)}</span>{past ? <Check weight="bold" className="h-3 w-3" aria-label="encerrado" /> : null}</span>
-                        <span className="mt-1 block truncate text-[14px] font-bold leading-tight">{title || series}</span>
-                      </Link>
-                    </Tip>
-                  );
-                })}
+                {evs.map(e => <EventPill key={e.id} e={e} past={new Date(e.date).getTime() < now - 8 * 3600_000} />)}
               </div>
             </div>
           );

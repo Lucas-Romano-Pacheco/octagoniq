@@ -76,3 +76,49 @@ export function beltHistory(division: string): Promise<BeltReign[] | null> {
     return reigns;
   }).catch(() => null);
 }
+
+/* ---------- Plantel por país (D7): "List of current UFC fighters", seção "Debuted fighters" ---------- */
+
+export interface RosterFighter { name: string; slug: string; nickname?: string; division: string; record?: string; next?: string }
+
+const ROSTER_API = 'https://en.wikipedia.org/w/api.php?format=json&formatversion=2&action=parse&prop=wikitext&page=List_of_current_UFC_fighters';
+const DIV_PT: [RegExp, string][] = [
+  [/^Women's bantam/i, 'Galo (F)'], [/^Women's fly/i, 'Mosca (F)'], [/^Women's straw/i, 'Palha (F)'], [/^Women's feather/i, 'Pena (F)'],
+  [/^Heavy/i, 'Pesado'], [/^Light heavy/i, 'Meio-pesado'], [/^Middle/i, 'Médio'], [/^Welter/i, 'Meio-médio'],
+  [/^Light/i, 'Leve'], [/^Feather/i, 'Pena'], [/^Bantam/i, 'Galo'], [/^Fly/i, 'Mosca'],
+];
+const slug = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
+/** Interpreta as tabelas por divisão; função pura (testável com um trecho de wikitext). */
+export function parseRoster(text: string, iso: string): RosterFighter[] {
+  const start = text.indexOf('==Debuted fighters==');
+  const body = start >= 0 ? text.slice(start) : text;
+  const out: RosterFighter[] = [];
+  let division = '';
+  for (const block of body.split(/\n\|-\n/)) {
+    const h = [...block.matchAll(/===\s*([^=(]+?)\s*\(/g)].pop();
+    if (h) division = DIV_PT.find(([re]) => re.test(h[1]))?.[1] ?? division;
+    const lines = block.split('\n').filter(l => l.startsWith('|') && !l.startsWith('|}') && !l.startsWith('|-'));
+    const flag = lines.findIndex(l => /flag\|icon\|/.test(l));
+    if (flag < 0 || !new RegExp(`flag\\|icon\\|${iso}\\}`).test(lines[flag])) continue;
+    const nameLine = lines[flag + 1] ?? '';
+    const sn = nameLine.match(/sortname\|([^|}]+)\|([^|}]+)/);
+    const link = nameLine.match(/\[\[(?:[^|\]]+\|)?([^\]]+)\]\]/);
+    const name = sn ? `${sn[1]} ${sn[2]}`.trim() : link?.[1] ?? nameLine.replace(/^\|/, '').trim();
+    if (!name) continue;
+    const nick = lines[flag + 4]?.match(/''([^']+)''/)?.[1];
+    const recs = lines.map(l => l.match(/\}\}(\d+[–-]\d+(?:[–-]\d+)?)/)?.[1]).filter(Boolean) as string[];
+    const next = lines[flag + 5]?.includes('Scheduled') || lines[flag + 5]?.includes('Upcoming') ? 'marcada' : undefined;
+    out.push({ name, slug: slug(name), nickname: nick, division, record: recs[recs.length - 1]?.replace('–', '-').replace('–', '-'), next });
+  }
+  return out;
+}
+
+export function rosterByCountry(iso: string): Promise<RosterFighter[] | null> {
+  return remember(`roster:v1:${iso}`, 12 * HOUR, async () => {
+    const d = await getJson<J>(ROSTER_API, 12 * HOUR);
+    const list = parseRoster(d?.parse?.wikitext ?? '', iso);
+    if (!list.length) throw new Error('lista vazia');
+    return list;
+  }).catch(() => null);
+}

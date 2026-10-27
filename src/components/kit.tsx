@@ -1,13 +1,14 @@
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type HTMLAttributes, type PointerEvent, type ReactNode } from 'react';
 import { clsx } from 'clsx';
 import { glossaryFor } from '@/lib/glossary';
 import { Link } from 'react-router-dom';
 import { animate, motion, useInView, useReducedMotion } from 'motion/react';
-import { ArrowClockwise, ArrowDown, ArrowUp, CalendarCheck, CaretDown, CaretUp, CaretUpDown, HandGrabbing, Lightning, Scales, WarningCircle } from '@phosphor-icons/react';
+import { ArrowClockwise, ArrowDown, ArrowUp, CaretDown, CaretUp, CaretUpDown, HandGrabbing, Lightning, Scales, WarningCircle } from '@/components/icons';
 import { circleFlag, rectFlag } from '@/lib/flags';
 import type { BookedFight, HistoryFight } from '@shared/types';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { proxy } from '@/lib/img';
+import { slugify } from '@shared/format';
 
 /* ---------- Movimento ---------- */
 
@@ -78,6 +79,16 @@ export function trackSpotlight(e: PointerEvent<HTMLElement>) {
   el.style.setProperty('--mx', `${x}px`);
   el.style.setProperty('--my', `${e.clientY - r.top}px`);
   if (el.dataset.duel !== undefined) el.style.setProperty('--spot', x < r.width / 2 ? 'var(--color-red)' : 'var(--color-blue)');
+}
+
+/** Card com brilho que acompanha o cursor; com `duel`, vermelho no lado esquerdo e azul no direito. */
+export function Spotlight({ color, duel, className, style, children, ...rest }: HTMLAttributes<HTMLDivElement> & { color?: string; duel?: boolean }) {
+  return (
+    <div {...rest} data-duel={duel ? '' : undefined} onPointerMove={trackSpotlight}
+      className={clsx('spotlight', className)} style={{ ...style, ...(color ? { '--spot': color } : {}) } as CSSProperties}>
+      {children}
+    </div>
+  );
 }
 
 
@@ -187,7 +198,8 @@ export function SectionTitle({ title, action }: { title: ReactNode; action?: Rea
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h2 className="display text-[32px] text-fg sm:text-[44px]">{title}</h2>
+        {/* caixa normal: caixa alta condensada em todo título de seção é marca de site gerado; ela fica para os nomes no banner */}
+        <h2 className="font-display text-[32px] font-bold leading-[1] tracking-[-0.005em] text-fg sm:text-[44px]">{title}</h2>
       </div>
       {action}
     </div>
@@ -202,12 +214,18 @@ const initials = (name: string) => name.split(' ').filter(Boolean).slice(0, 2).m
 /** Foto redonda; `flag` põe a bandeira no canto, `ring` contorna na cor do canto (vermelho/azul). */
 export function Avatar({ src, name, size = 40, className, flag, ring }: { src?: string; name: string; size?: number; className?: string; flag?: string; ring?: string }) {
   const [failed, setFailed] = useState(false);
+  // sem retrato na ESPN (estreantes): tenta a foto de corpo inteiro do UFC.com, enquadrada no rosto; sem ela, iniciais
+  const [alt, setAlt] = useState<string | null>(null);
+  const onError = () => {
+    if (alt) return setFailed(true);
+    fetch(`/api/photo/${slugify(name)}`).then(r => (r.ok ? r.json() : null)).then((d: { src?: string } | null) => (d?.src ? setAlt(d.src) : setFailed(true))).catch(() => setFailed(true));
+  };
   const photo = (
     <div data-photo className={clsx('relative shrink-0 overflow-hidden rounded-full bg-surface-2', ring ? 'ring-2 ring-offset-2 ring-offset-surface' : 'ring-1 ring-fg/[0.06]', !flag && className)}
       style={{ width: size, height: size, ...(ring ? { '--tw-ring-color': ring } : {}) } as CSSProperties}>
       {src && !failed ? (
-        <img src={proxy(src, Math.min(size * 5, 720))} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)}
-          className="absolute left-1/2 top-[6%] h-[135%] w-auto max-w-none -translate-x-1/2 object-cover" />
+        <img src={proxy(alt ?? src, Math.min(size * (alt ? 9 : 5), 900))} alt="" loading="lazy" decoding="async" onError={onError}
+          className={clsx('absolute left-1/2 w-auto max-w-none -translate-x-1/2 object-cover', alt ? 'top-[4%] h-[330%]' : 'top-[6%] h-[135%]')} />
       ) : (
         <span className="grid h-full w-full place-items-center font-semibold text-fg-3" style={{ fontSize: Math.max(11, size * 0.32) }}>{initials(name)}</span>
       )}
@@ -283,9 +301,13 @@ export function BookedTag({ b, className }: { b?: BookedFight; className?: strin
   return (
     <Tip title={b.title ? 'Disputa de cinturão marcada' : 'Luta marcada'} content={<>vs {b.opponent}<br />{b.eventName} · {d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })}</>}>
       <Link to={`/eventos/${b.eventId}/lutas/${b.fightId}`} onClick={e => e.stopPropagation()}
-        className={clsx('inline-flex h-6 shrink-0 items-center gap-1 rounded-md px-2 text-[12px] font-semibold transition-colors',
-          b.title ? 'bg-gold-soft text-gold-ink hover:bg-gold/30' : 'bg-blue/10 text-blue-ink hover:bg-blue/20', className)}>
-        <CalendarCheck weight="bold" className="h-3.5 w-3.5" />{day}
+        className={clsx('group/bk inline-flex h-6 shrink-0 items-center gap-1.5 font-display text-[13px] font-bold uppercase tracking-[0.04em] transition-colors',
+          b.title ? 'text-gold-ink dark:text-gold' : 'text-blue-ink', className)}>
+        {/* octógono: a "jaula" marcada; preenche no hover. Dourado se vale cinturão */}
+        <svg viewBox="0 0 32 32" aria-hidden className="h-3.5 w-3.5 transition-transform duration-300 group-hover/bk:rotate-[22.5deg]">
+          <path d="M11.5 4h9l7.5 7.5v9L20.5 28h-9L4 20.5v-9z" fill="currentColor" fillOpacity="0.18" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" />
+        </svg>
+        <span className="border-b border-current/0 group-hover/bk:border-current/60">{day}</span>
       </Link>
     </Tip>
   );
@@ -347,7 +369,7 @@ export function OutcomeBadge({ outcome, className, size = 'md', tip, card, href 
       style={{ width: px, height: px, color: o.color }}>
       <svg viewBox="0 0 32 32" className="absolute inset-0 h-full w-full" aria-hidden>
         <path d={OCTAGON} fill={o.fill} stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.6" strokeLinejoin="round" />
-        {/* glifo desenhado na mesma grade do octógono (o ✓ do Phosphor é assimétrico e parecia torto): centrado em 16,16 */}
+        {/* glifo desenhado na mesma grade do octógono (o ✓ de pacotes de ícones é assimétrico e parecia torto): centrado em 16,16 */}
         <path d={o.glyph} fill="none" stroke="currentColor" strokeWidth="2.9" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </Tag_>

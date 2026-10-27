@@ -2,9 +2,11 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { Lightning, ShareNetwork, Star, Target, Timer, Trophy, X } from '@phosphor-icons/react';
+import { Lightning, ShareNetwork, Star, Target, Timer, Trophy, X } from '@/components/icons';
 import type { EventDetail, FighterRef } from '@shared/types';
 import { useBonuses } from '@/lib/api';
+import { useQuery } from '@tanstack/react-query';
+import { proxy } from '@/lib/img';
 import { fotnAwarded } from '@/lib/fights';
 import { lastName, longDate, mmss, splitEventName } from '@/lib/format';
 import { summarize, usePicks } from '@/lib/picks';
@@ -32,6 +34,73 @@ const Face = ({ f, size = 150, dim }: { f: FighterRef; size?: number; dim?: bool
   <Avatar src={f.headshot} name={f.name} size={size} ring="#fff" className={dim ? 'opacity-60 grayscale' : undefined} />
 );
 
+/* ---------- Arte dos cartões: lutador em pé (corpo inteiro, UFC.com) e uma palavra gigante vazada ao fundo ---------- */
+
+/** Foto de corpo inteiro: a que já veio com o lutador ou, sem ela, a do UFC.com pelo endereço do atleta. */
+function useBody(f?: FighterRef) {
+  const { data, isFetched } = useQuery({
+    queryKey: ['photo', f?.slug],
+    queryFn: () => fetch(`/api/photo/${f!.slug}`).then(r => (r.ok ? (r.json() as Promise<{ src?: string }>) : null)),
+    enabled: !!f && !f.bodyImage, staleTime: Infinity,
+  });
+  return { src: f?.bodyImage ?? data?.src, settled: !!f?.bodyImage || isFetched };
+}
+
+/** Lutador em pé subindo do pé do cartão; depois aproxima devagar durante os 5 s do cartão. */
+function Standing({ f, className, dim, soft, delay = 0.1 }: { f?: FighterRef; className: string; dim?: boolean; soft?: boolean; delay?: number }) {
+  const { src, settled } = useBody(f);
+  const target = dim ? 0.45 : soft ? 0.5 : 1;
+  // sem foto de corpo inteiro (estreantes, nomes diferentes no UFC.com): o retrato grande, no mesmo canto
+  if (!src) return settled && f?.headshot ? (
+    <motion.div className="pointer-events-none absolute bottom-[14%] right-[-6%]" initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: target }} transition={{ duration: 0.7, delay, ease: [0.22, 1, 0.36, 1] }}>
+      <Avatar src={f.headshot} name={f.name} size={250} ring="rgba(255,255,255,0.6)" className={dim ? 'grayscale' : undefined} />
+    </motion.div>
+  ) : null;
+  return (
+    <motion.img src={proxy(src, 700)} alt="" aria-hidden decoding="async"
+      className={`pointer-events-none absolute bottom-0 w-auto max-w-none select-none [mask-image:linear-gradient(to_bottom,#000_70%,transparent)] ${dim ? 'grayscale' : 'drop-shadow-[0_20px_40px_rgba(0,0,0,0.45)]'} ${className}`}
+      initial={{ y: 60, opacity: 0, scale: 1 }} animate={{ y: 0, opacity: target, scale: [1, 1.04] }}
+      transition={{ y: { duration: 0.7, delay, ease: [0.22, 1, 0.36, 1] }, opacity: { duration: 0.5, delay }, scale: { duration: DURATION / 1000, ease: 'linear' } }} />
+  );
+}
+
+/** Palavra gigante, só o contorno, atrás do lutador (como nos pôsteres de luta). */
+const Word = ({ children }: { children: ReactNode }) => (
+  <motion.div aria-hidden className="pointer-events-none absolute right-[-4%] top-[16%] whitespace-nowrap font-display text-[150px] font-black uppercase leading-none text-transparent sm:text-[180px]"
+    style={{ WebkitTextStroke: '2px rgba(255,255,255,0.22)' }}
+    initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}>
+    {children}
+  </motion.div>
+);
+
+const methodWord = (m?: string) => (/KO/i.test(m ?? '') ? 'KO' : /Finaliza/i.test(m ?? '') ? 'SUB' : /Decis/i.test(m ?? '') ? 'Decisão' : '');
+
+/** Fundo de cada cartão. O texto fica por cima, à esquerda; um véu escuro à esquerda garante a leitura. */
+function Backdrop({ s, ev }: { s: Story; ev: EventDetail }) {
+  const main = ev.fights.find(f => f.order === 1) ?? ev.fights[0];
+  const art = (() => {
+    switch (s.kind) {
+      case 'cover': return main && <><Word>{splitEventName(ev.name).series.replace(/^UFC /, '') || 'UFC'}</Word>
+        <Standing f={main.red} className="bottom-[20%]! left-[-4%] h-[40%]" delay={0.15} /><Standing f={main.blue} className="bottom-[20%]! right-[-4%] h-[40%]" delay={0.25} /></>;
+      case 'main': return <><Word>{methodWord(s.fight.result?.method)}</Word><Standing f={s.loser} dim className="right-[22%] h-[52%]" /><Standing f={s.winner} className="right-[-14%] h-[72%]" delay={0.2} /></>;
+      case 'upset': return <><Word>Zebra</Word><Standing f={s.winner} className="right-[-14%] h-[72%]" /></>;
+      case 'fastest': return <><Word>{methodWord(s.fight.result?.method)}</Word><Standing f={s.winner} className="right-[-14%] h-[66%]" /></>;
+      case 'bonus': {
+        const f = s.fotn[0], p = s.potn[0];
+        return <><Word>Bônus</Word>{p ? <Standing f={p} soft className="right-[-14%] h-[62%]" /> : f && <><Standing f={f.red} soft className="right-[18%] h-[52%]" /><Standing f={f.blue} soft className="right-[-14%] h-[58%]" delay={0.2} /></>}</>;
+      }
+      default: return null;
+    }
+  })();
+  if (!art) return null;
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      {art}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/45 via-black/10 to-transparent" />
+    </div>
+  );
+}
+
 function Card({ s, ev }: { s: Story; ev: EventDetail }) {
   const { series, title } = splitEventName(ev.name);
   const how = (fight: { result?: { method: string; round?: number; clock?: string } }) => fight.result && (
@@ -45,7 +114,7 @@ function Card({ s, ev }: { s: Story; ev: EventDetail }) {
         <p className="mt-3 text-[16px] text-white/75">{series} · {longDate(ev.date)}{ev.city ? ` · ${ev.city}` : ''}</p>
         <div className="mt-auto grid grid-cols-3 gap-3">
           {([['ko', s.ko, 'nocautes'], ['sub', s.sub, 'finalizações'], ['dec', s.dec, 'decisões']] as const).map(([k, v, l]) => (
-            <div key={k} className="rounded-xl bg-white/10 p-3"><div className="display text-[44px] text-white">{v}</div><div className="text-[13px] text-white/75">{l}</div></div>
+            <div key={k} className="rounded-xl bg-black/35 p-3 backdrop-blur-sm"><div className="display text-[44px] text-white">{v}</div><div className="text-[13px] text-white/75">{l}</div></div>
           ))}
         </div>
         <p className="mt-3 text-[14px] text-white/70">{s.fights} lutas no card</p>
@@ -54,8 +123,7 @@ function Card({ s, ev }: { s: Story; ev: EventDetail }) {
     case 'main': return (
       <>
         <Kicker icon={<Trophy weight="fill" className="h-5 w-5" />}>Luta principal</Kicker>
-        <div className="mt-8 flex items-end gap-3"><Face f={s.winner} /><Face f={s.loser} size={84} dim /></div>
-        <Big className="mt-6">{lastName(s.winner.name)} venceu</Big>
+        <Big className="mt-auto max-w-[70%]">{lastName(s.winner.name)} venceu</Big>
         <p className="mt-2 text-[20px] text-white/80">sobre {s.loser.name}</p>
         {how(s.fight)}
       </>
@@ -63,9 +131,8 @@ function Card({ s, ev }: { s: Story; ev: EventDetail }) {
     case 'upset': return (
       <>
         <Kicker icon={<Lightning weight="fill" className="h-5 w-5" />}>Zebra da noite</Kicker>
-        <div className="mt-8"><Face f={s.winner} /></div>
-        <Big className="mt-6">{lastName(s.winner.name)} derrubou a lógica</Big>
-        <p className="mt-3 text-[18px] text-white/85">Tinha só <b className="text-white">{Math.round(s.chance * 100)}%</b> de chance pelas odds contra {lastName(s.loser.name)}.</p>
+        <Big className="mt-auto max-w-[70%]">{lastName(s.winner.name)} derrubou a lógica</Big>
+        <p className="mt-3 max-w-[65%] text-[18px] text-white/85">Tinha só <b className="text-white">{Math.round(s.chance * 100)}%</b> de chance pelas odds contra {lastName(s.loser.name)}.</p>
         {how(s.fight)}
       </>
     );
@@ -74,7 +141,7 @@ function Card({ s, ev }: { s: Story; ev: EventDetail }) {
         <Kicker icon={<Timer weight="bold" className="h-5 w-5" />}>A mais rápida</Kicker>
         <div className="display mt-8 text-[96px] leading-none text-white">{mmss(s.seconds)}</div>
         <p className="mt-1 text-[16px] text-white/75">de luta, somando os rounds</p>
-        <div className="mt-8 flex items-center gap-4"><Face f={s.winner} size={96} /><div><div className="display text-[32px] text-white">{lastName(s.winner.name)}</div><div className="text-[16px] text-white/75">sobre {lastName(s.loser.name)}</div></div></div>
+        <div className="mt-auto flex items-center gap-4"><div><div className="display text-[32px] text-white">{lastName(s.winner.name)}</div><div className="text-[16px] text-white/75">sobre {lastName(s.loser.name)}</div></div></div>
         {how(s.fight)}
       </>
     );
@@ -183,9 +250,10 @@ function Player({ stories, ev, onClose }: { stories: Story[]; ev: EventDetail; o
         <button type="button" aria-label="Cartão anterior" className="absolute bottom-0 left-0 top-24 z-10 w-[30%] cursor-w-resize" onClick={() => go(-1)} />
         <button type="button" aria-label="Próximo cartão" className="absolute bottom-24 right-0 top-24 z-10 w-[70%] cursor-e-resize" onClick={() => go(1)} />
         <AnimatePresence mode="wait">
-          <motion.div key={i} className="relative flex flex-1 flex-col px-7 pb-10 pt-8"
+          <motion.div key={i} className="relative flex flex-1 flex-col"
             initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}>
-            <Card s={s} ev={ev} />
+            <Backdrop s={s} ev={ev} />
+            <div className="relative flex flex-1 flex-col px-7 pb-10 pt-8"><Card s={s} ev={ev} /></div>
           </motion.div>
         </AnimatePresence>
         <div className="pb-4 text-center text-[12px] text-white/55">{i + 1} / {stories.length} · toque para avançar</div>

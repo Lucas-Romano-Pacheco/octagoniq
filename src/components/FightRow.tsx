@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom';
 import { clsx } from 'clsx';
-import { ArrowRight, Lightning } from '@phosphor-icons/react';
+import { ArrowRight, Lightning } from '@/components/icons';
 import type { Fight, FighterRef } from '@shared/types';
 import { fightHref, fighterHref } from '@/lib/api';
 import { OddsChip, oddsView } from './Duel';
 import type { ReactNode } from 'react';
-import { Avatar, BeltIcon, FightCard, Flag, LiveTag, MethodTag, morphPhoto, OutcomeBadge, Tag } from './kit';
+import { Avatar, BeltIcon, FightCard, Flag, LiveTag, MethodTag, morphPhoto, OutcomeBadge, Spotlight, Tag } from './kit';
 
 function Side({ f, align, state, tip, odds, compact }: { f: FighterRef; align: 'left' | 'right'; state: 'win' | 'loss' | 'none'; tip?: ReactNode; odds?: ReactNode; compact?: boolean }) {
   const right = align === 'right';
@@ -55,7 +55,7 @@ export function FightRow({ fight, compact, eventId }: { fight: Fight; compact?: 
 
   const href = eventId ? fightHref(eventId, fight.id) : undefined;
   return (
-    <div className={clsx('group relative grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-xl px-3 transition-colors duration-150 hover:bg-surface-2/60 max-sm:grid-cols-2 max-sm:gap-y-3 sm:gap-5 sm:px-4', compact ? 'py-4' : 'py-4')}>
+    <Spotlight duel className={clsx('group relative grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 rounded-xl px-3 transition-colors duration-150 max-sm:grid-cols-2 max-sm:gap-y-3 sm:gap-5 sm:px-4', compact ? 'py-4' : 'py-4')}>
       <Side f={fight.red} align="right" compact={compact} state={state(winRed)} tip={winRed && r ? winTip(fight.red, fight.blue, r, fight.date) : undefined} odds={ov && <OddsChip {...ov.red} compact />} />
       <div className={clsx('flex flex-col items-center gap-2 text-center max-sm:order-last max-sm:col-span-2 max-sm:flex-row max-sm:flex-wrap max-sm:justify-center max-sm:gap-x-3 max-sm:border-t max-sm:border-line/60 max-sm:pt-3', compact ? 'sm:w-[160px]' : 'sm:w-[196px]')}>
         <div className="flex flex-wrap items-center justify-center gap-2">
@@ -85,6 +85,6 @@ export function FightRow({ fight, compact, eventId }: { fight: Fight; compact?: 
           <ArrowRight weight="bold" className="absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-brand opacity-0 transition group-hover:right-1 group-hover:opacity-100" />
         </Link>
       )}
-    </div>
+    </Spotlight>
   );
 }

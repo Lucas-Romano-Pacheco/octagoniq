@@ -106,3 +106,11 @@ export function oddsTier(p: number): { tier: OddsTier; label: string } {
   if (p > 0.2) return { tier: 'zebra', label: 'Zebra' };
   return { tier: 'grande-zebra', label: 'Grande zebra' };
 }
+
+/* Janela "ao vivo" de um evento: de 3 h antes do início (o status vira "em andamento" na hora) até 14 h depois
+   (o card inteiro e as últimas lutas terminando). Dentro dela os dados mudam a cada minuto. */
+const LIVE_BEFORE_MS = 3 * 3600_000, LIVE_AFTER_MS = 14 * 3600_000;
+export const inLiveWindow = (date: string | undefined, now = Date.now()) => {
+  const t = Date.parse(date ?? '');
+  return Number.isFinite(t) && now >= t - LIVE_BEFORE_MS && now <= t + LIVE_AFTER_MS;
+};

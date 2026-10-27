@@ -1,5 +1,6 @@
 import { keepPreviousData, queryOptions, useQuery } from '@tanstack/react-query';
 import type { BeltReign, BookedMap, EloFighter, DivisionAverages, EventDetail, EventListItem, FightDetail, FighterProfile, FighterRef, Rankings, RankingsMeta, SearchHit } from '@shared/types';
+import { inLiveWindow } from '@shared/format';
 
 export class ApiError extends Error {
   status: number;
@@ -25,7 +26,7 @@ export interface UpcomingEvent extends EventListItem {
 const MIN = 60_000;
 
 export const useUpcoming = (limit = 8) =>
-  useQuery({ queryKey: ['upcoming', limit], queryFn: () => get<UpcomingEvent[]>(`/api/upcoming?limit=${limit}`), staleTime: 5 * MIN, refetchInterval: 5 * MIN });
+  useQuery({ queryKey: ['upcoming', limit], queryFn: () => get<UpcomingEvent[]>(`/api/upcoming?limit=${limit}`), staleTime: 5 * MIN, refetchInterval: q => (q.state.data?.some(e => e.status === 'in' || inLiveWindow(e.date)) ? 15_000 : 5 * MIN), refetchOnWindowFocus: q => (q.state.data?.some(e => e.status === 'in') ? 'always' : false) });
 
 export const useSchedule = (year: number) =>
   useQuery({ queryKey: ['schedule', year], queryFn: () => get<EventListItem[]>(`/api/schedule?year=${year}`), staleTime: 10 * MIN, placeholderData: keepPreviousData });
@@ -37,18 +38,30 @@ export const eventQuery = (id?: string) => queryOptions({
   staleTime: MIN,
 });
 
-/** Durante um evento ao vivo, atualiza a cada 20 s. */
-export const useEvent = (id?: string) =>
-  useQuery({ ...eventQuery(id), refetchInterval: q => (q.state.data?.status === 'in' ? 20_000 : false) });
+/* Ao vivo = evento em andamento ou dentro da janela de início/fim (inLiveWindow). A janela vale também antes do
+   início, senão uma página aberta antes do card nunca perceberia que ele começou. Voltar para a aba atualiza na hora. */
+const EVENT_LIVE_MS = 10_000;
 
-/** Luta específica (estatísticas por alvo/posição e odds); ao vivo atualiza a cada 20 s. */
+/** Durante um evento ao vivo, atualiza a cada 10 s. */
+export const useEvent = (id?: string) =>
+  useQuery({
+    ...eventQuery(id),
+    refetchInterval: q => (q.state.data && (q.state.data.status === 'in' || inLiveWindow(q.state.data.date)) ? EVENT_LIVE_MS : false),
+    refetchOnWindowFocus: q => (q.state.data?.status === 'in' ? 'always' : false),
+  });
+
+/** Luta específica (estatísticas por alvo/posição e odds); ao vivo atualiza a cada 10 s. */
 export const useFight = (eventId?: string, fightId?: string) =>
   useQuery({
     queryKey: ['fight', eventId, fightId],
     queryFn: () => get<FightDetail>(`/api/events/${eventId}/fights/${fightId}`),
     enabled: !!eventId && !!fightId,
     staleTime: MIN,
-    refetchInterval: q => (q.state.data?.fight.status === 'in' ? 20_000 : false),
+    refetchInterval: q => {
+      const f = q.state.data?.fight;
+      return f && (f.status === 'in' || (f.status === 'pre' && inLiveWindow(f.date))) ? EVENT_LIVE_MS : false;
+    },
+    refetchOnWindowFocus: q => (q.state.data?.fight.status === 'in' ? 'always' : false),
   });
 
 export const fightHref = (eventId: string, fightId: string) => `/eventos/${eventId}/lutas/${fightId}`;
@@ -67,7 +80,25 @@ export const bonusQuery = (eventId?: string) => queryOptions({
   enabled: !!eventId,
   staleTime: 60 * MIN,
 });
-export const useBonuses = (eventId?: string) => useQuery(bonusQuery(eventId));
+/** Bônus do UFC: saem depois do card. Enquanto vierem vazios, pergunta de novo a cada 2 min (até 1 h aberto). */
+export const useBonuses = (eventId?: string) =>
+  useQuery({
+    ...bonusQuery(eventId),
+    staleTime: q => (q.state.data && (q.state.data.fight.length || q.state.data.performance.length) ? 60 * MIN : 30_000),
+    refetchInterval: q => {
+      const d = q.state.data;
+      return d && !d.fight.length && !d.performance.length && q.state.dataUpdateCount < 30 ? 2 * MIN : false;
+    },
+  });
+
+/** Último evento encerrado: o "como foi a noite" da home troca sozinho quando um card termina. */
+export const useLastEvent = (live: boolean) =>
+  useQuery({
+    queryKey: ['last-event'],
+    queryFn: () => get<{ id: string; date: string } | null>('/api/last-event'),
+    staleTime: live ? 10_000 : 5 * MIN,
+    refetchInterval: live ? 15_000 : 10 * MIN,
+  });
 
 /** Quem tem luta marcada (id ESPN → próxima luta), para a etiqueta "luta marcada" nas listas. */
 export const useBooked = () =>

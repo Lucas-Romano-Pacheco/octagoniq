@@ -1,7 +1,7 @@
 import { useEffect, useId, useState, type InputHTMLAttributes, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { Check, CircleNotch, Eye, EyeSlash, GoogleLogo, LockSimple, User, WarningCircle, X } from '@phosphor-icons/react';
+import { Check, CircleNotch, Eye, EyeSlash, GoogleLogo, LockSimple, User, WarningCircle, X } from '@/components/icons';
 import { clsx } from 'clsx';
 import { authError, googleEnabled, MIN_PASSWORD, safeNext, useAuth, usernameAvailable, USERNAME_RE } from '@/lib/supabase';
 import { POINTS } from '@/lib/picks';

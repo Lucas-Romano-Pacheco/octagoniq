@@ -1,17 +1,18 @@
 import { useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { clsx } from 'clsx';
-import { ArrowLeft, ArrowsClockwise, CaretDown, MapPin, Target } from '@phosphor-icons/react';
-import type { CardSegment, EventDetail, Fight, FighterRef } from '@shared/types';
-import { fighterHref, useEvent } from '@/lib/api';
+import { FaceOff } from '@/components/FaceOff';
+import { ArrowLeft, ArrowsClockwise, CaretDown, MapPin, Target } from '@/components/icons';
+import type { CardSegment, EventDetail, Fight } from '@shared/types';
+import { useEvent } from '@/lib/api';
 import { longDate, mmss, SEGMENT_LABEL, splitEventName, time } from '@/lib/format';
 import { cardSummary } from '@/lib/fights';
 import { FightRow } from '@/components/FightRow';
+import { VsCard } from '@/components/VsCard';
 import { NightStories } from '@/components/NightStories';
 import { LiveBar, useFightNotices, useLiveTitle } from '@/components/LiveBar';
 import { EventSkeleton } from '@/components/Skeletons';
-import { BeltIcon, Defer, ErrorState, FlagBackdrop, LiveTag, OctagonFrame, Panel, Tag, usePageTitle } from '@/components/kit';
-import { proxy } from '@/lib/img';
+import { BeltIcon, Defer, ErrorState, LiveTag, Panel, Segmented, Spotlight, Tag, usePageTitle } from '@/components/kit';
 
 /* ---------- Resumo da noite (faixa de placar) ---------- */
 
@@ -43,24 +44,18 @@ function Summary({ fights }: { fights: Fight[] }) {
 
 /* ---------- Topo em estilo pôster: luta principal em destaque ---------- */
 
-function Cutout({ f, right }: { f: FighterRef; right?: boolean }) {
-  const [failed, setFailed] = useState(false);
-  if (!f.bodyImage || failed) return null;
-  return (
-    <Link to={fighterHref(f)} aria-label={f.name} className={clsx('absolute bottom-0 h-[96%] w-[52%]', right ? 'right-0' : 'left-0')}>
-      <img src={proxy(f.bodyImage, 640)} alt={f.name} fetchPriority="high" decoding="async" onError={() => setFailed(true)}
-        className={clsx('absolute bottom-0 h-full w-auto max-w-none object-contain drop-shadow-[0_30px_40px_var(--cutout-shadow)] [mask-image:linear-gradient(to_bottom,black_82%,transparent)]',
-          right ? 'right-0 -scale-x-100' : 'left-0')} />
-    </Link>
-  );
-}
+/** Seção comum com a mesma assinatura do Spotlight (ignora `duel`). */
+const PlainSection = ({ duel: _duel, ...p }: React.HTMLAttributes<HTMLElement> & { duel?: boolean }) => <section {...p} />;
 
 function Poster({ e, live }: { e: EventDetail; live?: React.ReactNode }) {
   const { series, title } = splitEventName(e.name);
   const main = e.fights.find(f => f.order === 1) ?? e.fights[0];
   const hasCutouts = !!(main?.red.bodyImage || main?.blue.bodyImage);
+  // sem as fotos não há confronto para iluminar: vira uma seção comum
+  const Wrap = hasCutouts ? Spotlight : PlainSection;
   return (
-    <section className="grid items-end gap-8 lg:grid-cols-[1.1fr_1fr]">
+    // confronto com as fotos dos dois: brilho que segue o cursor, vermelho do lado esquerdo e azul do direito
+    <Wrap duel className={clsx('grid items-end gap-8 lg:grid-cols-[1.1fr_1fr]', hasCutouts && 'relative -mx-3 overflow-x-clip rounded-t-xl bg-cream px-3 pb-8 pt-3 sm:-mx-6 sm:px-6')}>
       <div className="min-w-0 pb-4">
         {(e.status === 'in' || e.status === 'post') && <div className="mb-4 flex flex-wrap items-center gap-2">{e.status === 'in' ? <LiveTag /> : <Tag>Encerrado</Tag>}</div>}
         <h1 className="display text-[44px] text-fg sm:text-[72px]">{title || series}</h1>
@@ -72,17 +67,10 @@ function Poster({ e, live }: { e: EventDetail; live?: React.ReactNode }) {
         {live}
       </div>
       {hasCutouts && main && (
-        <div className="relative mx-auto h-[300px] w-full max-w-[560px] sm:h-[400px]">
-          <OctagonFrame className="bottom-0 left-1/2 h-[92%] -translate-x-1/2">
-            <div className="absolute inset-0 bg-cream" />
-            <FlagBackdrop code={main.red.countryCode} shape="fade-right" className="inset-y-0 left-0 w-[62%] opacity-40 dark:opacity-30" />
-            <FlagBackdrop code={main.blue.countryCode} shape="fade-left" className="inset-y-0 right-0 w-[62%] opacity-40 dark:opacity-30" />
-          </OctagonFrame>
-          <Cutout f={main.red} />
-          <Cutout f={main.blue} right />
-        </div>
+        <FaceOff red={main.red} blue={main.blue} />
       )}
-    </section>
+      {hasCutouts && <span aria-hidden className="torn-edge" />}
+    </Wrap>
   );
 }
 
@@ -105,12 +93,14 @@ function SegmentNav({ e }: { e: EventDetail }) {
   );
 }
 
-function Segment({ e, seg }: { e: EventDetail; seg: CardSegment }) {
+type View = 'lista' | 'cartoes';
+
+function Segment({ e, seg, view }: { e: EventDetail; seg: CardSegment; view: View }) {
   const fights = e.fights.filter(f => f.segment === seg);
   const [open, setOpen] = useState(true);
   if (!fights.length) return null;
   return (
-    <Panel key={seg} bodyClass={clsx('divide-y divide-line/70 px-2 pb-2', !open && 'hidden')}
+    <Panel key={seg} bodyClass={clsx(view === 'lista' ? 'divide-y divide-line/70 px-2 pb-2' : 'px-3 pb-3', !open && 'hidden')}
       title={<h2 className="panel-title">{SEGMENT_LABEL[seg]} <span className="ml-2 align-middle font-sans text-[14px] font-semibold text-fg-3">{fights.length} lutas</span></h2>}
       action={
         <div className="flex items-center gap-2">
@@ -120,7 +110,9 @@ function Segment({ e, seg }: { e: EventDetail; seg: CardSegment }) {
           </button>
         </div>
       }>
-      {fights.map(f => <FightRow key={f.id} fight={f} eventId={e.id} />)}
+      {view === 'lista'
+        ? fights.map(f => <FightRow key={f.id} fight={f} eventId={e.id} />)
+        : <ul className="grid gap-3 pt-2 sm:grid-cols-2 lg:grid-cols-3">{fights.map((f, i) => <VsCard key={f.id} fight={f} eventId={e.id} i={i} />)}</ul>}
     </Panel>
   );
 }
@@ -132,6 +124,9 @@ export default function Event() {
   const { data: e, isPending: isLoading, isError, error, refetch, isFetching, dataUpdatedAt } = useEvent(id);
   const notices = useFightNotices(e);
   const [params] = useSearchParams();
+  // lista ou cartões em pôster: a escolha fica guardada neste navegador
+  const [view, setViewState] = useState<View>(() => { try { return localStorage.getItem('card-view') === 'cartoes' ? 'cartoes' : 'lista'; } catch { return 'lista'; } });
+  const setView = (v: View) => { setViewState(v); try { localStorage.setItem('card-view', v); } catch { /* sem armazenamento */ } };
   usePageTitle(e?.name);
   useLiveTitle(e); // depois do título da página: durante a luta, o título ao vivo vence
 
@@ -147,17 +142,20 @@ export default function Event() {
           Atualiza a cada 20 s · {new Date(dataUpdatedAt).toLocaleTimeString('pt-BR')}
         </div>
       )} />
-      {e.status === 'in' && <LiveBar e={e} notices={notices} />}
+      {e.status === 'in' && <LiveBar e={e} notices={notices} updatedAt={dataUpdatedAt} />}
       {e.status !== 'post' && (
         <Link to={`/palpites/${e.id}`} className="btn-primary w-fit"><Target weight="bold" className="h-5 w-5" /> Fazer meus palpites</Link>
       )}
       {e.status === 'post' && <NightStories ev={e} autoOpen={params.get('resumo') === '1'} />}
       <Summary fights={e.fights} />
+      <div className="flex justify-end">
+        <Segmented value={view} onChange={setView} options={[{ value: 'lista', label: 'Lista' }, { value: 'cartoes', label: 'Cartões' }]} />
+      </div>
       <SegmentNav e={e} />
       {ORDER.map((seg, i) => (
         // o id fica no invólucro (sempre presente): o menu fixo rola até ele mesmo com a seção ainda adiada
         <div key={seg} id={seg} className="scroll-mt-40">
-          {i === 0 ? <Segment e={e} seg={seg} /> : <Defer minHeight={e.fights.filter(f => f.segment === seg).length * 100 + 80} margin="700px"><Segment e={e} seg={seg} /></Defer>}
+          {i === 0 ? <Segment e={e} seg={seg} view={view} /> : <Defer minHeight={e.fights.filter(f => f.segment === seg).length * 100 + 80} margin="700px"><Segment e={e} seg={seg} view={view} /></Defer>}
         </div>
       ))}
     </div>

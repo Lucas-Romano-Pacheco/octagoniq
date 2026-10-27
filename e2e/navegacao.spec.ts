@@ -33,7 +33,7 @@ test('tela de entrada: anima, espera a pessoa e leva ao início', async ({ page 
 test('início mostra o próximo evento e leva ao card completo', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-  await page.getByRole('link', { name: /Ver as \d+ lutas/ }).click();
+  await page.getByRole('link', { name: 'Ver o card' }).click();
   await expect(page).toHaveURL(/\/eventos\/\d+/);
   await expect(page.getByRole('heading', { name: 'Card principal' })).toBeVisible();
   await semRolagemLateral(page);
@@ -75,7 +75,10 @@ test('comparador mostra o placar de vantagens', async ({ page }) => {
 });
 
 test('palpite: escolher o vencedor conta no placar do card', async ({ page }) => {
-  await page.goto('/palpites');
+  // os palpites de um evento já em andamento ficam fechados: usa o próximo que ainda não começou
+  const proximos = await (await page.request.get('/api/upcoming?limit=10')).json();
+  const aberto = proximos.find((e: { status: string; series: string }) => e.status === 'pre' && e.series !== 'dwcs');
+  await page.goto(`/palpites/${aberto.id}`);
   const escolha = page.locator('button[aria-label^="Vencedor:"]:enabled').first();
   await escolha.click();
   await expect(escolha).toHaveAttribute('aria-pressed', 'true');

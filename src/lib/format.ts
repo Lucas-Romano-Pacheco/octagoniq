@@ -70,4 +70,16 @@ export function weightPhrase(wc: string) {
 
 export const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
+/** "sábado, 24 de outubro" (sem o ano: o texto corrido da home não precisa dele). */
+export const dayLong = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'America/Sao_Paulo' });
+/** "sábado" */
+export const weekdayLong = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { weekday: 'long', timeZone: 'America/Sao_Paulo' });
+
+/** Distância em dias, em frase: "hoje", "amanhã", "daqui a 6 dias". */
+export function inDays(iso: string, now = Date.now()) {
+  const day = (ms: number) => Math.floor((ms - 3 * 3600_000) / 86_400_000); // dias no horário de Brasília
+  const d = day(Date.parse(iso)) - day(now);
+  return d <= 0 ? 'hoje' : d === 1 ? 'amanhã' : `daqui a ${d} dias`;
+}
+
 export const SEGMENT_LABEL = { main: 'Card principal', prelims: 'Preliminares', early: 'Preliminares iniciais' } as const;

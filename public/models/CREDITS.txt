@@ -1,4 +1,0 @@
-fighter.glb
-Origem: "Universal Base Characters" (Superhero_Male_FullBody), por Quaternius — https://quaternius.itch.io/universal-base-characters
-Licença: CC0 1.0 Universal (domínio público) — https://creativecommons.org/publicdomain/zero/1.0/
-Alterações: só o corpo (sem olhos, sobrancelhas e texturas), geometria quantizada e comprimida (meshopt).

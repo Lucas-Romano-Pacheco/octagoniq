@@ -59,8 +59,9 @@
   --loss-soft: oklch(94.2% 0.023 14.3);
   --draw: oklch(55.4% 0.117 75.0);
   --draw-soft: oklch(96.2% 0.051 91.4);
-  --shadow-soft: 0 0 0 1px rgb(20 24 62 / 0.08), 0 2px 0 rgb(20 24 62 / 0.06);
-  --shadow-lift: 0 0 0 1px rgb(20 24 62 / 0.10), 0 3px 0 rgb(20 24 62 / 0.10);
+  /* caixas no padrão do template de referência: sombra larga e suave, sem borda dura */
+  --shadow-soft: 0 2px 6px rgb(20 24 62 / 0.04), 0 8px 28px rgb(20 24 62 / 0.07);
+  --shadow-lift: 0 4px 10px rgb(20 24 62 / 0.06), 0 16px 40px rgb(20 24 62 / 0.12);
   --shadow-pop: 0 24px 64px -16px rgb(20 24 62 / 0.28), 0 0 0 1px rgb(20 24 62 / 0.06);
   --shadow-cta: 0 10px 24px -10px rgb(20 24 62 / 0.45);
   --cutout-shadow: rgb(20 24 62 / 0.25);
@@ -108,8 +109,8 @@
   --loss-soft: oklch(71.3% 0.181 20.1 / 0.14);
   --draw: oklch(84.4% 0.151 87.9);
   --draw-soft: oklch(84.4% 0.151 87.9 / 0.15);
-  --shadow-soft: 0 0 0 1px rgb(255 255 255 / 0.08), 0 2px 0 rgb(0 0 0 / 0.4);
-  --shadow-lift: 0 0 0 1px rgb(255 255 255 / 0.10), 0 3px 0 rgb(0 0 0 / 0.5);
+  --shadow-soft: 0 0 0 1px rgb(255 255 255 / 0.05), 0 10px 30px rgb(0 0 0 / 0.35);
+  --shadow-lift: 0 0 0 1px rgb(255 255 255 / 0.07), 0 18px 44px rgb(0 0 0 / 0.5);
   --shadow-pop: 0 24px 64px -16px rgb(0 0 0 / 0.7), 0 0 0 1px rgb(255 255 255 / 0.06);
   --shadow-cta: 0 10px 24px -10px rgb(0 0 0 / 0.6);
   --cutout-shadow: rgb(0 0 0 / 0.55);
@@ -157,10 +158,10 @@
 }
 
 @theme {
-  --font-sans: "IBM Plex Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Montserrat Variable", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Archivo Narrow", "Arial Narrow", ui-sans-serif, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
-  --radius-card: 6px;
+  --radius-card: 20px;
   --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -247,13 +248,11 @@
 @layer components {
   /* Cartão padrão: branco, arredondado, sombra difusa */
   /* Painel: superfície sólida com borda firme e sem sombra (sombra só no que flutua: tooltips, menus, painel de salvar) */
-  .panel { @apply rounded-[var(--radius-card)] bg-surface ring-1 ring-line; }
-  /* G2: cantos chanfrados a 45° (cantos de octógono). corner-shape mantém sombra e anel, que um clip-path cortaria;
-     onde não há suporte (Firefox, Safari), o canto continua arredondado. `.cut` aplica o mesmo a outros cartões. */
-  @supports (corner-shape: bevel) {
-    .panel, .cut { corner-shape: bevel; }
-    .panel { border-radius: 6px; }
-  }
+  /* Caixa no padrão do template de referência: cantos bem arredondados (20px), fundo sólido e sombra larga e suave,
+     sem borda dura. Imagens dentro de caixas ficam com margem interna e cantos próprios (.inset-media). */
+  .panel { @apply rounded-[var(--radius-card)] bg-surface shadow-[var(--shadow-soft)]; }
+  .cut { border-radius: var(--radius-card); }
+  .inset-media { @apply m-2 overflow-hidden rounded-[14px]; }
   /* Seção editorial, sem card: régua grossa no topo e conteúdo direto no fundo (como página de jornal esportivo).
      Card fica reservado para o que é clicável ou para os duelos. */
   .rule { @apply border-t-[3px] border-fg pt-4; }
@@ -275,14 +274,15 @@
     mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
   }
   @media (hover: hover) { .spotlight:hover::before, .spotlight:hover::after { opacity: 1; } }
-  /* brilho do destaque da página inicial, só quando a luta principal vale cinturão (dourado = título):
+  /* brilho dourado do destaque da página inicial (mais intenso quando a luta principal vale cinturão):
      largura da janela, sem bordas (esmaece em cima e embaixo) */
   .hero-glow {
     position: absolute; z-index: -1; pointer-events: none; top: -160px; bottom: -120px; left: 50%; width: 100vw; transform: translateX(-50%);
     opacity: 0; transition: opacity .6s ease;
-    background: radial-gradient(700px circle at var(--mx, 50%) var(--my, 50%), color-mix(in oklab, var(--color-gold) 10%, transparent), transparent 70%);
+    background: radial-gradient(700px circle at var(--mx, 50%) var(--my, 50%), color-mix(in oklab, var(--color-gold) 7%, transparent), transparent 70%);
     mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 78%, transparent);
   }
+  .hero-glow[data-title] { background: radial-gradient(700px circle at var(--mx, 50%) var(--my, 50%), color-mix(in oklab, var(--color-gold) 11%, transparent), transparent 70%); }
 
   /* Eyebrow: caixa-alta vermelha, como nas seções do layout de referência */
   /* rótulo acima do título, com um traço fino depois (como nas artes de luta) */
@@ -294,9 +294,10 @@
 
   .num { font-variant-numeric: tabular-nums; }
   /* números de dados em fonte de largura fixa (os números grandes de título continuam na Archivo Narrow) */
-  .num:not(.display):not(.font-display) { font-family: "IBM Plex Mono", ui-monospace, monospace; letter-spacing: -0.01em; }
+  /* monoespaçada só nas odds (são um código de aposta); os demais números usam a fonte do texto com algarismos
+     tabulares: "monoespaçada para todo número" virou marca de interface gerada */
+  .odds { font-family: "IBM Plex Mono", ui-monospace, monospace; letter-spacing: -0.01em; }
   /* datas e contagens no letreiro e no menu continuam na fonte de texto (em fonte fixa pareciam código) */
-  .ticker .num:not(.display):not(.font-display), header .num:not(.display):not(.font-display) { font-family: inherit; letter-spacing: normal; }
 
   /* Botões: ao passar o mouse sobem 1px, ganham sombra (relevo) e a cor muda de leve; ao clicar, "afundam". */
   .btn { @apply inline-flex h-10 items-center gap-2 rounded-md border border-line-2 bg-surface px-5 font-sans text-[14px] font-semibold text-fg shadow-[0_1px_0_var(--color-line-2)] transition duration-150 hover:-translate-y-px hover:border-fg/25 hover:bg-surface-2 hover:shadow-[var(--shadow-soft)] active:translate-y-0 active:scale-[0.96] active:shadow-none disabled:pointer-events-none disabled:opacity-50; }
@@ -364,7 +365,14 @@
 }
 
 /* G7: transições entre páginas (View Transitions API). Página: fade curto; foto do lutador: voa da lista ao perfil. */
-::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.22s; }
+/* troca de página: a antiga sai rápida (só esmaece), a nova entra subindo um pouco; saída mais curta que a entrada */
+@keyframes vt-out { to { opacity: 0; } }
+@keyframes vt-in { from { opacity: 0; transform: translateY(8px); } }
+::view-transition-old(root) { animation: vt-out 0.14s cubic-bezier(0.4, 0, 1, 1) both; }
+::view-transition-new(root) { animation: vt-in 0.26s cubic-bezier(0.22, 1, 0.36, 1) both; }
+/* o cabeçalho fica parado na troca de página (só o conteúdo transita) */
+.site-header { view-transition-name: site-header; }
+::view-transition-group(site-header), ::view-transition-old(site-header), ::view-transition-new(site-header) { animation: none; }
 ::view-transition-group(fighter-photo) { animation-duration: 0.45s; animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
 /* a linha da luta abre a página da luta: as fotos dos cantos viajam até o topo */
 ::view-transition-group(fight-a), ::view-transition-group(fight-b) { animation-duration: 0.5s; animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
@@ -416,6 +424,48 @@ html.entering .page-stage { animation: page-in 0.5s var(--ease-out-soft) 0.12s b
 }
 .champ-card[data-active='true'] { transform: none; opacity: 1; filter: none; box-shadow: var(--shadow-lift); }
 .champ-card:not([data-active='true']):hover { opacity: 0.75; }
+
+/* Topo do perfil (Fighter.tsx): sobrenome gigante deslizando e a grade do octógono girando, bem devagar. */
+@keyframes name-drift { to { transform: translateX(-50%); } }
+.fighter-name-marquee { animation: name-drift 70s linear infinite; }
+@keyframes octagon-turn { to { transform: rotate(360deg); } }
+.octagon-spin { animation: octagon-turn 140s linear infinite; }
+.octagon-spin-rev { animation: octagon-turn 180s linear infinite reverse; }
+@media (prefers-reduced-motion: reduce) { .fighter-name-marquee, .octagon-spin, .octagon-spin-rev { animation: none; } }
+
+/* nome sublinhado com barra grossa (estilo Roark): cresce da esquerda ao abrir; acompanha a quebra de linha */
+.name-bar {
+  background: linear-gradient(var(--bar, var(--color-brand)), var(--bar, var(--color-brand))) no-repeat left bottom / 100% 0.09em;
+  display: inline-block; padding-bottom: 0.06em; margin-bottom: 0.1em; box-decoration-break: clone; -webkit-box-decoration-break: clone;
+  animation: name-bar-in 0.9s var(--ease-out-soft) 0.35s both;
+}
+@keyframes name-bar-in { from { background-size: 0% 0.09em; } }
+@media (prefers-reduced-motion: reduce) { .name-bar { animation: none; } }
+
+/* corte rasgado entre seções (estilo FNT): borda irregular na base de um bloco de destaque */
+.torn-edge {
+  position: absolute; inset-inline: 0; bottom: -1px; height: 22px; background: var(--color-bg); pointer-events: none; z-index: 5;
+  clip-path: polygon(0 100%, 0.0% 51%, 3.1% 60%, 5.6% 19%, 8.4% 22%, 10.4% 17%, 13.4% 37%, 14.7% 65%, 16.7% 40%, 18.1% 64%, 19.4% 25%, 22.5% 17%, 24.9% 60%, 26.2% 38%, 27.4% 27%, 29.2% 28%, 31.5% 49%, 33.8% 33%, 35.2% 34%, 37.2% 18%, 39.5% 36%, 41.7% 64%, 44.5% 69%, 46.8% 68%, 48.7% 41%, 51.5% 41%, 52.9% 48%, 55.1% 53%, 57.8% 46%, 60.2% 19%, 61.7% 63%, 63.2% 53%, 64.7% 72%, 66.7% 19%, 69.5% 50%, 71.3% 54%, 73.7% 68%, 75.1% 21%, 78.2% 70%, 80.8% 18%, 82.1% 49%, 84.6% 67%, 86.3% 59%, 89.3% 54%, 90.6% 69%, 92.5% 24%, 94.7% 37%, 97.4% 26%, 100% 40%, 100% 100%);
+}
+
+/* "VS" alto em degradê vermelho que some para baixo (cartões de luta) */
+.vs-fade {
+  background: linear-gradient(to bottom, var(--color-red) 30%, color-mix(in oklab, var(--color-red) 0%, transparent));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* Luta aberta pelo link do perfil: um contorno vermelho que acende e some (uma vez) */
+@keyframes pick-target { 0%, 60% { box-shadow: 0 0 0 3px var(--color-brand); } 100% { box-shadow: 0 0 0 3px transparent; } }
+.pick-target { border-radius: 16px; animation: pick-target 2.4s var(--ease-out-soft) 0.6s both; }
+@media (prefers-reduced-motion: reduce) { .pick-target { animation: none; box-shadow: 0 0 0 3px var(--color-brand); } }
+
+/* troca de tema: nada anima por um instante (src/lib/theme.ts) */
+/* biome-ignore lint/complexity/noImportantStyles: precisa vencer todas as transições do site durante a troca */
+.theme-switching, .theme-switching * { transition: none !important; }
+
+/* WCAG 2.2, 2.4.11 (foco não escondido): ao navegar com Tab ou ir a uma âncora, a rolagem reserva a altura do cabeçalho
+   fixo, para ele não cobrir o elemento focado */
+html { scroll-padding-top: 104px; }
 
 /* Calendário: células entram em cascata */
 @keyframes cell-in { from { opacity: 0; transform: translateY(10px) scale(0.97); } to { opacity: 1; transform: none; } }

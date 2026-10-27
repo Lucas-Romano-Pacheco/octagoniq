@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { ChartLineUp } from '@phosphor-icons/react';
+import { ChartLineUp } from '@/components/icons';
 import type { EloFighter } from '@shared/types';
 import { slugify } from '@shared/format';
 import { fighterHref, useEloFighter, useEloRanking } from '@/lib/api';

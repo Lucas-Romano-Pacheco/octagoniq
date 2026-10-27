@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { clsx } from 'clsx';
 import { motion } from 'motion/react';
-import { Gavel, SignIn } from '@phosphor-icons/react';
+import { Gavel, SignIn } from '@/components/icons';
 import type { FightDetail } from '@shared/types';
 import { NOTES, scorableRounds, useFanSummary, useMyNotes, useSaveNote, type RoundNote } from '@/lib/fanscore';
 import { lastName } from '@/lib/format';

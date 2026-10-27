@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { clsx } from 'clsx';
-import { CircleNotch, Crown, MagnifyingGlass } from '@phosphor-icons/react';
+import { CircleNotch, Crown, MagnifyingGlass } from '@/components/icons';
 import { Command as CommandPrimitive } from 'cmdk';
 import { fighterHref, useRankings, useSearch } from '@/lib/api';
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';

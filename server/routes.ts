@@ -38,7 +38,7 @@ async function withHistoricalOdds(ev: EventDetail): Promise<EventDetail> {
 /** Evento completo (títulos + odds históricas). Única função que grava a chave `event:v6:id`: as rotas do evento
     e da luta compartilhavam a chave com conteúdos diferentes, e quem chegava primeiro deixava o cache sem odds. */
 export const eventFull = (id: string) =>
-  remember(`event:v7:${id}`, 15_000, async () => { const d = await espn.eventDetail(id); return d && withMainCutouts(await withHistoricalOdds(await withTitles(d))); });
+  remember(`event:v7:${id}`, 8_000, async () => { const d = await espn.eventDetail(id); return d && withMainCutouts(await withHistoricalOdds(await withTitles(d))); });
 
 /** Recortes de corpo inteiro (UFC.com) da luta principal, para o topo do evento em estilo pôster. */
 async function withMainCutouts(ev: EventDetail): Promise<EventDetail> {
@@ -218,8 +218,12 @@ const routes: [RegExp, Handler][] = [
   // Próximos eventos já com a luta principal (para a barra superior e a home)
   [/^\/api\/upcoming$/, async (_, q) => {
     const limit = Math.min(Number(q.get('limit')) || 8, 20);
-    const body = await remember(`upcoming:v2:${limit}`, 5 * MIN, async () => {
-      const list = await upcoming(limit);
+    // com evento na janela ao vivo o destaque e a faixa do topo se renovam a cada 15 s (a chave muda junto,
+    // então a troca de modo é imediata); fora dela, a cada 5 min
+    const near = await espn.liveNow().catch(() => false);
+    const body = await remember(`upcoming:v3:${limit}:${near ? 'live' : 'idle'}`, near ? 15_000 : 5 * MIN, async () => {
+      // pede alguns a mais: um evento já encerrado sai da lista (o banner passa para o próximo) e o limite continua valendo
+      const list = await upcoming(limit + 3);
       const details = await Promise.all(list.map(e => espn.eventDetail(e.id).then(d => d && withTitles(d)).catch(() => null)));
       // recortes de corpo inteiro da luta principal (UFC.com), para o destaque da home
       const bodies = await Promise.all(details.map(d => d?.fights[0]
@@ -230,15 +234,30 @@ const routes: [RegExp, Handler][] = [
         const f0 = d?.fights[0];
         const main = f0 && { ...f0, red: { ...f0.red, bodyImage: bodies[i][0] }, blue: { ...f0.blue, bodyImage: bodies[i][1] } };
         return { ...e, status: d?.status ?? 'pre', venue: d?.venue, city: d?.city, country: d?.country, fightCount: d?.fights.length ?? 0, main: main ? { red: main.red, blue: main.blue, weightClass: main.weightClass, title: main.title } : undefined };
-      });
+      }).filter(e => e.status !== 'post').slice(0, limit);
     });
-    return ok(body, 60);
+    return ok(body, near ? 8 : 60);
+  }],
+
+  /* Último evento encerrado (status "post"), para o "como foi a noite" da home. Dentro da janela ao vivo é recalculado a
+     cada 15 s, então o box troca sozinho assim que o card termina. */
+  [/^\/api\/last-event$/, async () => {
+    const near = await espn.liveNow().catch(() => false);
+    const body = await remember(`last-event:v1:${near ? 'live' : 'idle'}`, near ? 15_000 : 10 * MIN, async () => {
+      const past = (await espn.schedule(thisYear())).filter(e => e.series !== 'dwcs' && Date.parse(e.date) < Date.now()).reverse();
+      for (const e of past.slice(0, 4)) {
+        const d = await espn.eventDetail(e.id).catch(() => null);
+        if (d?.status === 'post') return { id: e.id, date: e.date };
+      }
+      return null;
+    });
+    return ok(body, near ? 8 : 60);
   }],
 
   [/^\/api\/events\/(?<id>\d+)$/, async ({ id }) => {
     const ev = await eventFull(id);
     if (!ev) return notFound('Evento não encontrado');
-    return ok(ev, ev.status === 'in' ? 15 : 120);
+    return ok(ev, ev.status === 'in' || espn.inLiveWindow(ev.date) ? 8 : 120);
   }],
 
   // luta específica: estatísticas de cada lado (alvo, posição, quedas) + odds; recortes de corpo inteiro do UFC.com
@@ -258,12 +277,13 @@ const routes: [RegExp, Handler][] = [
         : [null, null];
       return { ...f, scorecards: scorecards ?? undefined, rounds: rounds ?? undefined, fight: { ...f.fight, title, odds: f.fight.odds ?? evFight?.odds }, red: { ...f.red, bodyImage: rb }, blue: { ...f.blue, bodyImage: bb } };
     });
-    return d ? ok(d, d.fight.status === 'in' ? 15 : 300) : notFound('Luta não encontrada');
+    return d ? ok(d, d.fight.status === 'in' || espn.inLiveWindow(d.fight.date ?? "") ? 8 : 300) : notFound('Luta não encontrada');
   }],
   [/^\/api\/events\/(?<id>\d+)\/bonuses$/, async ({ id }) => {
     const ev = await eventFull(id);
     const b = ev && ev.status === 'post' ? await tracker.eventBonuses(ev.name, ev.date) : null;
-    return ok(b ?? { fight: [], performance: [] }, 3600);
+    // sem bônus ainda (o UFC publica depois do card): não guardar a resposta vazia por muito tempo
+    return b ? ok(b, 600) : ok({ fight: [], performance: [] }, 60);
   }],
   [/^\/api\/rankings$/, async () => ok(await officialRankings(), 600)],
   [/^\/api\/rankings\/meta$/, async () => ok(await rankingsMeta(), 3600)],
@@ -290,6 +310,19 @@ const routes: [RegExp, Handler][] = [
   }],
 
   [/^\/api\/search$/, async (_, q) => ok(await espn.search(q.get('q') ?? ''), 3600)],
+
+  // plantel inteiro de um país (Wikipédia), não só os ranqueados
+  [/^\/api\/roster\/(?<iso>[A-Z]{3})$/, async ({ iso }) => {
+    const list = await wiki.rosterByCountry(iso);
+    return list ? ok(list, 3600) : { status: 502, body: { error: 'Lista indisponível' }, maxAge: 60 };
+  }],
+
+  // foto alternativa (UFC.com, corpo inteiro) para quem ainda não tem retrato na ESPN (estreantes)
+  [/^\/api\/photo\/(?<slug>[a-z0-9-]+)$/, async ({ slug }) => {
+    const page = await ufc.athletePage(slug).catch(() => null);
+    const src = page?.bio.bodyImage;
+    return src ? ok({ src }, 86_400) : { status: 404, body: { error: 'sem foto' }, maxAge: 3600 };
+  }],
 
   [/^\/api\/fighters\/(?<slug>[a-z0-9-]+)$/, async ({ slug }, q) => {
     const profile = await fighterProfile(slug, q.get('espn'));

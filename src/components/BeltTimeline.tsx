@@ -1,10 +1,12 @@
-import { useState } from 'react';
-import { motion } from 'motion/react';
-import { Crown } from '@phosphor-icons/react';
+import { useEffect, useRef, useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
+import { useQuery } from '@tanstack/react-query';
+import { Crown } from '@/components/icons';
 import type { BeltReign } from '@shared/types';
-import { useBeltHistory } from '@/lib/api';
+import { fighterHref, useBeltHistory } from '@/lib/api';
 import { fullDate } from '@/lib/format';
-import { Panel, Tip } from './kit';
+import { Avatar, Panel, Segmented, Tip } from './kit';
+import { PolaroidFrame, sagPath } from './CareerBoard';
 
 /* Linha do tempo do cinturão (D6): cada reinado é um trecho da faixa, do tamanho do tempo com o título; os vãos são
    períodos de cinturão vago. O reinado atual fica em dourado (a cor do título no site). Fonte: Wikipédia (CC BY-SA). */
@@ -15,10 +17,61 @@ const daysOf = (r: BeltReign) => Math.max(1, Math.round((endOf(r) - Date.parse(r
 const span = (d: number) => (d >= 365 ? `${(d / 365).toFixed(1).replace('.', ',')} anos` : `${d} dias`);
 const surname = (n: string) => n.split(' ').slice(-1)[0];
 
+/** Polaroide de um reinado: o retrato vem da busca por nome (ESPN) e a foto leva ao perfil. */
+function ReignPolaroid({ r, rot, active }: { r: BeltReign; rot: number; active: boolean }) {
+  const { data } = useQuery({
+    queryKey: ['search-photo', r.name],
+    queryFn: () => fetch(`/api/search?q=${encodeURIComponent(r.name)}`).then(x => (x.ok ? (x.json() as Promise<{ slug: string; espnId: string; headshot?: string }[]>) : [])),
+    staleTime: Infinity,
+  });
+  const hit = data?.[0];
+  const y = new Date(r.start).getUTCFullYear(), y2 = r.incumbent ? 'hoje' : new Date(endOf(r)).getUTCFullYear();
+  return (
+    <PolaroidFrame rot={rot} gold={r.incumbent} active={active} to={hit ? fighterHref({ slug: hit.slug, espnId: hit.espnId }) : undefined}
+      photo={<Avatar src={hit?.headshot} name={r.name} size={110} className="!ring-0" />}
+      title={<span className="flex items-center gap-1">{r.incumbent && <Crown weight="fill" className="h-3.5 w-3.5 shrink-0 text-gold-ink" />}<span className="truncate">{r.name}</span></span>}
+      lines={[`${r.n}º campeão · ${r.defenses} ${r.defenses === 1 ? 'defesa' : 'defesas'}`, `${y}${y2 !== y ? `–${y2}` : ''} · ${span(daysOf(r))}`]} />
+  );
+}
+
+/** Mural dos reinados: da esquerda (o primeiro) para a direita (o atual), presos por uma linha vermelha; rola na
+    horizontal e o reinado clicado na faixa vem para o meio. */
+function ReignBoard({ data, focus }: { data: BeltReign[]; focus: string | null }) {
+  const reduce = useReducedMotion();
+  const ref = useRef<HTMLDivElement>(null);
+  const W = 190, n = data.length, width = n * W + 40;
+  const pts = data.map((_, i) => ({ x: ((20 + W / 2 + i * W) / width) * 100, y: i % 2 ? 38 : 5 }));
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const i = focus ? data.findIndex(r => `${r.n}-${r.start}` === focus) : n - 1; // sem foco, começa no atual
+    if (i >= 0) el.scrollTo({ left: 20 + i * W + W / 2 - el.clientWidth / 2, behavior: focus ? 'smooth' : 'auto' });
+  }, [focus, data, n]);
+  return (
+    <div ref={ref} className="no-scrollbar -mx-2 overflow-x-auto rounded-[var(--radius-card)] bg-[#ebe8e1] dark:bg-[#24283f]"
+      style={{ backgroundImage: 'linear-gradient(rgba(20,24,62,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(20,24,62,0.06) 1px, transparent 1px)', backgroundSize: '28px 28px' }}>
+      <div className="relative h-[470px]" style={{ width }}>
+        <svg aria-hidden viewBox="0 0 100 100" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 z-[1] h-full w-full overflow-visible">
+          <motion.path d={sagPath(pts, 10)} fill="none" stroke="var(--color-brand)" strokeWidth="2" vectorEffect="non-scaling-stroke" strokeLinecap="round"
+            initial={reduce ? false : { pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.6, ease: [0.65, 0, 0.35, 1] }} />
+        </svg>
+        {data.map((r, i) => (
+          <motion.div key={`${r.n}-${r.start}`} className="absolute z-[2] -translate-x-1/2" style={{ left: `${pts[i].x}%`, top: `calc(${pts[i].y}% + 6px)` }}
+            initial={reduce ? false : { opacity: 0, y: -14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + Math.min(i, 20) * 0.06, type: 'spring', stiffness: 300, damping: 20 }}>
+            <ReignPolaroid r={r} rot={[-4, 3, -2, 5, -3, 2][i % 6]} active={focus === `${r.n}-${r.start}`} />
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function BeltTimeline({ division }: { division: string }) {
   const { data } = useBeltHistory(division);
   const [all, setAll] = useState(false);
   const [focus, setFocus] = useState<string | null>(null);
+  const [view, setViewState] = useState<'lista' | 'mural'>(() => { try { return localStorage.getItem('belt-view') === 'mural' ? 'mural' : 'lista'; } catch { return 'lista'; } });
+  const setView = (v: 'lista' | 'mural') => { setViewState(v); try { localStorage.setItem('belt-view', v); } catch { /* sem armazenamento */ } };
   if (!data?.length) return null;
   const t0 = Date.parse(data[0].start), t1 = Date.now(), total = t1 - t0;
   const pos = (t: number) => ((t - t0) / total) * 100;
@@ -58,8 +111,13 @@ export function BeltTimeline({ division }: { division: string }) {
         {ticks.map(y => <span key={y} className="num absolute -translate-x-1/2" style={{ left: `${pos(Date.UTC(y, 0, 1))}%` }}>{y}</span>)}
       </div>
 
+      <div className="mt-8 flex justify-end">
+        <Segmented value={view} onChange={setView} options={[{ value: 'lista', label: 'Lista' }, { value: 'mural', label: 'Mural' }]} />
+      </div>
+      {view === 'mural' ? <div className="mt-4"><ReignBoard data={data} focus={focus} />
+        {data.length > 3 && <p className="mt-2 text-[13px] text-fg-3">Arraste para o lado para ver os reinados anteriores, ou clique num trecho da faixa.</p>}</div> : <>
       {/* recordes e os últimos reinados */}
-      <div className="mt-8 grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
+      <div className="mt-4 grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
         <dl className="space-y-3">
           <div><dt className="label">Reinado mais longo</dt><dd className="mt-1 text-[16px] font-semibold text-fg">{longest.name} <span className="font-normal text-fg-3">· {span(daysOf(longest))}</span></dd></div>
           <div><dt className="label">Mais defesas</dt><dd className="mt-1 text-[16px] font-semibold text-fg">{mostDef.name} <span className="font-normal text-fg-3">· {mostDef.defenses} defesas</span></dd></div>
@@ -85,6 +143,7 @@ export function BeltTimeline({ division }: { division: string }) {
           </button>
         </div>
       )}
+      </>}
       <p className="mt-3 text-[13px] text-fg-3">Fonte: <a href="https://en.wikipedia.org/wiki/List_of_UFC_champions" target="_blank" rel="noreferrer" className="underline underline-offset-4">Wikipédia, List of UFC champions</a> (CC BY-SA). Os vãos na faixa são períodos com o cinturão vago; interinos não entram.</p>
     </Panel>
   );

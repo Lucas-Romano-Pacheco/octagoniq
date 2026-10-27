@@ -11,7 +11,7 @@ const C = {
   method: { ko: '#d03a7c', sub: '#0c7a55', dec: '#7445d6' } as Record<string, string>,
 };
 const DISPLAY = '"Archivo Narrow", "Arial Narrow", sans-serif';
-const SANS = '"IBM Plex Sans Variable", system-ui, sans-serif';
+const SANS = '"Montserrat Variable", system-ui, sans-serif';
 const last = (n: string) => n.split(' ').slice(-1)[0];
 
 function loadImage(src?: string): Promise<HTMLImageElement | null> {

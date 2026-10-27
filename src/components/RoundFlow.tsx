@@ -3,6 +3,7 @@ import type { FightDetail, RoundStat } from '@shared/types';
 import { roundEdge } from '@/lib/fights';
 import { lastName } from '@/lib/format';
 import { CORNER, CORNER_INK, CORNER_FILL } from './Duel';
+import { ChartTable } from './ChartTable';
 import { Panel, Tip } from './kit';
 
 /* Domínio por round: cada round é uma barra para o lado de quem levou vantagem (golpes, knockdowns, quedas e
@@ -15,6 +16,8 @@ function Detail({ r, a, b }: { r: RoundStat; a: string; b: string }) {
   const line = (n: string, s: RoundStat['red']) => `${n}: ${s.sig} golpes sig. · ${s.td} quedas · ${mmss(s.ctrl)} de controle${s.kd ? ` · ${s.kd} knockdown${s.kd > 1 ? 's' : ''}` : ''}`;
   return <>{line(a, r.red)}<br />{line(b, r.blue)}</>;
 }
+
+const clock = (t: number) => `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
 
 export function RoundFlow({ d }: { d: FightDetail }) {
   const rounds = d.rounds;
@@ -39,6 +42,7 @@ export function RoundFlow({ d }: { d: FightDetail }) {
         <span className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-md" style={{ background: CORNER.b }} />{b} (para baixo)</span>
         <span className="flex items-center gap-2"><span className="h-0.5 w-4 rounded bg-fg" />Vantagem acumulada</span>
       </div>
+      <ChartTable className="mt-3" chart={
       <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 w-full" role="img"
         aria-label={`Domínio por round: ${rounds.map((r, i) => `round ${r.n} ${edges[i] > 0 ? a : edges[i] < 0 ? b : 'equilibrado'}`).join(', ')}`}>
         <line x1={PAD} x2={W - PAD} y1={MID} y2={MID} stroke="var(--color-line-2)" strokeWidth="1.5" />
@@ -64,6 +68,15 @@ export function RoundFlow({ d }: { d: FightDetail }) {
           initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.9, delay: 0.3 }} />
         {cum.map((v, i) => <circle key={i} cx={x(i)} cy={y(v)} r="5" fill="var(--color-surface)" stroke="var(--color-fg)" strokeWidth="2.5" />)}
       </svg>
+      } table={{
+        caption: `Round a round: ${a} × ${b} (golpes significativos, quedas, knockdowns e controle)`,
+        head: ['Round', 'Golpes sig.', 'Quedas', 'Knockdowns', 'Controle', 'Vantagem'],
+        rows: rounds.map((r, i) => ({
+          label: `R${r.n}`,
+          cells: [`${r.red.sig} × ${r.blue.sig}`, `${r.red.td} × ${r.blue.td}`, `${r.red.kd} × ${r.blue.kd}`, `${clock(r.red.ctrl)} × ${clock(r.blue.ctrl)}`,
+            Math.round(edges[i]) === 0 ? 'equilibrado' : `${edges[i] > 0 ? a : b} +${Math.round(Math.abs(edges[i]))}`],
+        })),
+      }} />
       <p className="mt-2 max-w-[60ch] text-[14px] text-fg-2">
         {lead ? <><b className="text-fg" style={{ color: lead === d.red ? CORNER_INK.a : CORNER_INK.b }}>{lastName(lead.name)}</b> dominou no acumulado</> : 'Luta equilibrada no acumulado'}
         {rounds.length > 1 && <>; venceu {edges.filter(e => (lead === d.blue ? e < 0 : e > 0)).length} de {rounds.length} rounds pela régua.</>}

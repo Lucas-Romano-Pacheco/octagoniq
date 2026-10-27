@@ -1,14 +1,13 @@
+import { LiveScoreboard } from './LiveScoreboard';
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
-import { CheckCircle, Lightning, Play } from '@phosphor-icons/react';
 import type { EventDetail, Fight } from '@shared/types';
 import { fightHref } from '@/lib/api';
 import { lastName } from '@/lib/format';
-import { LiveTag } from './kit';
 
 /* Faixa "ao vivo" do evento: luta em andamento (round e relógio), progresso do card e um feed com
-   "começou" e "terminou", montado comparando cada atualização (a cada 20 s) com a anterior. */
+   "começou" e "terminou", montado comparando cada atualização (a cada 10 s) com a anterior. */
 
 type Notice = { id: number; kind: 'start' | 'end'; fight: Fight; at: number };
 
@@ -52,52 +51,64 @@ export function useLiveTitle(e: EventDetail | undefined) {
   }, [cur?.id, cur?.live?.round, cur?.live?.clock]); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
-export function LiveBar({ e, notices }: { e: EventDetail; notices: Notice[] }) {
+export function LiveBar({ e, notices, updatedAt }: { e: EventDetail; notices: Notice[]; updatedAt?: number }) {
   const done = e.fights.filter(f => f.status === 'post').length;
   const total = e.fights.length;
   const current = e.fights.filter(f => f.status === 'in');
   // próxima luta a começar: a de menor ordem entre as que faltam (a ordem 1 é a principal, a última a acontecer)
   const next = e.fights.filter(f => f.status === 'pre').sort((a, b) => b.order - a.order)[0];
+  const time = (ms: number) => new Date(ms).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: updatedAt === ms ? '2-digit' : undefined });
   return (
-    <section aria-live="polite" className="cut rounded-xl bg-fg p-5 text-bg">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3"><LiveTag /><span className="font-display text-[13px] font-semibold text-bg/70">{done} de {total} lutas encerradas</span></div>
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-bg/15 sm:w-56"><div className="h-full rounded-full bg-gold transition-[width] duration-700" style={{ width: `${(done / total) * 100}%` }} /></div>
+    <section aria-live="polite" className="rounded-xl bg-surface p-5 ring-1 ring-fg/[0.08] sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <div className="flex items-center gap-2 text-[14px] font-semibold text-fg">
+          <span aria-hidden className="live-dot h-2 w-2 rounded-full bg-brand" />Ao vivo
+          <span className="font-normal text-fg-3">· {done} de {total} lutas encerradas</span>
+        </div>
+        <div role="progressbar" aria-label="Progresso do card" aria-valuemin={0} aria-valuemax={total} aria-valuenow={done}
+          className="h-1 w-full overflow-hidden rounded-full bg-surface-3 sm:w-48">
+          <div className="h-full origin-left rounded-full bg-fg transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]" style={{ width: '100%', transform: `scaleX(${done / total})` }} />
+        </div>
       </div>
-      <div className="mt-4 grid gap-5 lg:grid-cols-[1.2fr_1fr]">
+
+      {current[0] && <div className="mt-5"><LiveScoreboard eventId={e.id} fight={current[0]} /></div>}
+
+      <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_1.1fr] lg:gap-10">
         <div>
           {current.length ? current.map(f => (
             <Link key={f.id} to={fightHref(e.id, f.id)} className="group block">
-              <div className="label text-bg/70">Em andamento</div>
-              <div className="mt-1 flex flex-wrap items-baseline gap-x-4">
-                <span className="display text-[32px] group-hover:text-gold">{names(f)}</span>
-                <span className="num font-display text-[24px] font-bold text-gold">{f.live?.round ? `R${f.live.round}` : ''} {f.live?.clock ?? ''}</span>
-              </div>
+              <div className="text-[13px] text-fg-3">Lutando agora</div>
+              <div className="display mt-1 text-[32px] leading-none text-fg group-hover:text-brand">{names(f)}</div>
+              <div className="num mt-2 text-[16px] font-semibold text-fg-2">{f.live?.round ? `Round ${f.live.round}` : 'Subindo ao octógono'}{f.live?.clock && f.live.clock !== '-' ? ` · ${f.live.clock}` : ''}</div>
             </Link>
           )) : next ? (
             <Link to={fightHref(e.id, next.id)} className="group block">
-              <div className="label text-bg/70">A seguir</div>
-              <div className="display mt-1 text-[32px] group-hover:text-gold">{names(next)}</div>
+              <div className="text-[13px] text-fg-3">A seguir</div>
+              <div className="display mt-1 text-[32px] leading-none text-fg group-hover:text-brand">{names(next)}</div>
             </Link>
-          ) : <div className="label text-bg/70">Card encerrado</div>}
+          ) : <div className="text-[16px] font-semibold text-fg">Card encerrado</div>}
         </div>
-        <ul className="space-y-2 text-[14px]" aria-label="Últimos acontecimentos">
+
+        <ul className="divide-y divide-line text-[14px]" aria-label="Últimos acontecimentos">
           <AnimatePresence initial={false}>
-            {notices.length === 0 && <li className="text-bg/70">Os avisos de "começou" e "terminou" aparecem aqui, em tempo real.</li>}
-            {notices.map(n => (
-              <motion.li key={n.id} layout initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="flex items-start gap-2">
-                {n.kind === 'start' ? <Play weight="fill" className="mt-1 h-4 w-4 shrink-0 text-gold" /> : <CheckCircle weight="fill" className="mt-1 h-4 w-4 shrink-0 text-win" />}
-                <Link to={fightHref(e.id, n.fight.id)} className="hover:underline">
-                  <b className="font-semibold">{n.kind === 'start' ? 'Começou' : 'Terminou'}: {names(n.fight)}</b>
-                  {n.kind === 'end' && <span className="text-bg/70"> · {how(n.fight)}</span>}
+            {notices.length === 0 && <li className="py-2 text-fg-3">Quando uma luta começar ou terminar, o aviso aparece aqui.</li>}
+            {notices.slice(0, 4).map(n => (
+              <motion.li key={n.id} layout initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                className="flex items-baseline gap-3 py-2">
+                <span className="num w-11 shrink-0 text-[13px] text-fg-3">{time(n.at)}</span>
+                <Link to={fightHref(e.id, n.fight.id)} className="min-w-0 hover:underline">
+                  <b className="font-semibold text-fg">{names(n.fight)}</b>
+                  <span className="text-fg-2"> · {n.kind === 'start' ? 'começou' : how(n.fight)}</span>
                 </Link>
-                <span className="num ml-auto shrink-0 text-[13px] text-bg/65">{new Date(n.at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
               </motion.li>
             ))}
           </AnimatePresence>
         </ul>
       </div>
-      <p className="mt-4 flex items-center gap-2 text-[13px] text-bg/65"><Lightning weight="fill" className="h-3.5 w-3.5" />Atualiza sozinho a cada 20 s. Os dados da ESPN podem ter alguns segundos de atraso.</p>
+
+      <p className="mt-5 text-[13px] text-fg-3">
+        Atualiza sozinho{updatedAt ? <> · última leitura às <span className="num">{new Date(updatedAt).toLocaleTimeString('pt-BR')}</span></> : null}. Os dados vêm da ESPN e podem atrasar alguns segundos.
+      </p>
     </section>
   );
 }

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowsOutLineHorizontal, Fire, Flame, Hand, HourglassMedium, Lightning, PersonSimpleRun, ShieldCheck, TrendDown, TrendUp } from '@phosphor-icons/react';
+import { ArrowsOutLineHorizontal, Fire, Flame, Hand, HourglassMedium, Lightning, PersonSimpleRun, ShieldCheck, TrendDown, TrendUp } from '@/components/icons';
 import type { FighterProfile, HistoryFight } from '@shared/types';
 import { useFighter } from '@/lib/api';
 import { lastName, nf } from '@/lib/format';

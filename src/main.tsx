@@ -8,7 +8,7 @@ import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persist
 import '@fontsource/archivo-narrow/500.css';      // títulos e números grandes: grotesca estreita de jornal esportivo
 import '@fontsource/archivo-narrow/600.css';
 import '@fontsource/archivo-narrow/700.css';
-import '@fontsource-variable/ibm-plex-sans';
+import '@fontsource-variable/montserrat';         // texto (tudo que não é título), a fonte do template de referência
 import '@fontsource/ibm-plex-mono/500.css';        // números (cartel, odds, estatísticas): cara de placar, mesma família do texto
 import '@fontsource/ibm-plex-mono/600.css';     // texto e tabelas (Inter era a fonte padrão mais usada por interfaces geradas)
 import './styles.css';
@@ -20,7 +20,6 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { ApiError } from '@/lib/api';
 import { initObservability, reportError } from '@/lib/observability';
 import { hideSplash } from '@/lib/splash';
-import { IconContext } from '@phosphor-icons/react';
 import { MotionConfig } from 'motion/react';
 import Home from '@/pages/Home';
 
@@ -121,14 +120,11 @@ createRoot(document.getElementById('root')!).render(
       dehydrateOptions: { shouldDehydrateQuery: q => q.state.status === 'success' && PERSISTED.has(String(q.queryKey[0])) },
     }}>
       <TooltipProvider delayDuration={150}>
-        {/* Phosphor em duotone por padrão: traço com preenchimento suave, mais autoral que ícones de linha */}
-        <IconContext.Provider value={{ weight: 'duotone', mirrored: false }}>
           {/* reducedMotion="user": com "reduzir movimento" ligado no sistema, todas as animações do Motion
               perdem o deslocamento e ficam só com a opacidade */}
           <MotionConfig reducedMotion="user">
             <RouterProvider router={router} />
           </MotionConfig>
-        </IconContext.Provider>
       </TooltipProvider>
     </PersistQueryClientProvider>
   </StrictMode>,

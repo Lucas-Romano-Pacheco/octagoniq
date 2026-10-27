@@ -14,7 +14,11 @@ function readPref(): ThemePref {
 const resolve = (p: ThemePref) => (p === 'system' ? (media().matches ? 'dark' : 'light') : p);
 
 function apply(p: ThemePref) {
-  document.documentElement.classList.toggle('dark', resolve(p) === 'dark');
+  const root = document.documentElement;
+  // sem transições durante a troca: senão centenas de elementos animam a cor ao mesmo tempo (lento no celular)
+  root.classList.add('theme-switching');
+  root.classList.toggle('dark', resolve(p) === 'dark');
+  requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove('theme-switching')));
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', resolve(p) === 'dark' ? '#0d0f22' : '#f8f9fc');
 }
 
@@ -23,8 +27,10 @@ const emit = () => listeners.forEach(l => l());
 
 function setTheme(p: ThemePref) {
   try { if (p === 'system') localStorage.removeItem(KEY); else localStorage.setItem(KEY, p); } catch { /* armazenamento bloqueado */ }
-  apply(p);
+  // desempenho (INP): o botão responde no próximo quadro (emit troca o ícone); a troca de cores do site inteiro, que é
+  // o trabalho pesado, vem logo depois desse quadro
   emit();
+  requestAnimationFrame(() => setTimeout(() => apply(p), 0));
 }
 
 // acompanha a troca de tema do sistema enquanto a preferência for "system"

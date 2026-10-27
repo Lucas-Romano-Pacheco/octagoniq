@@ -4,7 +4,7 @@
 
 import type { RoundSide, RoundStat, Scorecards } from '../shared/types.ts';
 import { fold } from '../shared/format.ts';
-import { HOUR, getJson, getText, remember } from './http.ts';
+import { HOUR, MIN, getJson, getText, remember } from './http.ts';
 import { UFC_BASE } from './ufc.ts';
 
 const API = 'https://d29dxerjsp82wz.cloudfront.net/api/v3';
@@ -112,10 +112,12 @@ export async function roundStats(eventName: string, eventDate: string, red: stri
 
 /** Bônus da noite do UFC (Performance, Luta, KO e Finalização da Noite), pelos nomes dos lutadores. */
 export function eventBonuses(eventName: string, eventDate: string): Promise<{ fight: string[][]; performance: string[] } | null> {
-  return remember(`bonuses:v1:${fold(eventName)}:${eventDate.slice(0, 10)}`, 24 * HOUR, async () => {
+  // nas 48 h depois do card o UFC ainda publica os bônus: nada de guardar por horas (um evento antigo não muda mais)
+  const recent = Date.now() - Date.parse(eventDate) < 48 * HOUR;
+  return remember(`bonuses:v1:${fold(eventName)}:${eventDate.slice(0, 10)}`, recent ? 10 * MIN : 24 * HOUR, async () => {
     const id = await trackerEventId(eventName, eventDate);
     if (!id) throw new Error('sem evento');
-    const card: J[] = (await getJson<J>(`${API}/event/live/${id}.json`, 6 * HOUR))?.LiveEventDetail?.FightCard ?? [];
+    const card: J[] = (await getJson<J>(`${API}/event/live/${id}.json`, recent ? 3 * MIN : 6 * HOUR))?.LiveEventDetail?.FightCard ?? [];
     const full = (x: J) => `${x.Name?.FirstName ?? ''} ${x.Name?.LastName ?? ''}`.trim();
     const fight = card.filter(f => f.Result?.FightOfTheNight).map(f => (f.Fighters ?? []).map(full));
     const performance = card.flatMap(f => (f.Fighters ?? []).filter((x: J) => x.PerformanceOfTheNight || x.KOOfTheNight || x.SubmissionOfTheNight).map(full));

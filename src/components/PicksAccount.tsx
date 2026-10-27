@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { clsx } from 'clsx';
-import { Cloud, CloudCheck, CloudSlash, SignIn, UserCircle } from '@phosphor-icons/react';
+import { Cloud, CloudCheck, CloudSlash, SignIn, UserCircle } from '@/components/icons';
 import { useAuth } from '@/lib/supabase';
 import { startCloudSync, useCloudStatus } from '@/lib/picks-cloud';
 

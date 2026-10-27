@@ -47,7 +47,8 @@ Regras:
 - **Archivo Narrow** (`font-display`): títulos (`.display`, caixa alta, 700, entrelinha 0,95), títulos de seção
   (`.panel-title`), rótulos (`.label`), botões e menu.
 - **IBM Plex Sans** (`font-sans`, variável): texto corrido, gráficos e as imagens de prévia (`server/og.ts`).
-- **IBM Plex Mono** (`.num` e `font-mono`): números de dados (cartel, odds, estatísticas, placares), com cara de planilha.
+- **Números**: `.num` usa a própria IBM Plex Sans com algarismos tabulares. A **IBM Plex Mono** (`.odds`) fica só nas odds,
+  que são um código de aposta (monoespaçada em todo número virou marca de site gerado).
   Os números grandes de título continuam na Archivo Narrow (`.display`).
 - **Escala única (px):** 12 · 13 · 14 · 16 · 18 · 20 · 24 · 32 · 44 · 64 · 72 · 96. Nada fora dela.
   12–13 rótulos e apoio, 14–16 texto, 18–24 títulos de card, 32–44 títulos de página, 64–96 o número protagonista.
@@ -68,7 +69,7 @@ Regras:
   cada lista, traz os nomes e a troca; a escolha fica guardada no navegador). A tabela põe os dois números lado a lado.
 - **`Tag`**: tons `neutral`, `gold`, `red`, `blue` (texto em `blue-ink`), `orange` (texto em `orange-ink`), `win`/`loss`.
 - **`RankBadge`**: a divisão trunca (`min-w-0 truncate`); no celular, o comparador esconde a divisão.
-- **Ícones**: Phosphor. Os glifos de resultado (vitória, derrota, empate) são SVG próprios em `kit.tsx`, traço 2,9.
+- **Ícones**: Hugeicons (gratuito, traço arredondado), todos pelo módulo `src/components/icons.tsx`; trocar de pack é mexer só nele. Os glifos de resultado (vitória, derrota, empate) são SVG próprios em `kit.tsx`, traço 2,9.
 - **CTAs dizem o que acontece**: "Ver as 13 lutas", "Comparar Makhachev e Volkanovski". Nada de "Saiba mais" ou "Ver detalhes".
 
 ## 5. Layout
@@ -128,6 +129,13 @@ Jakub Krehel (acabamento sutil de produto) e secundário Emil Kowalski (contenç
 
 ## 8. Texto
 
+- **Manchete, não categoria**: título com verbo montado dos dados ("Volkanovski vence Evloev e fica com o cinturão"),
+  nunca "Últimos resultados". Sem rótulo pequeno acima do título (eyebrow).
+- **Frase, não cadeia de "·"**: "Sábado, 24 de outubro, na Etihad Arena." e "Daqui a 7 dias, com 13 lutas."
+- **Lide em vez de fichas de contagem**: uma frase que conta a noite, com as palavras-chave sublinhadas na cor do método.
+- **Títulos de seção em caixa normal**; caixa alta condensada só nos nomes dos lutadores no banner.
+- **Links com verbo do contexto**: "Todos os resultados", "Ver o card inteiro", "Abrir o calendário".
+
 - Específico e factual: nomes, números, datas ("Disputa de cinturão do peso-pena"). Nada de "eleve", "descubra",
   "experiência única".
 - Fonte dos dados sempre visível (UFC.com, ESPN, BestFightOdds).
@@ -147,7 +155,7 @@ Jakub Krehel (acabamento sutil de produto) e secundário Emil Kowalski (contenç
   Transições só das propriedades que mudam (nunca `transition-all`).
 - **Cantos em hierarquia**: controles ~6px < cartões internos ~11px; pílula só em avatar e alternador.
 - **Espaçamento na grade de 4px** (8px nos espaços maiores): nada de meio passo (2, 6, 10, 14px).
-- **Ícones de um conjunto só** (Phosphor + os desenhados do site, como o cinturão); nunca símbolo digitado (★ ✓) nem emoji.
+- **Ícones de um conjunto só** (Hugeicons + os desenhados do site, como o cinturão); nunca símbolo digitado (★ ✓) nem emoji.
 - **O início muda com o momento**: ao vivo ou resumo da noite (até 3 dias depois).
 
 ## 10. Checklist antes de publicar

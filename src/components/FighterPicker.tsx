@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { clsx } from 'clsx';
-import { CircleNotch, MagnifyingGlass, X } from '@phosphor-icons/react';
+import { CircleNotch, MagnifyingGlass, X } from '@/components/icons';
 import type { SearchHit } from '@shared/types';
 import { useSearch } from '@/lib/api';
 import { Avatar } from './kit';

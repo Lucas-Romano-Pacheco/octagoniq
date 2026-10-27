@@ -1,6 +1,6 @@
 import { clsx } from 'clsx';
 import { motion } from 'motion/react';
-import { Barbell, ChartLineUp, HandGrabbing, Lightning, Scales, Shield, ShieldCheck } from '@phosphor-icons/react';
+import { Barbell, ChartLineUp, HandGrabbing, Lightning, Scales, Shield, ShieldCheck } from '@/components/icons';
 import type { OfficialStats } from '@shared/types';
 import { fighterStyle, strikeDiff } from '@/lib/style';
 import { Panel, Tip } from './kit';

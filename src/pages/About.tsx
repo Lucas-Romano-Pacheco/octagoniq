@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ArrowSquareOut, Browser, Database, GithubLogo, HardDrives, Lightning } from '@phosphor-icons/react';
+import { ArrowRight, ArrowSquareOut, Browser, Database, GithubLogo, HardDrives, Lightning } from '@/components/icons';
 import { PageHeader, usePageTitle } from '@/components/kit';
 
 /* Sobre o projeto: o raciocínio por trás do site (arquitetura, fontes, cache e decisões), para quem avalia o portfólio. */
@@ -28,7 +28,6 @@ const Arrow = () => <div className="grid place-items-center py-1 text-fg-3 lg:px
 const NUMBERS: [string, string, string][] = [
   ['3,3 s → 1 ms', 'perfil de um lutador', 'montado a frio (≈60 chamadas às fontes) contra servido do cache'],
   ['4', 'fontes de dados', 'ESPN, UFC.com, UFC Fight Tracker e BestFightOdds, unificadas em tipos próprios'],
-  ['93 KB', 'modelo 3D', 'boneco CC0 só com o corpo, geometria quantizada e comprimida (meshopt)'],
   ['0', 'chaves de API', 'tudo vem de endpoints e páginas públicos; nada a esconder no repositório'],
 ];
 
@@ -40,7 +39,7 @@ const DECISIONS: [string, string][] = [
   ['Odds históricas do BestFightOdds', 'A ESPN apaga as linhas semanas depois da luta. Para lutas encerradas, o histórico do BestFightOdds dá abertura e fechamento, com crédito na tela.'],
   ['Respeito aos termos de cada site', 'Tapology e Sherdog não têm API e os termos não permitem reaproveitar o conteúdo: aparecem só como link. Imagens de banco ou modelos sem licença não foram usados.'],
   ['Prévias para compartilhar', 'Robôs de WhatsApp e LinkedIn não executam JavaScript. O servidor reconhece esses robôs e escreve as meta tags da página, com uma imagem gerada na hora (satori + resvg).'],
-  ['Peso só onde é usado', 'Cada página é um pedaço separado do código; o 3D (three.js) só é baixado na aba "Por alvo". Sem WebGL ou com "reduzir movimento", o site cai para versões mais simples.'],
+  ['Peso só onde é usado', 'Cada página é um pedaço separado do código, baixado só quando é aberta.'],
 ];
 
 export default function About() {
@@ -64,7 +63,7 @@ export default function About() {
 
       <Section title="Arquitetura">
         <div className="flex flex-col items-stretch lg:flex-row">
-          <Box icon={<Browser weight="bold" className="h-4 w-4" />} tone="bg-blue/15 text-blue" title="Navegador" lines={['React 19 + TypeScript + Vite', 'TanStack Query (cache no navegador)', 'Tailwind 4, Motion, ECharts, three.js']} />
+          <Box icon={<Browser weight="bold" className="h-4 w-4" />} tone="bg-blue/15 text-blue" title="Navegador" lines={['React 19 + TypeScript + Vite', 'TanStack Query (cache no navegador)', 'Tailwind 4, Motion, ECharts']} />
           <Arrow />
           <Box icon={<HardDrives weight="bold" className="h-4 w-4" />} tone="bg-brand-soft text-brand" title="BFF em Node (/api)" lines={['Rotas próprias e tipos compartilhados', 'Cache SWR em memória + disco', 'Prévias Open Graph (/og)']} />
           <Arrow />
@@ -90,8 +89,7 @@ export default function About() {
       <Section title="Créditos">
         <ul className="space-y-2 text-[14px] text-fg-2">
           <li>Dados: ESPN, UFC.com, UFC Fight Tracker e BestFightOdds. Fotos dos atletas servidas pelas próprias fontes.</li>
-          <li>Modelo 3D: <a className="link" href="https://quaternius.itch.io/universal-base-characters" target="_blank" rel="noreferrer">Universal Base Characters, de Quaternius</a> (CC0).</li>
-          <li>Bandeiras: circle-flags e flag-icons. Ícones: Phosphor. Fontes: Archivo Narrow, IBM Plex Sans e IBM Plex Mono.</li>
+          <li>Bandeiras: circle-flags e flag-icons. Ícones: Hugeicons. Fontes: Archivo Narrow, Montserrat e IBM Plex Mono.</li>
         </ul>
       </Section>
 

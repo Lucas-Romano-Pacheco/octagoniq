@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { OfficialStats } from '@shared/types';
 import { nf } from '@/lib/format';
 import { EChart } from './LazyChart';
+import { ChartTable, type TableData } from './ChartTable';
 import { tooltipBase, useInk } from './chart-theme';
 
 /* Radar de atributos a partir das estatísticas oficiais do UFC.com.
@@ -20,7 +21,8 @@ const AXES: { name: string; get: (s: OfficialStats) => number | undefined; max: 
 
 export const hasRadar = (s?: OfficialStats) => !!s && AXES.filter(a => a.get(s) !== undefined).length >= 5;
 
-export function AttrRadar({ series, height = 300 }: { series: { name: string; color: string; stats: OfficialStats }[]; height?: number }) {
+/** `center`: número grande e apagado no meio do radar (posição ou nota); com ele, o contorno engrossa e o preenchimento clareia. */
+export function AttrRadar({ series, height = 300, center }: { series: { name: string; color: string; stats: OfficialStats }[]; height?: number; center?: { value: string; label: string } }) {
   const ink = useInk();
   // no celular os rótulos dos eixos cortavam nas bordas: raio menor
   const narrow = typeof window !== 'undefined' && window.innerWidth < 640;
@@ -49,14 +51,28 @@ export function AttrRadar({ series, height = 300 }: { series: { name: string; co
         return {
           name: x.name,
           value: AXES.map(a => Math.min(100, Math.round(((a.get(x.stats) ?? 0) / a.max) * 100))),
-          lineStyle: { color: c, width: 2 },
+          lineStyle: { color: c, width: center ? 3.5 : 2 },
           itemStyle: { color: c, borderColor: ink.surface, borderWidth: 2 },
-          areaStyle: { color: c, opacity: series.length > 1 ? 0.14 : 0.2 },
+          areaStyle: { color: c, opacity: center ? 0.06 : series.length > 1 ? 0.14 : 0.2 },
         };
       }),
     }],
-  }), [series, ink, narrow]);
-  return <EChart option={option} height={height} ariaLabel={`Radar de atributos: ${series.map(s => s.name).join(' e ')}`} />;
+  }), [series, ink, narrow, center?.value]);
+  const table: TableData = {
+    caption: `Atributos de ${series.map(s => s.name).join(' e ')} (estatísticas oficiais)`,
+    head: ['Atributo', ...series.map(s => s.name)],
+    rows: AXES.map(a => ({ label: a.name, cells: series.map(s => { const v = a.get(s.stats); return v === undefined ? '—' : a.fmt(v); }) })),
+  };
+  const chart = <EChart option={option} height={height} ariaLabel={`Radar de atributos: ${series.map(s => s.name).join(' e ')}`} />;
+  return <ChartTable table={table} chart={center ? (
+    <div className="relative">
+      <div aria-hidden className="pointer-events-none absolute left-1/2 top-[52%] -translate-x-1/2 -translate-y-1/2 text-center">
+        <div className="num font-display text-[72px] font-black leading-none text-fg/[0.09]">{center.value}</div>
+      </div>
+      {chart}
+      <div className="-mt-2 text-center text-[12px] font-semibold uppercase tracking-[0.08em] text-fg-3">No centro: {center.label}</div>
+    </div>
+  ) : chart} />;
 }
 
 export const RADAR_NOTE = 'Escala 0–100. Percentuais entram direto; taxas por minuto e por 15 min são comparadas a um teto de elite (7 golpes/min, 5 quedas, 2 finalizações, 1,2 knockdown).';

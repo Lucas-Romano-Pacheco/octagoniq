@@ -1,15 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { clsx } from 'clsx';
-import { ArrowCounterClockwise, CaretLeft, CaretRight, Check, FloppyDisk, ShareNetwork, HandGrabbing, Lightning, LockSimple, Scales, SignIn, Star, Trophy, X } from '@phosphor-icons/react';
+import { ArrowCounterClockwise, CaretLeft, CaretRight, Check, FloppyDisk, ShareNetwork, LockSimple, SignIn, Star, Trophy, X } from '@/components/icons';
 import type { CardSegment, Fight, FighterRef } from '@shared/types';
-import { fightHref, useBonuses, useEvent, useSchedule, useUpcoming } from '@/lib/api';
+import { eventQuery, fightHref, useBonuses, useEvent, useSchedule, useUpcoming, type UpcomingEvent } from '@/lib/api';
 import { fotnAwarded } from '@/lib/fights';
 import { crowdShare, useCrowd } from '@/lib/crowd';
-import { dayMonth, lastName, SEGMENT_LABEL, splitEventName, time } from '@/lib/format';
+import { countdown, dayMonth, lastName, SEGMENT_LABEL, splitEventName, time } from '@/lib/format';
 import { cardStart, FOTN, fightCount, fotnLocked, isLocked, MAX_POINTS, METHODS, POINTS, isDirty, scoreFight, summarize, usePicks, type MethodKey, type Pick, type Summary } from '@/lib/picks';
 import { CORNER, CORNER_FILL, OddsChip, oddsView } from '@/components/Duel';
+import { ICON_MOVE, METHOD_COLOR, METHOD_ICON } from '@/components/pick-style';
 import { PicksAccount, loginHref } from '@/components/PicksAccount';
 import { PicksHistory } from '@/components/PicksHistory';
 import { PicksRanking, useEventBoard } from '@/components/PicksRanking';
@@ -22,17 +24,6 @@ import { Avatar, BeltIcon, Empty, ErrorState, Flag, PageHeader, Panel, Segmented
    conta (Supabase), e salvar exige entrar. Sem Supabase configurado, tudo fica no navegador. */
 
 const ORDER: CardSegment[] = ['main', 'prelims', 'early'];
-const METHOD_ICON = { ko: Lightning, sub: HandGrabbing, dec: Scales } as const;
-/** Uma cor por método (fora do vermelho/azul dos cantos e do dourado do cinturão): KO fúcsia, finalização esmeralda, decisão violeta. */
-const METHOD_COLOR: Record<MethodKey, { c: string; ink: string }> = {
-  ko: { c: 'var(--color-ko-fill)', ink: '#fff' }, sub: { c: 'var(--color-sub-fill)', ink: '#fff' }, dec: { c: 'var(--color-dec-fill)', ink: '#fff' },
-};
-/** Cada ícone tem o seu movimento ao ser escolhido: raio chacoalha, mão aperta, balança pende. */
-const ICON_MOVE: Record<MethodKey, { animate: Record<string, number[]>; transition: { duration: number } }> = {
-  ko: { animate: { x: [0, -4, 4, -3, 3, 0], scale: [1, 1.35, 1.1, 1.3, 1] }, transition: { duration: 0.55 } },
-  sub: { animate: { scale: [1, 0.7, 1.3, 0.85, 1], rotate: [0, -14, 14, -6, 0] }, transition: { duration: 0.6 } },
-  dec: { animate: { rotate: [0, -22, 18, -10, 5, 0], scale: [1, 1.2, 1] }, transition: { duration: 0.7 } },
-};
 const CONFETTI = ['#e34948', '#2a78d6', '#f2a900', '#1baf7a', '#eb6834', '#ffffff'];
 
 /* ---------- Efeitos de "mini game" ---------- */
@@ -79,7 +70,12 @@ function Confetti() {
 }
 
 /** Contador simples para disparar efeitos a cada clique. */
-const useFx = () => { const [n, setN] = useState(0); return [n, () => setN(x => x + 1)] as const; };
+/* Efeito de estouro ao escolher. Desempenho (INP): o estouro vem um quadro depois do clique, então a escolha
+   aparece primeiro e as partículas não atrasam a resposta. */
+const useFx = () => {
+  const [n, setN] = useState(0);
+  return [n, () => requestAnimationFrame(() => setTimeout(() => setN(x => x + 1), 0))] as const;
+};
 
 
 /* ---------- Uma luta ---------- */
@@ -102,7 +98,9 @@ function FighterButton({ f, side, picked, locked, result, onPick, odds }: {
       {!picked && <span aria-hidden className="absolute inset-x-0 top-0 h-1" style={{ background: color }} />}
       {picked && <span aria-hidden className="pointer-events-none absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10" />}
       <motion.span className="relative" animate={picked ? { scale: [1, 1.22, 0.96, 1], rotate: [0, -7, 5, 0] } : { scale: 1, rotate: 0 }} transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }} key={picked ? 'on' : 'off'}>
-        <Avatar src={f.headshot} name={f.name} size={picked ? 88 : 68} ring={picked ? '#fff' : color} className={clsx('transition duration-300', result === 'lost' && 'grayscale')} />
+        {/* tamanho fixo e escala por transform: trocar o tamanho baixava outra versão da foto no meio do clique (INP) */}
+        <Avatar src={f.headshot} name={f.name} size={88} ring={picked ? '#fff' : color}
+          className={clsx('transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]', !picked && '-my-2.5 scale-[0.773]', result === 'lost' && 'grayscale')} />
         {result === 'won' && <span className="absolute -bottom-1 -right-1 grid h-7 w-7 place-items-center rounded-full bg-gold text-[#14183e] ring-2 ring-surface"><Trophy weight="fill" className="h-4 w-4" /></span>}
       </motion.span>
       <span className="relative min-w-0 max-w-full">
@@ -150,7 +148,7 @@ function RoundDot({ n, on, past, color, disabled, onClick }: { n: number; on: bo
       whileHover={disabled ? undefined : { scale: 1.18 }} whileTap={disabled ? undefined : { scale: 0.85 }} transition={{ type: 'spring', stiffness: 500, damping: 16 }}
       className="relative flex flex-col items-center">
       {fx > 0 && <><Burst key={`b${fx}`} color={color} n={8} reach={34} /><Float key={`f${fx}`} text={`+${POINTS.round}`} color={color} /></>}
-      <motion.span layout animate={{ scale: on ? 1.25 : 1 }} transition={{ type: 'spring', stiffness: 420, damping: 15 }}
+      <motion.span animate={{ scale: on ? 1.25 : 1 }} transition={{ type: 'spring', stiffness: 420, damping: 15 }}
         className="num grid h-9 w-9 place-items-center rounded-full border-2 font-display text-[14px] font-bold"
         style={on ? { background: color, borderColor: color, color: '#fff', boxShadow: `0 6px 16px -6px ${color}` } : past ? { borderColor: color, color, background: 'var(--color-surface)' } : { borderColor: 'var(--color-line-2)', color: 'var(--color-fg-2)', background: 'var(--color-surface)' }}>{n}</motion.span>
     </motion.button>
@@ -290,7 +288,7 @@ function FotnPicker({ fights, vote, locked, awarded, onVote }: { fights: Fight[]
   );
 }
 
-function FightPick({ eventId, f, draft, saved, onChange, fotn, crowd }: {
+function FightPickBase({ eventId, f, draft, saved, onChange, fotn, crowd }: {
   eventId: string; f: Fight; draft?: Pick; saved?: Pick; onChange: (p: Pick | null) => void; fotn: FotnProps;
   /** divisão da galera; só aparece depois que você escolhe, para não influenciar */
   crowd?: { red: number; votes: number } | null;
@@ -316,8 +314,12 @@ function FightPick({ eventId, f, draft, saved, onChange, fotn, crowd }: {
       result={winnerSide ? (winnerSide === side ? 'won' : 'lost') : undefined} onPick={() => pickWinner(x.espnId)}
       odds={ov && <OddsChip {...(side === 'a' ? ov.red : ov.blue)} compact />} />
   );
+  // vindo do perfil ("Palpitar a próxima luta"): rola até esta luta e acende um contorno por um instante
+  const target = typeof location !== 'undefined' && location.hash === `#luta-${f.id}`;
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (target) ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, [target]);
   return (
-    <div className="relative overflow-x-clip py-5">
+    <div ref={ref} id={`luta-${f.id}`} className={clsx('relative overflow-x-clip py-5', target && 'pick-target')}>
       {party > 0 && <Confetti key={party} />}
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <span className="font-display text-[13px] font-semibold text-fg-3">{f.weightClass} · {f.rounds} rounds</span>
@@ -524,6 +526,81 @@ function Rules() {
   );
 }
 
+/* Desempenho (INP): escolher um palpite redesenhava as 13 lutas do card; agora só a que mudou. As funções
+   (onChange, onToggle) mudam a cada render mas só dependem de ids fixos, então ficam fora da comparação. */
+type FightPickProps = Parameters<typeof FightPickBase>[0];
+const FightPick = memo(FightPickBase, (a: FightPickProps, b: FightPickProps) =>
+  a.eventId === b.eventId && a.f === b.f && a.draft === b.draft && a.saved === b.saved
+  && a.fotn.on === b.fotn.on && a.fotn.locked === b.fotn.locked && a.fotn.awarded === b.fotn.awarded
+  && a.crowd?.red === b.crowd?.red && a.crowd?.votes === b.crowd?.votes);
+
+/* ---------- Seletor de eventos ---------- */
+
+/** Anel de progresso: enche ao aparecer (traço do SVG). */
+function Ring({ value, color, children }: { value: number; color: string; children: React.ReactNode }) {
+  const r = 17, c = 2 * Math.PI * r;
+  return (
+    <span className="relative grid h-11 w-11 shrink-0 place-items-center">
+      <svg viewBox="0 0 40 40" className="absolute inset-0 -rotate-90" aria-hidden>
+        <circle cx="20" cy="20" r={r} fill="none" stroke="var(--color-surface-3)" strokeWidth="3.5" />
+        <motion.circle cx="20" cy="20" r={r} fill="none" stroke={color} strokeWidth="3.5" strokeLinecap="round" strokeDasharray={c}
+          initial={{ strokeDashoffset: c }} animate={{ strokeDashoffset: c * (1 - Math.min(1, Math.max(0, value))) }} transition={{ duration: 0.9, delay: 0.2, ease: [0.22, 1, 0.36, 1] }} />
+      </svg>
+      <span className="num relative text-[11px] font-bold leading-none">{children}</span>
+    </span>
+  );
+}
+
+/** Um card no seletor: mini-pôster (os dois da luta principal), nome e data, e o seu desempenho naquele card: nos
+    encerrados, acertos e pontos; nos próximos, quantas lutas já palpitou e quanto falta para fechar. */
+function EventChipBase({ c, up, on, book, onClick, i }: { c: { id: string; name: string; date: string }; up?: UpcomingEvent; on: boolean; book: Record<string, Pick>; onClick: () => void; i: number }) {
+  // próximos: tudo vem da lista de próximos eventos (sem pedir o card inteiro); encerrados: o card, para os pontos
+  const { data: ev } = useQuery({ ...eventQuery(c.id), enabled: !up });
+  const { series, title } = splitEventName(c.name);
+  const main = up?.main ?? ev?.fights.find(f => f.order === 1) ?? ev?.fights[0];
+  const total = up?.fightCount ?? ev?.fights.length ?? 0;
+  const status = up?.status ?? ev?.status;
+  const winnerId = (ev?.fights.find(f => f.order === 1) ?? ev?.fights[0])?.result?.winnerId;
+  const past = status === 'post', live = status === 'in';
+  const s = ev ? summarize(book, ev.fights) : null;
+  const ring = !total ? null
+    : past ? (s?.scored ? { v: s.hits / s.scored, color: 'var(--color-win)', text: `${s.hits}/${s.scored}` } : null)
+    : { v: fightCount(book) / total, color: 'var(--color-brand)', text: `${fightCount(book)}/${total}` };
+  return (
+    <motion.button type="button" role="tab" aria-selected={on} onClick={onClick}
+      initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: Math.min(i, 10) * 0.04, ease: [0.22, 1, 0.36, 1] }}
+      whileHover={{ y: -3 }} whileTap={{ scale: 0.97 }}
+      className={clsx('cut relative flex shrink-0 items-center gap-3 overflow-hidden rounded-xl py-2.5 pl-2.5 pr-3 text-left ring-1 transition-shadow',
+        on ? 'text-bg ring-fg shadow-[var(--shadow-lift)]' : 'bg-surface text-fg ring-fg/[0.08] hover:ring-fg/20')}>
+      {/* o selecionado: o fundo escuro desliza de um card para o outro */}
+      {on && <motion.span layoutId="picks-event-on" aria-hidden className="absolute inset-0 bg-fg" transition={{ type: 'spring', stiffness: 380, damping: 32 }} />}
+      {main?.title && <span aria-hidden className="absolute inset-x-0 top-0 h-[3px] bg-gold" />}
+      {live && <span aria-hidden className="absolute inset-y-0 left-0 w-[3px] bg-brand live-dot" />}
+      <span className="relative flex shrink-0">
+        {main ? (<>
+          <Avatar src={main.red.headshot} name={main.red.name} size={34} ring="var(--color-red)" className={clsx(past && winnerId === main.blue.espnId && 'grayscale opacity-60')} />
+          <Avatar src={main.blue.headshot} name={main.blue.name} size={34} ring="var(--color-blue)" className={clsx('-ml-2.5', past && winnerId === main.red.espnId && 'grayscale opacity-60')} />
+        </>) : <span className="skeleton h-[34px] w-[58px] rounded-full" />}
+      </span>
+      <span className="relative min-w-0">
+        <span className="block whitespace-nowrap font-display text-[14px] font-bold">{title || series}</span>
+        <span className={clsx('num block whitespace-nowrap text-[12px]', on ? 'text-bg/70' : 'text-fg-3')}>
+          {series} · {dayMonth(c.date)}{live ? ' · ao vivo' : !past && status ? ` · ${countdown(c.date)}` : ''}
+        </span>
+      </span>
+      {ring && (
+        <span className="relative ml-1 flex items-center gap-2">
+          <Ring value={ring.v} color={ring.color}>{ring.text}</Ring>
+          {past && s && s.scored > 0 && <span className="num whitespace-nowrap text-[13px] font-bold" style={{ color: on ? undefined : 'var(--color-win)' }}>{s.points} pts</span>}
+        </span>
+      )}
+    </motion.button>
+  );
+}
+
+/** Só redesenha quando o card dele muda (seleção, palpites salvos, dados do evento); o clique só depende do id. */
+const EventChip = memo(EventChipBase, (a, b) => a.c.id === b.c.id && a.on === b.on && a.book === b.book && a.up === b.up && a.i === b.i);
+
 /* ---------- Página ---------- */
 
 export default function Picks() {
@@ -533,11 +610,16 @@ export default function Picks() {
   const choices = useMemo(() => (upcoming.data ?? []).filter(e => e.series !== 'dwcs'), [upcoming.data]);
   const [params] = useSearchParams();
   const tab: 'meus' | 'ranking' = supabaseEnabled && params.get('aba') === 'ranking' ? 'ranking' : 'meus';
-  // no ranking entram também os últimos eventos encerrados (é neles que há pontos)
+  // histórico: todos os eventos que já começaram (os mais recentes primeiro), nas duas abas, para rever os palpites
+  // e os pontos de cada card. Um card recém-encerrado sai dos "próximos" e entra aqui na hora.
   const schedule = useSchedule(new Date().getFullYear());
-  const past = useMemo(() => (schedule.data ?? []).filter(e => e.series !== 'dwcs' && Date.parse(e.date) < Date.now() - 8 * 3600_000).slice(-3).reverse(), [schedule.data]);
-  const list = tab === 'ranking' ? [...choices.filter(c => Date.parse(c.date) <= Date.now()), ...past, ...choices.filter(c => Date.parse(c.date) > Date.now())] : choices;
-  const id = routeId ?? (tab === 'ranking' ? list[0]?.id : choices.find(e => e.status !== 'post')?.id ?? choices[0]?.id);
+  const past = useMemo(() => {
+    const ahead = new Set(choices.map(c => c.id));
+    return (schedule.data ?? []).filter(e => e.series !== 'dwcs' && Date.parse(e.date) <= Date.now() && !ahead.has(e.id)).reverse().slice(0, 8);
+  }, [schedule.data, choices]);
+  const started = choices.filter(c => Date.parse(c.date) <= Date.now()), future = choices.filter(c => Date.parse(c.date) > Date.now());
+  const list = tab === 'ranking' ? [...started, ...past, ...future] : [...future, ...started, ...past];
+  const id = routeId ?? (tab === 'ranking' ? list[0]?.id : choices.find(e => e.status !== 'post')?.id ?? list[0]?.id);
   const qs = tab === 'ranking' ? '?aba=ranking' : '';
   const { data: e, isPending, isError, error, refetch } = useEvent(id);
   const { saved, draftOf, setPick, save, discard, clearEvent } = usePicks();
@@ -597,21 +679,29 @@ export default function Picks() {
 
       {tab === 'meus' && <PicksAccount next={here} />}
 
-      {/* eventos */}
-      <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 sm:mx-0 sm:flex-wrap sm:px-0" role="tablist" aria-label="Escolher o evento">
-        {/* evento aberto pelo link que não está na lista dos próximos (ex.: já encerrado): ganha a sua aba, selecionada */}
-        {[...(e && !list.some(c => c.id === e.id) ? [{ id: e.id, name: e.name, date: e.date }] : []), ...list].map(c => {
-          const { series, title } = splitEventName(c.name);
-          const on = c.id === id;
-          return (
-            <button type="button" key={c.id} role="tab" aria-selected={on} onClick={() => navigate(`/palpites/${c.id}${qs}`)}
-              className={clsx('lift flex shrink-0 flex-col items-start rounded-xl px-4 py-3 text-left ring-1', on ? 'bg-fg text-bg ring-fg' : 'bg-surface text-fg ring-fg/[0.08]')}>
-              <span className="font-display text-[13px] font-bold">{title || series}</span>
-              <span className={clsx('num text-[13px]', on ? 'text-bg/70' : 'text-fg-3')}>{series} · {dayMonth(c.date)}{fightCount(saved[c.id]?.picks) ? ` · ${fightCount(saved[c.id]?.picks)} salvos` : ''}</span>
-            </button>
-          );
-        })}
-      </div>
+      {/* eventos: os próximos e, separado, o histórico dos que já começaram (palpites e pontos de cada card) */}
+      {(() => {
+        const extra = e && !list.some(c => c.id === e.id) ? [{ id: e.id, name: e.name, date: e.date }] : [];
+        const all = [...extra, ...list];
+        const groups = [
+          { label: 'Próximos', items: all.filter(c => Date.parse(c.date) > Date.now()) },
+          { label: 'Encerrados e em andamento', items: all.filter(c => Date.parse(c.date) <= Date.now()) },
+        ];
+        if (tab === 'ranking') groups.reverse();
+        const chip = (c: { id: string; name: string; date: string }, i: number) => (
+          <EventChip key={c.id} i={i} c={c} up={choices.find(u => u.id === c.id)} on={c.id === id} book={saved[c.id]?.picks ?? {}} onClick={() => navigate(`/palpites/${c.id}${qs}`, { viewTransition: true })} />
+        );
+        return (
+          <div className="space-y-4" role="tablist" aria-label="Escolher o evento">
+            {groups.filter(g => g.items.length).map(g => (
+              <div key={g.label}>
+                <div className="mb-2 text-[13px] font-semibold text-fg-3">{g.label}</div>
+                <div className="no-scrollbar -mx-5 flex gap-3 overflow-x-auto px-5 pb-1 pt-1 sm:mx-0 sm:flex-wrap sm:px-0">{g.items.map(chip)}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {(isPending && !!id || upcoming.isPending) && <Loading label="Carregando o card" className="space-y-4"><Skeleton className="h-28" /><Skeleton className="h-[640px]" /></Loading>}
       {isError && <Panel><ErrorState message={error?.message} onRetry={() => refetch()} /></Panel>}

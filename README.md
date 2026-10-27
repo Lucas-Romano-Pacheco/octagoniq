@@ -10,9 +10,9 @@
 |---|---|
 | ![Página inicial](docs/home.webp) | ![Perfil do lutador](docs/perfil.webp) |
 
-| Luta: boneco 3D, odds e cartões dos juízes | Comparador |
+| Luta: mapa de golpes, odds e cartões dos juízes | Comparador |
 |---|---|
-| ![Luta com boneco 3D](docs/luta-3d.webp) | ![Comparador](docs/comparar.webp) |
+| ![Luta com mapa de golpes](docs/luta-3d.webp) | ![Comparador](docs/comparar.webp) |
 
 | Luta (modo noturno) | Celular |
 |---|---|
@@ -22,7 +22,7 @@
 
 - **Início:** próximo evento com contagem regressiva, top 5 peso por peso (masculino e feminino), destaques do último evento (zebra, maior favorito, bônus do UFC), os 11 campeões e a agenda.
 - **Eventos:** calendário mensal (como o Google Agenda), card completo com resultados, **faixa ao vivo** durante o evento (luta em andamento, round e relógio, avisos de "começou" e "terminou") e resumo da noite.
-- **Luta:** estatísticas por alvo num **boneco 3D** que gira com o mouse, odds com movimento da linha (abertura → fechamento), **cartões dos juízes round a round** e, para lutas futuras, uma prévia comparando a carreira dos dois.
+- **Luta:** estatísticas por alvo na **foto de cada lutador, pintada onde ele foi atingido** (como na ESPN), odds com movimento da linha (abertura → fechamento), **cartões dos juízes round a round** e, para lutas futuras, uma prévia comparando a carreira dos dois.
 - **Lutador:** estatísticas oficiais comparadas com a média dos ranqueados da divisão (e destaque do top 3), vitórias e derrotas por método, linha do tempo com marcos, histórico ordenável e notícias.
 - **Rankings, Lutadores e Comparar:** rankings oficiais com luta marcada, filtros (brasileiros, campeões), placar de vantagens, radar de atributos e confronto direto.
 - **Palpites:** escolha vencedor, método e round de cada luta do card. Os palpites fecham luta a luta e, quando os resultados saem, a página calcula acertos e pontos (10 pelo vencedor, +5 método, +5 round, +5 palpite perfeito, bônus por zebra) e um voto de **luta da noite** por evento (+15 se a luta escolhida levar o bônus oficial do UFC). O botão **Salvar palpites** confirma o que foi computado e grava no banco (Supabase/Postgres), na conta de cada pessoa. A pontuação é uma função pura e testada (`src/lib/picks.ts`).
@@ -44,7 +44,6 @@
 - **React 19 + TypeScript + Vite 8**, rotas com React Router 7 e páginas em pedaços separados
 - **TanStack Query 5:** cache no navegador, atualização ao vivo a cada 20 s e pré-carregamento ao passar o mouse
 - **Tailwind CSS 4 + shadcn/ui (Radix)**, **Motion** (animações) e **ECharts 6** (gráficos, carregado só quando aparece)
-- **three.js:** boneco 3D da aba "Por alvo", carregado só nessa aba. Modelo "Universal Base Characters", de [Quaternius](https://quaternius.itch.io/universal-base-characters), CC0 (créditos em `public/models/CREDITS.txt`)
 - **BFF em Node** (`server/`): consolida as fontes, normaliza para tipos próprios e guarda cache
 - **satori + resvg** (imagens de prévia) e **sharp** (fotos redimensionadas em WebP)
 - Tipografia: Archivo Narrow (títulos), IBM Plex Sans (texto) e IBM Plex Mono (números). Regras de design em [`design.md`](design.md) e objetivos de cada tela em [`PRODUCT.md`](PRODUCT.md)
@@ -96,7 +95,7 @@ As fontes não são oficiais e podem mudar sem aviso. Os adaptadores ficam isola
 
 - **Cache em duas camadas:** no servidor, *stale-while-revalidate* em memória e em disco (um dado vencido é entregue na hora e atualizado em segundo plano), com aquecimento ao subir; no navegador, TanStack Query persistido por 24 h. Perfil a frio: 3,3 s → servido do cache em ~1 ms.
 - **Fotos redimensionadas:** `/img` entrega WebP na largura pedida (um avatar de 282 KB virou 4,6 KB).
-- **Carregamento sob demanda:** páginas, gráficos, 3D e a busca são baixados só quando usados; seções abaixo da dobra só são montadas quando o visitante se aproxima.
+- **Carregamento sob demanda:** páginas, gráficos e a busca são baixados só quando usados; seções abaixo da dobra só são montadas quando o visitante se aproxima.
 - **Lighthouse** (build de produção, local): desktop **93–100** em desempenho, **96–100** em acessibilidade, **100** em boas práticas e SEO. No celular simulado (rede 4G lenta e CPU 4× mais lenta) o desempenho fica em 64–78. Passar disso exigiria pré-renderizar as páginas no servidor.
 
 ## Qualidade de código e testes
@@ -151,7 +150,7 @@ server/
   vercel.ts      função serverless do Vercel
 src/
   lib/           cliente da API (hooks) e formatação
-  components/    layout, linha de luta, gráficos, boneco 3D, prévia da luta, primitivos de UI
+  components/    layout, linha de luta, gráficos, mapa de golpes, prévia da luta, primitivos de UI
   pages/         Início, Eventos, Evento, Rankings, Lutadores, Lutador, Luta, Comparar, Palpites, Entrar, Conta, Sobre
 scripts/     build do Vercel e cópia das bandeiras
 docs/        capturas de tela deste README
@@ -203,5 +202,5 @@ No Vercel o cache fica em `/tmp`, que só dura enquanto a instância da função
 
 ## Créditos
 
-Dados: ESPN, UFC.com, UFC Fight Tracker e BestFightOdds. Modelo 3D: Quaternius (CC0). Bandeiras: circle-flags e flag-icons. Ícones: Phosphor. Fontes: Archivo Narrow, IBM Plex Sans e IBM Plex Mono.
+Dados: ESPN, UFC.com, UFC Fight Tracker e BestFightOdds. Bandeiras: circle-flags e flag-icons. Ícones: Hugeicons. Fontes: Archivo Narrow, IBM Plex Sans e IBM Plex Mono.
 Feito por **Lucas Pacheco**.
