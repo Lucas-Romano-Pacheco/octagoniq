@@ -26,7 +26,7 @@ await build({
 // prévias (Open Graph): HTML base, fontes e o resvg (com o binário Linux x64, o mesmo do runtime do Vercel)
 cpSync('dist/index.html', `${FN}/index.html`);
 mkdirSync(`${FN}/fonts`, { recursive: true });
-for (const f of ['archivo-narrow/files/archivo-narrow-latin-700-normal.woff', 'archivo-narrow/files/archivo-narrow-latin-600-normal.woff', 'ibm-plex-sans/files/ibm-plex-sans-latin-400-normal.woff', 'ibm-plex-sans/files/ibm-plex-sans-latin-600-normal.woff'])
+for (const f of ['archivo-narrow/files/archivo-narrow-latin-700-normal.woff', 'archivo-narrow/files/archivo-narrow-latin-600-normal.woff', 'montserrat/files/montserrat-latin-400-normal.woff', 'montserrat/files/montserrat-latin-600-normal.woff'])
   cpSync(`node_modules/@fontsource/${f}`, `${FN}/fonts/${f.split('/').pop()}`);
 for (const p of ['@resvg/resvg-js', '@resvg/resvg-js-linux-x64-gnu', 'sharp', '@img/sharp-linux-x64', '@img/sharp-libvips-linux-x64', '@img/colour', 'detect-libc', 'semver'])
   cpSync(`node_modules/${p}`, `${FN}/node_modules/${p}`, { recursive: true, dereference: true });

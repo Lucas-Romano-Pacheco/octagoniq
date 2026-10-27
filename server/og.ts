@@ -2,7 +2,7 @@
    uma imagem 1200×630 feita para aquela página (luta, lutador, evento).
    Os robôs dessas redes não executam JavaScript, então o servidor escreve as meta tags no HTML só para eles
    (detectados pelo User-Agent); os visitantes recebem o site estático de sempre.
-   Imagens: satori (HTML/CSS → SVG) + resvg (SVG → PNG), com Archivo Narrow e IBM Plex Sans em WOFF. */
+   Imagens: satori (HTML/CSS → SVG) + resvg (SVG → PNG), com Archivo Narrow e Montserrat em WOFF. */
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -20,8 +20,8 @@ export const BOT_UA = /facebookexternalhit|facebot|linkedinbot|whatsapp|twitterb
 const FONT_FILES = {
   narrow700: '@fontsource/archivo-narrow/files/archivo-narrow-latin-700-normal.woff',
   narrow600: '@fontsource/archivo-narrow/files/archivo-narrow-latin-600-normal.woff',
-  plex400: '@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-400-normal.woff',
-  plex600: '@fontsource/ibm-plex-sans/files/ibm-plex-sans-latin-600-normal.woff',
+  sans400: '@fontsource/montserrat/files/montserrat-latin-400-normal.woff',
+  sans600: '@fontsource/montserrat/files/montserrat-latin-600-normal.woff',
 };
 function font(rel: string) {
   const name = rel.split('/').pop()!;
@@ -34,8 +34,8 @@ let fonts: Parameters<typeof satori>[1]['fonts'] | null = null;
 const loadFonts = () => (fonts ??= [
   { name: 'Narrow', data: font(FONT_FILES.narrow700), weight: 700, style: 'normal' },
   { name: 'Narrow', data: font(FONT_FILES.narrow600), weight: 600, style: 'normal' },
-  { name: 'Plex', data: font(FONT_FILES.plex400), weight: 400, style: 'normal' },
-  { name: 'Plex', data: font(FONT_FILES.plex600), weight: 600, style: 'normal' },
+  { name: 'Sans', data: font(FONT_FILES.sans400), weight: 400, style: 'normal' },
+  { name: 'Sans', data: font(FONT_FILES.sans600), weight: 600, style: 'normal' },
 ]);
 
 /* ---------- Mini-JSX para o satori ---------- */
@@ -64,7 +64,7 @@ const logo = () => h('div', { alignItems: 'center', gap: 12 },
   h('div', { fontFamily: 'Narrow', fontWeight: 700, fontSize: 34, color: C.fg, letterSpacing: 1 }, 'OCTAGON'),
   h('div', { fontFamily: 'Narrow', fontWeight: 700, fontSize: 30, color: '#fff', background: C.brand, padding: '0 10px', borderRadius: 4 }, 'IQ'));
 
-const frame = (...children: El[]) => h('div', { width: 1200, height: 630, background: C.bg, color: C.fg, flexDirection: 'column', fontFamily: 'Plex', position: 'relative', overflow: 'hidden' }, ...children);
+const frame = (...children: El[]) => h('div', { width: 1200, height: 630, background: C.bg, color: C.fg, flexDirection: 'column', fontFamily: 'Sans', position: 'relative', overflow: 'hidden' }, ...children);
 
 /* ---------- Modelos ---------- */
 
